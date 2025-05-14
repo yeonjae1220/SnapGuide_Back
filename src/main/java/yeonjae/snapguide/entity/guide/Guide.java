@@ -39,8 +39,9 @@ public class Guide extends BaseEntity {
 
     // NOTE : 화면에서 Guide 객체 하나로 그 안에 있는 Photo 목록을 자주 순회 할 듯 하여 양방향 설정
     // TODO : 관계 유지 코드 (동기화) 작성 필요
-    @OneToMany(mappedBy = "media", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Media> mediaList = new ArrayList<>();
+    // 임시로 주석 처리
+//    @OneToMany(mappedBy = "guide", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Media> mediaList = new ArrayList<>();
 
     // 일단 고려
 //    // NOTE : 댓글이 많을 경우 N+1이나 지연 로딩 이슈가 발생할 수 있지만, 앱 특성상 댓글이 거의 없을 것이라 생각하여 양방향 설정

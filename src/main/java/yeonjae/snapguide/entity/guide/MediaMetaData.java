@@ -2,14 +2,16 @@ package yeonjae.snapguide.entity.guide;
 
 import jakarta.persistence.*;
 import lombok.*;
+import yeonjae.snapguide.entity.guide.mediaUtil.exifUtil.FlashMode;
+import yeonjae.snapguide.entity.guide.mediaUtil.exifUtil.WhiteBalance;
 
 import java.time.LocalDateTime;
 
-@Embeddable
+@Entity
 @Getter
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @EqualsAndHashCode
 public class MediaMetaData {
     @Id
@@ -26,7 +28,7 @@ public class MediaMetaData {
      * 빛에 대한 감도
      * 50, 100, 150 ..
      */
-    private Long iso;
+    private Integer iso;
 
     /**
      * exposure time
@@ -42,18 +44,18 @@ public class MediaMetaData {
 
     /**
      * 자동 수동
-     * TODO : enum 으로 바꿔 놓기 Auto / Manual
-     */
-    private String whiteBalance;
+     * */
+    @Enumerated(EnumType.STRING)
+    private WhiteBalance whiteBalance;
 
     /**
      * 초점거리
      * 26mm
      */
-    private String focalLength;
+    private Integer focalLength;
 
     /**
-     * 밝기 조정 (+2 ~ -2EV) 보통 슬라이더 지원
+     * 밝기 조정 (노출 보정) (+2 ~ -2EV) 보통 슬라이더 지원
      */
     private String exposureCompensation;
 
@@ -61,7 +63,9 @@ public class MediaMetaData {
      * 플레쉬 사용 여부
      *  TODO : enum 으로 바꿔놓기 ON / OFF
      */
-    private String flash;
+    @Enumerated(EnumType.STRING)
+    private FlashMode flashMode;
+    private Integer flashCode;  // 0x7 같은 원시값 저장
 
     /**
      * 줌
@@ -78,18 +82,18 @@ public class MediaMetaData {
     /**
      * 비율
      */
-    private String aspectRatio;
+    // private String aspectRatio;
 
     /**
      * 해상도
      */
-    private String resolution;
+    // private String resolution;
 
     /**
      * 비디오 전용
      * 30fps
      */
-    private String frameRate;
+    // private String frameRate;
 
     private LocalDateTime time;
 
@@ -101,6 +105,8 @@ public class MediaMetaData {
      */
     // private Weather weather;
 
-
+    public void assignCameraModel(CameraModel cameraModel) {
+        this.cameraModel = cameraModel;
+    }
 
 }
