@@ -24,3 +24,8 @@ spring:
 logging.level:
   org.hibernate.SQL: debug
   # org.hibernate.type: trace
+
+google:
+  maps:
+    api:
+      key: AIzaSyC4A8g9EEFIPxc0GT09-Ibw7G9DMxeEwqA
