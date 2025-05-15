@@ -1,9 +1,6 @@
 package yeonjae.snapguide.entity.guide;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -11,15 +8,23 @@ import lombok.*;
 @Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(uniqueConstraints = {
+        @UniqueConstraint(columnNames = {
+                "country", "region", "subRegion", "locality", "route", "streetNumber", "premise", "subPremise"
+        })
+})
 public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String locationName;
-
     private Double latitude;
     private Double longitude;
+    /**
+     * 우편 번호
+     */
+    // private String postalCode;
 
     private String country;
     /**
@@ -41,10 +46,7 @@ public class Location {
      * Downtown LA
      */
     private String locality;
-    /**
-     * 우편 번호
-     */
-    private String postalCode;
+
     /**
      * 거리 이름
      */

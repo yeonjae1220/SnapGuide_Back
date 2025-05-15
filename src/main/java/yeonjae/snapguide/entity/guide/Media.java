@@ -51,9 +51,9 @@ public class Media {
     private MediaMetaData mediaMetaData;
 
     // NOTE : 대략적으로만 나타내도 가능, 디테일한 주소를 따로 빼고 ManytoOne으로 바꾼 다음 하면 최적화 가능 할 듯
-//    @OneToOne
-//    @JoinColumn(name = "local_id")
-//    private Location location;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST) // PERSIST: 새 Location일 경우 자동 저장
+    @JoinColumn(name = "location_id")
+    private Location location;
 
     public void assignMedia(MediaMetaData mediaMetaData) {
         this.mediaMetaData = mediaMetaData;
