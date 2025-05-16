@@ -7,12 +7,13 @@ import lombok.*;
 @Getter
 @Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @Table(uniqueConstraints = {
         @UniqueConstraint(columnNames = {
                 "country", "region", "subRegion", "locality", "route", "streetNumber", "premise", "subPremise"
         })
 })
+@ToString
 public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -64,4 +65,10 @@ public class Location {
      * 건물 안 가게 이름 같은 경우
      */
     private String subPremise;
+
+//    public void assignGpsCoordinate(String locationName, Double latitude, Double longitude) {
+//        this.locationName = locationName;
+//        this.latitude = latitude;
+//        this.longitude = longitude;
+//    }
 }

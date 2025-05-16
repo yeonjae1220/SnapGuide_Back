@@ -4,10 +4,12 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
+import org.springframework.stereotype.Component;
 import yeonjae.snapguide.entity.guide.CameraModel;
 
 import java.io.File;
 
+@Component
 public class CameraModelExtractor {
     public static CameraModel extract(File file) {
         CameraModel model = new CameraModel();
