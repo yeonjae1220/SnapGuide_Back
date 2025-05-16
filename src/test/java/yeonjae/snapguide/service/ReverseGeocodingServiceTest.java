@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import yeonjae.snapguide.entity.guide.Location;
+import yeonjae.snapguide.repository.LocationRepository;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
@@ -12,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReverseGeocodingServiceTest {
     @Autowired
     private ReverseGeocodingService reverseGeocodingService;
+
+    @Autowired
+    private LocationRepository locationRepository;
     @Test
     public void reverseGeocodeTest() {
         /**
@@ -22,12 +29,39 @@ class ReverseGeocodingServiceTest {
 //                    System.out.println("응답: " + response);
 //                });
 
-        String response = reverseGeocodingService.reverseGeocode(37.5665, 126.9780)
+        Location response = reverseGeocodingService.reverseGeocode(35.2021804,128.7078053)
                 .block(); // 동기적으로 응답을 기다림
 
         System.out.println("응답: " + response);
         Assertions.assertNotNull(response); // 예시로 응답 검증도 가능
 
     }
+
+    @Test
+    void reverseGeocodeAndSaveLocation() {
+        // 예시 좌표: 서울 시청 (37.5665, 126.9780)
+        double lat = 37.5665;
+        double lng = 126.9780;
+
+        Location location = reverseGeocodingService.reverseGeocode(lat, lng).block(); // block은 테스트용
+        System.out.println("location = " + location);
+
+        assertNotNull(location, "Location 객체가 null이 아니어야 합니다.");
+        assertNotNull(location.getLocationName(), "주소 문자열이 null이 아니어야 합니다.");
+        assertEquals(lat, location.getLatitude());
+        assertEquals(lng, location.getLongitude());
+
+        // 저장
+        locationRepository.save(location);
+
+        // 저장된 Location이 다시 조회되는지 확인
+        Optional<Location> saved = locationRepository.findById(location.getId());
+        assertTrue(saved.isPresent(), "저장된 Location이 DB에 존재해야 합니다.");
+        assertEquals(location.getLocationName(), saved.get().getLocationName());
+
+
+    }
+
+
 
 }

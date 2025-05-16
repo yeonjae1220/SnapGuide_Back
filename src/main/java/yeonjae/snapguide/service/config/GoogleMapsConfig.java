@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Getter
 @Setter // TODO: 얘 안쓸 방법 찾아보자. 그냥 Setter가 나는 싫다
-@Configuration
+@Configuration // HACK : 이거 말고 그냥 가볍게 @Component만?
 @ConfigurationProperties(prefix = "google.maps.api")
 public class GoogleMapsConfig {
     private String key;
