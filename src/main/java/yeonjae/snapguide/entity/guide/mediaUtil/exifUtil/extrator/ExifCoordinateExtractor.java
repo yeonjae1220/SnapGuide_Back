@@ -10,8 +10,8 @@ import java.io.File;
 import java.util.Optional;
 
 @Component
-public class ExifGpsExtractor {
-    public Optional<double[]> extractGps(File file) {
+public class ExifCoordinateExtractor {
+    public static Optional<double[]> extractCoordinate(File file) { // 왜 double이고 Double가 아닌지
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(file);
             GpsDirectory gpsDir = metadata.getFirstDirectoryOfType(GpsDirectory.class);

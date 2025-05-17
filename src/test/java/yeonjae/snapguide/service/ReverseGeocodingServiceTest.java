@@ -32,7 +32,7 @@ class ReverseGeocodingServiceTest {
         Location response = reverseGeocodingService.reverseGeocode(35.2021804,128.7078053)
                 .block(); // 동기적으로 응답을 기다림
 
-        System.out.println("응답: " + response);
+
         Assertions.assertNotNull(response); // 예시로 응답 검증도 가능
 
     }

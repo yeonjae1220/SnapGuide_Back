@@ -41,6 +41,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	// testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.mockito:mockito-inline:5.2.0' // static 메서드 mocking용
 
 	// for handel metadata
 	implementation 'com.drewnoakes:metadata-extractor:2.18.0'

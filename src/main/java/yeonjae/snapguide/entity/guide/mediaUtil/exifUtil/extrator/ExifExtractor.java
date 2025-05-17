@@ -23,8 +23,8 @@ public class ExifExtractor {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(file);
 
-            // TODO : SRP 단일 책임 원칙 위해 GPS 코드 분리해야함
-            GpsDirectory gps = metadata.getFirstDirectoryOfType(GpsDirectory.class);
+            // NOTE : SRP 단일 책임 원칙 위해 GPS 코드 분리해야함 -> ExifCoordinateExtractor로 이동
+            // GpsDirectory gps = metadata.getFirstDirectoryOfType(GpsDirectory.class);
             ExifSubIFDDirectory exif = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
             ExifIFD0Directory ifd0 = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
 

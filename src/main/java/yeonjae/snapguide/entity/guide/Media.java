@@ -55,7 +55,8 @@ public class Media {
     @JoinColumn(name = "location_id")
     private Location location;
 
-    public void assignMedia(MediaMetaData mediaMetaData) {
+    public void assignMedia(MediaMetaData mediaMetaData, Location location) {
         this.mediaMetaData = mediaMetaData;
+        this.location = location;
     }
 }

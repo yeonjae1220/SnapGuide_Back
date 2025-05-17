@@ -7,9 +7,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import yeonjae.snapguide.entity.guide.Location;
 import yeonjae.snapguide.service.config.GoogleMapsConfig;
-import yeonjae.snapguide.service.util.dto.AddressComponentDto;
-import yeonjae.snapguide.service.util.dto.GeocodingResponseDto;
-import yeonjae.snapguide.service.util.dto.GeocodingResultDto;
+import yeonjae.snapguide.service.util.googleMapApiDto.AddressComponentDto;
+import yeonjae.snapguide.service.util.googleMapApiDto.GeocodingResponseDto;
+import yeonjae.snapguide.service.util.googleMapApiDto.GeocodingResultDto;
 
 import java.util.List;
 
