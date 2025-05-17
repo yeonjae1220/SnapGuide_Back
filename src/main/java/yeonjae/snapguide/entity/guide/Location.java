@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Getter
 @Builder(toBuilder = true)
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor // (access = AccessLevel.PROTECTED)
 @NoArgsConstructor
 @Table(uniqueConstraints = {
         @UniqueConstraint(columnNames = {

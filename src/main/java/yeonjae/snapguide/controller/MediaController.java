@@ -22,7 +22,7 @@ public class MediaController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadPhoto(@RequestParam("file") MultipartFile file) throws IOException {
-        String mediaId = mediaService.saveMedia(file);
+        Long mediaId = mediaService.saveMedia(file);
         return ResponseEntity.ok("Saved: " + mediaId);
     }
 }

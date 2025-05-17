@@ -1,4 +1,4 @@
-package yeonjae.snapguide.service.util.dto;
+package yeonjae.snapguide.service.util.googleMapApiDto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
