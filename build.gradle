@@ -52,6 +52,10 @@ dependencies {
 
 	// google maps api 용
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	//security
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 }
 
 tasks.named('test') {

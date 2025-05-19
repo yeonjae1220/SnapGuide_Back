@@ -14,14 +14,14 @@ import yeonjae.snapguide.entity.FileFormat;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode
 public class ProfileImage {
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String profileImageName;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String profileImageUrl;
 
     @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private FileFormat profileImageType;
 
     public static ProfileImage defaultInstance() {
