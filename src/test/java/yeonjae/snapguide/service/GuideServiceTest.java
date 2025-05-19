@@ -48,7 +48,7 @@ class GuideServiceTest {
          */
         // given
         Member member = Member.builder()
-                .username("testUser")
+                .email("test@example.com")
                 .build();
         memberRepository.save(member);
 
@@ -82,7 +82,7 @@ class GuideServiceTest {
     void testLinkMediaTOGuide() throws IOException {
         // given
         Member member = Member.builder()
-                .username("testUser")
+                .email("test@example.com")
                 .build();
         Long memberId = memberRepository.save(member).getId();
 

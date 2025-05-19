@@ -14,7 +14,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(of = {"id", "username"})
+@ToString(of = {"id", "email"})
 public class Member extends BaseEntity {
 
     @Id
@@ -22,7 +22,7 @@ public class Member extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private String username;
+    private String email;
 
     @Column
     private String password; // local login에만 사용 (소셜은 null)
