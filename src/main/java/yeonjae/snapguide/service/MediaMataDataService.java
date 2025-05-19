@@ -27,7 +27,7 @@ public class MediaMataDataService {
         MediaMetaData metaData = ExifExtractor.extract(file);
         // 카메라 모델 추출 && 저장
         CameraModel cameraModel = CameraModelExtractor.extract(file);
-        cameraModelRepository.save(cameraModel);
+        cameraModelRepository.save(cameraModel); // HACK : 얘도 나중에 cascade Persist로?
         // CameraModel 을 MediaMetaData에 연결
         metaData.assignCameraModel(cameraModel);
         return mediaMetaDataRepository.save(metaData);

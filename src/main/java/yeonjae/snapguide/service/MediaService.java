@@ -22,18 +22,14 @@ public class MediaService {
     private final FileStorageService fileStorageService;
     private final MediaMataDataService mediaMataDataService;
     private final LocationService locationService;
+    private final GuideService guideService;
     private final MediaRepository mediaRepository;
-//    private final GuideRepository guideRepository;
 
     public Long saveMedia(MultipartFile file) throws IOException {
 
         File savedFile = fileStorageService.saveFile(file);
         MediaMetaData metaData = mediaMataDataService.extractAndSave(savedFile);
         Location location = locationService.extractAndResolveLocation(savedFile);
-
-        // 1. 위도/경도 기반으로 주소 정보 가져오기
-//        Guide guide = guideRepository.findById(guideId)
-//                .orElseThrow(() -> new EntityNotFoundException("Guide not found with id: " + guideId));
 
         Media media = Media.builder()
                 .mediaName(file.getOriginalFilename())

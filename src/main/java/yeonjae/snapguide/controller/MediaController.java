@@ -11,6 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.service.MediaService;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,5 +27,18 @@ public class MediaController {
     public ResponseEntity<String> uploadPhoto(@RequestParam("file") MultipartFile file) throws IOException {
         Long mediaId = mediaService.saveMedia(file);
         return ResponseEntity.ok("Saved: " + mediaId);
+    }
+
+    @PostMapping("/api/upload")
+    public List<Long> uploadMedia(@RequestParam MultipartFile[] files) throws IOException {
+        return Arrays.stream(files)
+                .map(file -> {
+                    try {
+                        return mediaService.saveMedia(file);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }
