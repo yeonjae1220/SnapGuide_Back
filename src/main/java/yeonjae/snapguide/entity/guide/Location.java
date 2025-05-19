@@ -28,7 +28,7 @@ public class Location {
     // private String postalCode;
 
     private String country;
-    /**
+    /**ㅈ
      * 광역 단위 (한국 도, 일본 현, 중국 성, 미국 주)
      * Tokyo, Gyeonggi-do, California
      */

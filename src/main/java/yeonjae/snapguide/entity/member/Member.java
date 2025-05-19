@@ -24,29 +24,36 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
-    private String password;
+    @Column
+    private String password; // local login에만 사용 (소셜은 null)
 
     @Column(nullable = false)
     private String nickname;
 
-    @Column(nullable = false, insertable = false, updatable = false)
-    private String hashcode;
+    @Enumerated(EnumType.STRING)
+    private LoginType loginType; // LOCAL, GOOGLE, KAKAO, APPLE
 
-    @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
-    private Authority authority;
-
-    @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
-    private AccountStatus accountStatus;
-
-    @Enumerated(value = EnumType.STRING)
-    @Column(nullable = false)
-    private MembershipType membershipType;
+    private String providerId; // 소셜 로그인 고유 ID
 
     @Embedded
     private ProfileImage profileImage;
+
+//    @Column(nullable = false, insertable = false, updatable = false)
+//    private String hashcode;
+//
+//    @Enumerated(value = EnumType.STRING)
+//    @Column(nullable = false)
+//    private Authority authority;
+//
+//    @Enumerated(value = EnumType.STRING)
+//    @Column(nullable = false)
+//    private AccountStatus accountStatus;
+//
+//    @Enumerated(value = EnumType.STRING)
+//    @Column(nullable = false)
+//    private MembershipType membershipType;
+//
+
 
 
 }

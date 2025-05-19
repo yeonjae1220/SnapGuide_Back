@@ -42,9 +42,9 @@ public class Media {
 //    @JoinColumn(name = "member_id", nullable = false)
 //    private Member member;
 //
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "guide_id", nullable = false)
-//    private Guide guide;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guide_id", nullable = true) // HACK : Guide보다 media를 빨리 저장해야해서 얘가 Nullable이 들어감
+    private Guide guide;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "media_metadata_id", nullable = false)
@@ -58,5 +58,9 @@ public class Media {
     public void assignMedia(MediaMetaData mediaMetaData, Location location) {
         this.mediaMetaData = mediaMetaData;
         this.location = location;
+    }
+
+    public void assignMedia(Guide guide) {
+        this.guide = guide;
     }
 }
