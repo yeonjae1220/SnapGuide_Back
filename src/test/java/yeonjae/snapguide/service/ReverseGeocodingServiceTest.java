@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.entity.guide.Location;
-import yeonjae.snapguide.repository.LocationRepository;
+import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
 import java.util.Optional;
 

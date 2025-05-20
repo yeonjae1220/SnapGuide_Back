@@ -1,18 +1,17 @@
 package yeonjae.snapguide.service;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.entity.member.LoginType;
-import yeonjae.snapguide.entity.member.Member;
-import yeonjae.snapguide.entity.member.dto.LocalSignInRequestDto;
-import yeonjae.snapguide.entity.member.dto.LocalSignUpRequestDto;
-import yeonjae.snapguide.repository.MemberRepository;
+import yeonjae.snapguide.domain.member.LoginType;
+import yeonjae.snapguide.domain.member.Member;
+import yeonjae.snapguide.domain.member.dto.LocalSignInRequestDto;
+import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
+import yeonjae.snapguide.repository.memberRepository.MemberRepository;
+import yeonjae.snapguide.service.memberSerivce.MemberService;
 
 import static org.junit.jupiter.api.Assertions.*;
 //@ExtendWith(SpringExtension.class)

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import yeonjae.snapguide.entity.guide.Location;
+import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.service.config.GoogleMapsConfig;
 import yeonjae.snapguide.service.util.googleMapApiDto.AddressComponentDto;
 import yeonjae.snapguide.service.util.googleMapApiDto.GeocodingResponseDto;
@@ -39,6 +39,7 @@ public class ReverseGeocodingService {
                                 .orElse(null);
 
                     } catch (Exception e) {
+                        // TODO : 로그로
                         e.printStackTrace();
                         return null;
                     }

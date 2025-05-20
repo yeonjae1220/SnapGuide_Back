@@ -6,12 +6,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import yeonjae.snapguide.entity.guide.CameraModel;
-import yeonjae.snapguide.entity.guide.MediaMetaData;
-import yeonjae.snapguide.entity.guide.mediaUtil.exifUtil.extrator.CameraModelExtractor;
-import yeonjae.snapguide.entity.guide.mediaUtil.exifUtil.extrator.ExifExtractor;
-import yeonjae.snapguide.repository.CameraModelRepository;
-import yeonjae.snapguide.repository.MediaMetaDataRepository;
+import yeonjae.snapguide.domain.cameraModel.CameraModel;
+import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
+import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.CameraModelExtractor;
+import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifExtractor;
+import yeonjae.snapguide.repository.cameraModelRepository.CameraModelRepository;
+import yeonjae.snapguide.repository.mediaMetaDataRepository.MediaMetaDataRepository;
+import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
 
@@ -27,7 +28,7 @@ class MetaDataServiceTest {
     @Mock private CameraModelRepository cameraModelRepository;
 
     @InjectMocks
-    private MediaMataDataService mediaMataDataService;
+    private MediaMetaDataService mediaMetaDataService;
 
     @Test
     void extractAndSave_shouldSaveMetaDataAndCameraModel() throws Exception {
@@ -53,7 +54,7 @@ class MetaDataServiceTest {
             when(mediaMetaDataRepository.save(any())).thenReturn(dummyMeta);
 
             // when
-            MediaMetaData savedMeta = mediaMataDataService.extractAndSave(dummyFile);
+            MediaMetaData savedMeta = mediaMetaDataService.extractAndSave(dummyFile);
 
             // then
             assertNotNull(savedMeta);
