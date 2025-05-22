@@ -20,9 +20,12 @@ public class LocationService {
     // 좌표 값 추출 && 저장
     public Location extractAndResolveLocation(File file) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
-        // TODO : exception 날릴께 아니고 그냥 Null이나 default값 저장하는 걸로 바꾸기. 좌표값 없는 사진 유형도 많을 듯 함
+        if (coordinate.isEmpty()) {
+            return null;
+        }
         double[] latLng = coordinate.orElseThrow(() ->
                 new IllegalArgumentException("좌표 정보가 없습니다."));
+
         Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
         // 2. 해당 Guide 찾기 TODO : Media, Location과 Guide 연관관계 연결 해줘야함
         if (location == null) {

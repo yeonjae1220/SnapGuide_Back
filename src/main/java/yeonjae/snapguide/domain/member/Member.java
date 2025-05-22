@@ -22,7 +22,7 @@ public class Member extends BaseEntity {
     @Column
     private String password; // local login에만 사용 (소셜은 null)
 
-    @Column(nullable = false)
+    // @Column(nullable = false)
     private String nickname;
 
     @Enumerated(EnumType.STRING)

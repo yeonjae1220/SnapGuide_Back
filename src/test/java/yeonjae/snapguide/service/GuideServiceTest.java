@@ -96,7 +96,9 @@ class GuideServiceTest {
 
 
         List<MultipartFile> files = List.of(
+                new MockMultipartFile("file", "test-image1.jpg", "image/jpeg", new FileInputStream("src/test/resources/testImage/test-image1.jpg")),
                 new MockMultipartFile("file", "test-image2.jpg", "image/jpeg", new FileInputStream("src/test/resources/testImage/test-image2.jpg")),
+                new MockMultipartFile("file", "test-image3.jpg", "image/jpeg", new FileInputStream("src/test/resources/testImage/test-image3.jpg")),
                 new MockMultipartFile("file", "test-image4.HEIC", "image/HEIF", new FileInputStream("src/test/resources/testImage/test-image4.HEIC"))
         );
 
