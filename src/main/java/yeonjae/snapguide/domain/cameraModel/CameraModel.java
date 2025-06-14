@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Getter
 @Builder(toBuilder = true)
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @NoArgsConstructor
 public class CameraModel {
     @Id
