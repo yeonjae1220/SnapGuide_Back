@@ -9,6 +9,7 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.CameraModelExtracto
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifExtractor;
 import yeonjae.snapguide.repository.cameraModelRepository.CameraModelRepository;
 import yeonjae.snapguide.repository.mediaMetaDataRepository.MediaMetaDataRepository;
+import yeonjae.snapguide.service.cameraModelService.CameraModelService;
 
 import java.io.File;
 
@@ -20,14 +21,11 @@ import java.io.File;
 @RequiredArgsConstructor
 public class MediaMetaDataService {
     private final MediaMetaDataRepository mediaMetaDataRepository;
-    private final CameraModelRepository cameraModelRepository;
-
+    private final CameraModelService cameraModelService;
     public MediaMetaData extractAndSave(File file) {
         // EXIF 메타데이터 추출
         MediaMetaData metaData = ExifExtractor.extract(file);
-        // 카메라 모델 추출 && 저장
-        CameraModel cameraModel = CameraModelExtractor.extract(file);
-        cameraModelRepository.save(cameraModel); // HACK : 얘도 나중에 cascade Persist로?
+        CameraModel cameraModel = cameraModelService.save(file);
         // CameraModel 을 MediaMetaData에 연결
         metaData.assignCameraModel(cameraModel);
         return mediaMetaDataRepository.save(metaData);

@@ -35,7 +35,53 @@ logging.level:
   org.hibernate.SQL: debug
   # org.hibernate.type: trace
 
+jwt:
+  access_token_expiration: 1800000 # 30min
+  refresh_token_expiration: 604800000 # 1week
+  secret: f9f7ca2a630ed19e8c21f3d97b5afa3e890b497ea1526e4ca80809c365b9b3f76c1aa7c548b73e06a7cddb53629ec54068372ccaa34287769116c8bc29661904
+
+
+
 google:
   maps:
     api:
       key: AIzaSyC4A8g9EEFIPxc0GT09-Ibw7G9DMxeEwqA
+
+
+springdoc:
+  swagger-ui:
+    # swagger-ui 접근 경로. default 값은 /swagger-ui.html이다.
+    # path: /swagger-custom-ui.html
+    # 각 API의 그룹 표시 순서
+    # path, query, body, response 순으로 출력
+    groups-order: desc
+    # 태그 정렬 순서.
+    # alpha: 알파벳 순 정렬
+    # method: OpenAPI specification file에 원하는 태그 정렬 방식 직접 기재
+    tags-sorter: alpha
+    # 컨트롤러 정렬 순서.
+    # method는 delete - get - patch - post - put 순으로 정렬된다.
+    # alpha를 사용해 알파벳 순으로 정렬할 수 있다.
+    operations-sorter: method
+    default-model-expand-depth: 2
+    # swagger-ui default url인 petstore html의 비활성화 설정
+    display-request-duration: true
+    # swagger-ui에서 try 했을 때 request duration을 알려주는 설정
+    default-models-expand-depth: 2
+
+    # path: /swagger-ui.html # Swagger UI에 액세스할 수 있는 경로를 /swagger-ui.html로 설정한다.
+
+  # openAPI 접근 경로. default 값은 /v3/api-docs 이다.
+  api-docs:
+    path: /api-docs
+  # Spring Actuator의 endpoint까지 보여줄 것인지?
+  show-actuator: true
+  # request media type 의 기본 값
+  default-consumes-media-type: application/json
+  # response media type 의 기본 값
+  default-produces-media-type: application.json
+  writer-with-default-pretty-printer: true
+  model-and-view-allowed: true
+  # 해당 패턴에 매칭되는 controller만 swagger-ui에 노출한다.
+  paths-to-match:
+    - /api/**
