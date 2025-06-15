@@ -23,7 +23,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
 
     public Long signUp(LocalSignUpRequestDto request) {
-        if (memberRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (memberRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
 
