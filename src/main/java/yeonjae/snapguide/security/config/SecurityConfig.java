@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.AuthenticationEntryPointF
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
+import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
 
@@ -23,6 +24,11 @@ import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
 @EnableWebSecurity  // 스프링 시큐리티 필터가 스프링 필터체인에 등록이 된다.
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    //    private final AuthenticationEntryPointImpl authenticationEntryPoint;
+//    private final AccessDeniedHandlerImpl accessDeniedHandler;
+//    private final JwtAuthenticationProvider authenticationProvider;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -45,25 +51,29 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화
                 .formLogin(AbstractHttpConfigurer::disable) // Form Login 비활성화
+                .logout(AbstractHttpConfigurer::disable)
                 // 세션 사용 안함 (JWT 기반 인증 등 stateless 보안 구조일 경우)
                 // + 토큰에 저장된 유저정보를 활용하여야 하기 때문에 CustomUserDetailService 클래스를 생성합니다.
                 .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // .exceptionHandling(configurer -> configurer.accessDeniedHandler(this.accessDeniedHandler))
+
+//                .exceptionHandling(configurer -> configurer.accessDeniedHandler(this.accessDeniedHandler))
 
                 // JWT 등 커스텀 필터가 있다면 여기에 추가
                 // JwtAuthenticationFilter를 UsernamePasswordAuthenticationFilter 전에 넣는다
-                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+//                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                // JwtFilter 를 addFilterBefore 로 등록했던 JwtSecurityConfig 클래스를 적용
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
-        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
-        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
-        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
-        return filter;
-    }
+//    @Bean
+//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+//        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
+//        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
+//        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
+//        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
+//        return filter;
+//    }
 
 }
 
