@@ -8,8 +8,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.member.LoginType;
 import yeonjae.snapguide.domain.member.Member;
-import yeonjae.snapguide.domain.member.dto.LocalSignInRequestDto;
-import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 

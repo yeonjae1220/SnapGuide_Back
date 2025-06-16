@@ -8,13 +8,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.domain.cameraModel.CameraModel;
-import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
+import yeonjae.snapguide.domain.member.Authority;
+import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.service.FileStorageService;
 import yeonjae.snapguide.service.locationSerivce.LocationService;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 @Profile("local")
 @Component
@@ -46,7 +49,7 @@ public class InitTestLocalData {
         @Transactional
         public void init() {
             // testMember 입력
-            LocalSignUpRequestDto requestDto = new LocalSignUpRequestDto("test@example.com", "testPassword", "testNickname");
+            MemberRequestDto requestDto = new MemberRequestDto("test@example.com", "testPassword", "testNickname", new ArrayList<>(Arrays.asList(Authority.MEMBER)));
             Long memberId = memberService.signUp(requestDto);
 
         }

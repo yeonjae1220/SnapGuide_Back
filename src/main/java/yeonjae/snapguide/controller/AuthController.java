@@ -7,13 +7,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
-import yeonjae.snapguide.security.authentication.jwt.RefreshTokenDto;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.AuthService;
-
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,13 +38,3 @@ public class AuthController {
         return ResponseEntity.ok("test Controller");
     }
 }
-/*
-{
-    "email" : "test1",
-    "password" : "test1"
-}
-
-{
-    "test" : "test"
-}
- */

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
@@ -45,6 +46,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         log.info("토큰 유효성 검사2");
         filterChain.doFilter(request, response);
+
+
+
+
+
         /*
         // TODO : try catch로 exception 잡아야함
         try {

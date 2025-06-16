@@ -6,8 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.member.LoginType;
 import yeonjae.snapguide.domain.member.Member;
-import yeonjae.snapguide.domain.member.dto.LocalSignInRequestDto;
-import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
+import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 
 /**
@@ -22,7 +21,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Long signUp(LocalSignUpRequestDto request) {
+    public Long signUp(MemberRequestDto request) {
         if (memberRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
@@ -37,7 +36,7 @@ public class MemberService {
         return memberRepository.save(member).getId();
     }
 
-    public Member signIn(LocalSignInRequestDto request) {
+    public Member signIn(MemberRequestDto request) {
         Member member = memberRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 

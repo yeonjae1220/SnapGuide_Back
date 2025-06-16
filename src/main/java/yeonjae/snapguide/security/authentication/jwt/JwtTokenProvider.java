@@ -47,6 +47,34 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
+    public JwtToken createAccessToken(Collection<? extends GrantedAuthority> authorityInfo,
+                                      String id) {
+        String authorities = authorityInfo.stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(",")); // "MEMBER,ADMIN"
+
+        long now = (new Date()).getTime();
+
+        // AccessToken 생성 과정
+        Date accessTokenExpiresIn = new Date(now + expAccess);
+        String accessToken = Jwts.builder()
+                .subject(id)
+                .issuedAt(new Date(now))
+                .expiration(accessTokenExpiresIn)
+                .claim(AUTHORIZATION_HEADER, authorities)
+                .signWith(key)
+//                .signWith(key, SignatureAlgorithm.HS256) // 알고리즘은 키에서 추론하는 것으로 변경됨
+                .compact();
+
+        return JwtToken.builder()
+                .grantType(BEARER_PREFIX)
+                .accessToken(accessToken)
+                .accessTokenExpiresIn(accessTokenExpiresIn.getTime())
+                .refreshToken(null)
+                .build();
+    }
+
+
     // JWT Access Token 생성
     // TODO : 매개변수 확인, 좀 된 코드에서는 Authentication authentication 으로 받아서 .getAuthorities().stream()으로 가져오네
     public JwtToken generateToken(Collection<? extends GrantedAuthority> authorityInfo,
