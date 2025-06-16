@@ -29,7 +29,8 @@ public class MemberRequestDto {
                 .email(this.email)
                 .password(passwordEncoder.encode(this.password))
                 .nickname(this.nickname)
-                .authority(new ArrayList<>(this.authority)) // 복사해서 전달 -> 이유?
+                // .authority(new ArrayList<>(this.authority)) // 복사해서 전달 -> 이유?
+                .authority(List.of(Authority.MEMBER)) // 복사해서 전달 -> 이유?
                 .build();
     }
 }

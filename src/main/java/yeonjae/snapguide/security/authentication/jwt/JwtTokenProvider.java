@@ -39,7 +39,7 @@ public class JwtTokenProvider {
     // refresh 체크용
     private static final long THREE_DAYS = 1000 * 60 * 60 * 24 * 3;  // 3일
 
-    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String AUTHORIZATION_HEADER = "auth"; // "Authorization";
     public static final String BEARER_PREFIX = "Bearer";
 
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
@@ -51,10 +51,15 @@ public class JwtTokenProvider {
     // TODO : 매개변수 확인, 좀 된 코드에서는 Authentication authentication 으로 받아서 .getAuthorities().stream()으로 가져오네
     public JwtToken generateToken(Collection<? extends GrantedAuthority> authorityInfo,
                                    String id) {
+        System.out.println("Authority info: " + authorityInfo); // 디버깅용
         // 사용자의 권한 정보들을 모아 문자열로 만든다.
         String authorities = authorityInfo.stream()
                 .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(",")); // "MEMBER,ADMIN"
+        log.info("token authorities : " + authorities);
+        for (GrantedAuthority authority : authorityInfo) {
+            log.info("권한: " + authority.getAuthority());
+        }
 
         long now = (new Date()).getTime();
 
@@ -64,7 +69,7 @@ public class JwtTokenProvider {
                 .subject(id)
                 .issuedAt(new Date(now))
                 .expiration(accessTokenExpiresIn)
-                .claim("auth", authorities)
+                .claim(AUTHORIZATION_HEADER, authorities)
                 .signWith(key)
 //                .signWith(key, SignatureAlgorithm.HS256) // 알고리즘은 키에서 추론하는 것으로 변경됨
                 .compact();
@@ -88,6 +93,7 @@ public class JwtTokenProvider {
     public Authentication getAuthentication(String token) {
         // 토큰의 Payload에 저장된 Claim들을 추출한다. (토큰 복호화)
         Claims claims = parseClaims(token);
+        log.info("token authorities : " + claims.toString());
 
         if (claims.get(AUTHORIZATION_HEADER) == null) {
             // 권한 정보 없는 토큰
@@ -98,10 +104,13 @@ public class JwtTokenProvider {
         }
 
         // Claim에서 권한 정보를 추출한다.
+        // 1. "MEMBER,ADMIN" → [SimpleGrantedAuthority("MEMBER"), ...]
         Collection<? extends GrantedAuthority> authorities = Arrays
                 .stream(claims.get(AUTHORIZATION_HEADER).toString().split(","))
+                .map(String::trim)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+        log.info("복원된 권한들: {}", authorities);
 
         // Claim에 저장된 사용자 아이디를 통해 UserDetails 객체를 생성해서
         UserDetails principal = new User(claims.getSubject(), "", authorities);
@@ -138,6 +147,7 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token);
             // TODO : 예외 처리 로직?
+            log.info("validateToken true 반환");
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("잘못된 JWT 서명입니다.");
@@ -148,6 +158,7 @@ public class JwtTokenProvider {
         } catch (IllegalArgumentException e) {
             log.info("JWT 토큰이 잘못되었습니다.");
         }
+        log.info("validateToken false 반환");
         return false;
         }
 
@@ -183,7 +194,7 @@ public class JwtTokenProvider {
             // throw new MalformedHeaderException(MALFORMED_HEADER.getMessage());
             log.info("토큰 예외 MalformedHeaderException");
         }
-        return bearerToken;
+        return bearerToken; // TODO : 여기도 예외처리 해줘야할듯
     }
 
 }

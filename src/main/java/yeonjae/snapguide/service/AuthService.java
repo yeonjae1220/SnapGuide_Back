@@ -1,6 +1,7 @@
 package yeonjae.snapguide.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,7 +24,7 @@ import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 
 // https://velog.io/@jjeongdong/JWT-JWT%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%9A%8C%EC%9B%90%EA%B0%80%EC%9E%85-%EA%B5%AC%ED%98%84
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -81,6 +82,10 @@ public class AuthService {
 
     @Transactional
     public JwtToken reissue(TokenRequestDto tokenRequestDTO) {
+        if (tokenRequestDTO.getAccessToken() == null || tokenRequestDTO.getAccessToken().isBlank()) {
+            throw new IllegalArgumentException("Access Token은 null이거나 비어있을 수 없습니다.");
+        }
+
         // 1. Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDTO.getRefreshToken())) {
             throw new RuntimeException("Refresh Token 이 유효하지 않습니다.");
@@ -92,12 +97,12 @@ public class AuthService {
         // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
         RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
                 // TODO : 예외처리 필요 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
-                .orElseThrow(RuntimeException::new);
+                .orElseThrow(() -> new IllegalArgumentException("Refresh Token을 찾을 수 없습니다."));
 
         // 4. Refresh Token 일치하는지 검사
         if (!refreshToken.getValue().equals(tokenRequestDTO.getRefreshToken())) {
             // TODO : 예외처리 필요 throw new CustomException(ErrorCode.INVALID_TOKEN);
-            throw new RuntimeException();
+            throw new IllegalArgumentException("Refresh Tokend이 일치하지 않습니다.");
         }
 
         // 5. 새로운 토큰 생성

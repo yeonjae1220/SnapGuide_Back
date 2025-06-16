@@ -29,14 +29,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        log.info("JwtAuthenticationFilter 실행됨: " + request.getRequestURI());
+        String authHeader = request.getHeader("Authorization");
+        log.info("🔍 Authorization 헤더: {}", authHeader);
         // 1. Request Header 로부터 Access Token을 추출한다.
         String token = jwtTokenProvider.resolveToken(request);
+        log.info("token :" + token);
         // 2. 추출한 Token의 유효성 검사를 진행한다.
         if (token != null && jwtTokenProvider.validateToken(token)) {
+            log.info("토큰 유효성 검사1");
             // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
             Authentication authentication = jwtTokenProvider.getAuthentication(token);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
+        log.info("토큰 유효성 검사2");
         filterChain.doFilter(request, response);
         /*
         // TODO : try catch로 exception 잡아야함
