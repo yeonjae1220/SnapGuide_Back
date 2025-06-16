@@ -40,7 +40,7 @@ public class SecurityConfig {
         return httpSecurity
                 .authorizeHttpRequests(
                         authorize -> authorize
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()//hasAnyAuthority("MEMBER", "ADMIN")
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).hasAnyAuthority("MEMBER", "ADMIN")
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()

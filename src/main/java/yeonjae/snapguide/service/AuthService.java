@@ -13,7 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.member.Member;
-import yeonjae.snapguide.domain.member.dto.LocalSignUpRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
 import yeonjae.snapguide.repository.RefreshTokenRepository;
@@ -33,7 +32,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
-
     private final UserDetailsService userDetailsService;
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
@@ -106,13 +104,19 @@ public class AuthService {
         }
 
         // 5. 새로운 토큰 생성
-        JwtToken jwtToken = jwtTokenProvider
-                .generateToken(authentication.getAuthorities(),  // 권한 정보
-                        authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
-
-        // 6. 저장소 정보 업데이트
-        RefreshToken newRefreshToken = refreshToken.updateValue(jwtToken.getRefreshToken());
-        refreshTokenRepository.save(newRefreshToken);
+        JwtToken jwtToken = null;
+        if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
+            jwtToken = jwtTokenProvider
+                    .generateToken(authentication.getAuthorities(),  // 권한 정보
+                            authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
+            // 6. 저장소 정보 업데이트
+            RefreshToken newRefreshToken = refreshToken.updateValue(jwtToken.getRefreshToken());
+            refreshTokenRepository.save(newRefreshToken);
+        } else {
+            // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
+            jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보
+                    authentication.getName());
+        }
 
         // 토큰 발급
         return jwtToken;
