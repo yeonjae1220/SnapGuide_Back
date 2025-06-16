@@ -13,6 +13,8 @@ import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,13 +31,24 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     // DB 에 User 값이 존재한다면 UserDetails 객체로 만들어서 리턴
+//    private UserDetails createUserDetails(Member member) {
+//        GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(member.getAuthorities().toString());
+//
+//        return new User(
+//                String.valueOf(member.getId()),
+//                member.getPassword(),
+//                Collections.singleton(grantedAuthority)
+//        );
+//    }
     private UserDetails createUserDetails(Member member) {
-        GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(member.getAuthorities().toString());
+        List<GrantedAuthority> authorities = member.getAuthorities().stream()
+                .map(auth -> new SimpleGrantedAuthority(auth.getAuthority()))  // 예: "MEMBER"
+                .collect(Collectors.toList());
 
         return new User(
                 String.valueOf(member.getId()),
                 member.getPassword(),
-                Collections.singleton(grantedAuthority)
+                authorities
         );
     }
 }

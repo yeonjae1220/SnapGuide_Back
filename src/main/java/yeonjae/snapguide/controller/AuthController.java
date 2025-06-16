@@ -47,4 +47,8 @@ public class AuthController {
     "email" : "test1",
     "password" : "test1"
 }
+
+{
+    "test" : "test"
+}
  */

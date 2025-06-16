@@ -15,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
@@ -39,7 +40,7 @@ public class SecurityConfig {
         return httpSecurity
                 .authorizeHttpRequests(
                         authorize -> authorize
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()//hasAnyAuthority("MEMBER", "ADMIN")
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
