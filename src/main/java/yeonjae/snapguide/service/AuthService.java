@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
+import yeonjae.snapguide.exception.CustomException;
+import yeonjae.snapguide.exception.ErrorCode;
 import yeonjae.snapguide.repository.RefreshTokenRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
@@ -32,22 +34,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserDetailsService userDetailsService;
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
-        return builder.build();
-    }
 
     @Transactional
     public MemberResponseDto signup(MemberRequestDto request) {
         if (memberRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("이미 가입되어 있는 유저입니다");
-            // TODO : 예외처리 별도 필요
-            // throw new CustomException(ErrorCode.DUPLICATE_USER_ID);
+             throw new CustomException(ErrorCode.DUPLICATE_USER);
         }
-
         Member member = request.toEntity(passwordEncoder);
         return MemberResponseDto.of(memberRepository.save(member));
     }
@@ -56,9 +48,7 @@ public class AuthService {
     public JwtToken login(MemberRequestDto request) {
         // 1. Login ID/PW 를 기반으로 AuthenticationToken 생성
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
-
-
-        // 2. 실제로 검증 (사용자 비밀번호 체크) 이 이루어지는 부분
+        // 2. AuthenticationManager로 실제로 검증 (사용자 비밀번호 체크) 이 이루어지는 부분
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 
         // 3. 인증 정보를 기반으로 JWT 토큰 생성
@@ -81,12 +71,12 @@ public class AuthService {
     @Transactional
     public JwtToken reissue(TokenRequestDto tokenRequestDTO) {
         if (tokenRequestDTO.getAccessToken() == null || tokenRequestDTO.getAccessToken().isBlank()) {
-            throw new IllegalArgumentException("Access Token은 null이거나 비어있을 수 없습니다.");
+            throw new CustomException(ErrorCode.TOKEN_NOT_FOUND);
         }
 
         // 1. Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDTO.getRefreshToken())) {
-            throw new RuntimeException("Refresh Token 이 유효하지 않습니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
         // 2. Access Token 에서 Member ID 가져오기
@@ -94,13 +84,11 @@ public class AuthService {
 
         // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
         RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
-                // TODO : 예외처리 필요 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
-                .orElseThrow(() -> new IllegalArgumentException("Refresh Token을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
 
         // 4. Refresh Token 일치하는지 검사
         if (!refreshToken.getValue().equals(tokenRequestDTO.getRefreshToken())) {
-            // TODO : 예외처리 필요 throw new CustomException(ErrorCode.INVALID_TOKEN);
-            throw new IllegalArgumentException("Refresh Tokend이 일치하지 않습니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
         // 5. 새로운 토큰 생성
@@ -110,8 +98,7 @@ public class AuthService {
                     .generateToken(authentication.getAuthorities(),  // 권한 정보
                             authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
             // 6. 저장소 정보 업데이트
-            RefreshToken newRefreshToken = refreshToken.updateValue(jwtToken.getRefreshToken());
-            refreshTokenRepository.save(newRefreshToken);
+            refreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
         } else {
             // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
             jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보

@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import yeonjae.snapguide.exception.CustomException;
+import yeonjae.snapguide.exception.ErrorCode;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
@@ -124,11 +126,8 @@ public class JwtTokenProvider {
         log.info("token authorities : " + claims.toString());
 
         if (claims.get(AUTHORIZATION_HEADER) == null) {
-            // 권한 정보 없는 토큰
-            // TODO : 별도의 예외 처리 필요
             log.info("권한 정보 없는 토큰");
-            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
-            // throw new InvalidTokenException(INVALID_TOKEN.getMessage());
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
         // Claim에서 권한 정보를 추출한다.
@@ -159,36 +158,33 @@ public class JwtTokenProvider {
                     .getPayload();
                     // .getBody();
         } catch (ExpiredJwtException e) {
-            // TODO : 별도의 예외 처리 필요
-            // throw new ExpiredTokenException(EXPIRED_TOKEN.getMessage());
             log.info("만료된 토큰");
-//            throw new AuthenticationCredentialsNotFoundException("만료된 토큰입니다.");
-            return e.getClaims();
+            throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         }
     }
 
     // 토큰 검증 메서드
-    public boolean validateToken(String token) { // TODO : 별도 예외 처리 필요 throws TokenException
+    public boolean validateToken(String token) {
         try {
             Jwts.parser()
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token);
-            // TODO : 예외 처리 로직?
             log.info("validateToken true 반환");
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("잘못된 JWT 서명입니다.");
+            throw new CustomException(ErrorCode.INVALID_SIGNATURE);
         } catch (ExpiredJwtException e) {
-            log.info("만료된 JWT 토큰입니다.");
+            throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         } catch (UnsupportedJwtException e) {
             log.info("지원되지 않는 JWT 토큰입니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         } catch (IllegalArgumentException e) {
             log.info("JWT 토큰이 잘못되었습니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
-        log.info("validateToken false 반환");
-        return false;
-        }
+    }
 
     public boolean refreshTokenPeriodCheck(String token) {
         Jws<Claims> claimsJws =
@@ -212,17 +208,17 @@ public class JwtTokenProvider {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
 
         // TODO : 이부분 코드 해석 한번더
-        log.debug("bearertoken : {}", bearerToken);
+        log.info("bearertoken : {}", bearerToken);
         if (StringUtils.hasText(bearerToken)) {
             if (bearerToken.startsWith(BEARER_PREFIX) && bearerToken.length() > 7) {
                 int tokenStartIndex = 7;
-                return bearerToken.substring(tokenStartIndex);
+                return bearerToken.substring(tokenStartIndex); // Bearer 접두사 제거
             }
-            // TODO : 별도 예외 처리 필요
-            // throw new MalformedHeaderException(MALFORMED_HEADER.getMessage());
             log.info("토큰 예외 MalformedHeaderException");
+            throw new CustomException(ErrorCode.MALFORMED_HEADER);
         }
-        return bearerToken; // TODO : 여기도 예외처리 해줘야할듯
+        log.info("Authorization 헤더 없음 또는 빈 값");
+        throw new CustomException(ErrorCode.MISSING_AUTH_HEADER);
     }
 
 }
