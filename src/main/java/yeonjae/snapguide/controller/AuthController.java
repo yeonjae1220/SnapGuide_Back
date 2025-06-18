@@ -3,10 +3,9 @@ package yeonjae.snapguide.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.AuthService;
@@ -33,8 +32,8 @@ public class AuthController {
         return ResponseEntity.ok(authService.reissue(token));
     }
 
-    @PostMapping("/test")
-    public ResponseEntity<?> test(@RequestBody String test) {
-        return ResponseEntity.ok("test Controller");
+    @GetMapping("/test")
+    public ResponseEntity<?> test(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok("인증된 사용자: " + userDetails.getUsername());
     }
 }
