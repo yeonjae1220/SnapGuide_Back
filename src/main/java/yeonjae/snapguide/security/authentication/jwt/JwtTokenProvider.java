@@ -41,7 +41,7 @@ public class JwtTokenProvider {
     // refresh 체크용
     private static final long THREE_DAYS = 1000 * 60 * 60 * 24 * 3;  // 3일
 
-    public static final String AUTHORIZATION_HEADER = "auth"; // "Authorization";
+    public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String BEARER_PREFIX = "Bearer";
 
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
