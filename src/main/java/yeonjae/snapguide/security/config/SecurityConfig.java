@@ -26,6 +26,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
+import yeonjae.snapguide.service.CustomUserDetailsService;
 
 @Configuration
 @EnableWebSecurity  // 스프링 시큐리티 필터가 스프링 필터체인에 등록이 된다.
@@ -39,8 +40,9 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-//    private final UserDetailsService userDetailsService;
+//    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
+
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -54,7 +56,12 @@ public class SecurityConfig {
      * 	3.	builder.build():
      * 	•	설정한 내용을 바탕으로 AuthenticationManager 인스턴스를 생성합니다.
      */
-
+//    @Bean
+//    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+//        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
+//        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
+//        return builder.build();
+//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
