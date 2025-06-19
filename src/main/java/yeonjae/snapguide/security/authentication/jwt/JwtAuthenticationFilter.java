@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            log.info("🔍 auth 헤더: {}", request.getHeader("auth"));
+            log.info("🔍 auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
             // 1. Request Header 로부터 Access Token을 추출한다.
             String token = jwtTokenProvider.resolveToken(request);
             log.info("token :" + token);
@@ -71,12 +71,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 }
-
-//    @Bean
-//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-//        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
-//        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
-//        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
-//        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
-//        return filter;
-//    }
