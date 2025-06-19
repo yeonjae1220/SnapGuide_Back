@@ -30,11 +30,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String BEARER_PREFIX = "Bearer ";
     private final JwtTokenProvider jwtTokenProvider;
+    private final RequestMatcher whiteListMatcher;
 
     private final String UTF_8 = "utf-8";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)  throws ServletException, IOException {
+        if (!whiteListMatcher.matches(request)) {
+            // 화이트리스트 요청은 필터 생략
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             log.info("🔍 auth 헤더: {}", request.getHeader("auth"));
             // 1. Request Header 로부터 Access Token을 추출한다.
@@ -64,3 +71,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 }
+
+//    @Bean
+//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+//        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
+//        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
+//        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
+//        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
+//        return filter;
+//    }
