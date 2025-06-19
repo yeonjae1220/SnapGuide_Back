@@ -35,6 +35,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
+
     @Transactional
     public MemberResponseDto signup(MemberRequestDto request) {
         if (memberRepository.existsByEmail(request.getEmail())) {
