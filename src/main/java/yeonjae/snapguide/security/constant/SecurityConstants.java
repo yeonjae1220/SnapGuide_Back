@@ -17,7 +17,7 @@ public final class SecurityConstants {
 	public static final class AuthenticationWhiteList {
 		public static final String[] TEST_API = {"/test/**", "/api/auth/test"};
 		public static final String[] SWAGGER_V3 = {"/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/swagger-ui.html", "/swagger-ui-custom.html"};
-		public static final String[] AUTH_API = {"/api/auth/**", "/api-docs", "/api-docs/**", "/graphiql", "/graphql"}; // "/api/**",
+		public static final String[] AUTH_API = {"/api-docs", "/api-docs/**", "/graphiql", "/graphql"}; // "/api/**", "/api/auth/**",
 		public static final String[] USER_API = {"/api/user/members/check", "/api/user/members/register", "/api/user/members/login", "/login", "/index.html", "/"};
 		public static final String[] LOCAL_LOGIN_API = {"/api/auth/signup", "/api/auth/login", "api/auth/reissue"};
 

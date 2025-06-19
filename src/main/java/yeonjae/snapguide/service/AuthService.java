@@ -39,6 +39,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
 
+
     @Transactional
     public MemberResponseDto signup(MemberRequestDto request) {
         if (memberRepository.existsByEmail(request.getEmail())) {
