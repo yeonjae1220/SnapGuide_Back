@@ -40,8 +40,10 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    private final CustomUserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;
+
+//    private final UserDetailsService userDetailsService;
+//    private final PasswordEncoder passwordEncoder;
+
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -55,12 +57,14 @@ public class SecurityConfig {
      * 	3.	builder.build():
      * 	•	설정한 내용을 바탕으로 AuthenticationManager 인스턴스를 생성합니다.
      */
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
-        return builder.build();
-    }
+
+//    @Bean
+//    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+//        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
+//        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
+//        return builder.build();
+//    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -97,18 +101,27 @@ public class SecurityConfig {
                 // JwtAuthenticationFilter를 UsernamePasswordAuthenticationFilter 전에 넣는다
 //                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 // JwtFilter 를 addFilterBefore 로 등록했던 JwtSecurityConfig 클래스를 적용
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-//    @Bean
-//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-//        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
-//        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
-//        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
-//        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
-//        return filter;
-//    }
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        final RequestMatcher matcher =
+                new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
+
+        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, matcher);
+
+        // 선택: 인증 실패 시 동작 처리
+//        filter.setAuthenticationFailureHandler(
+//                new AuthenticationEntryPointFailureHandler(jwtAuthenticationEntryPoint)
+//        );
+
+        // 선택: 별도 ProviderManager가 필요할 경우
+        // filter.setAuthenticationManager(new ProviderManager(authenticationProvider));
+
+        return filter;
+    }
 
 }
 
