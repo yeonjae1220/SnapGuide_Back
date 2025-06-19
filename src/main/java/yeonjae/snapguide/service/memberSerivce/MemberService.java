@@ -6,8 +6,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.member.LoginType;
 import yeonjae.snapguide.domain.member.Member;
+import yeonjae.snapguide.domain.member.dto.MemberDto;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * TODO : 	•	JWT 또는 세션 로그인 기능 추가
@@ -16,36 +20,17 @@ import yeonjae.snapguide.repository.memberRepository.MemberRepository;
  */
 @Service
 @Transactional
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository memberRepository;
-    private final PasswordEncoder passwordEncoder;
 
-    public Long signUp(MemberRequestDto request) {
-        if (memberRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
-        }
-
-        Member member = Member.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .nickname(request.getNickname())
-                .loginType(LoginType.LOCAL)
-                .build();
-
-        return memberRepository.save(member).getId();
+    public MemberService(MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
     }
 
-    public Member signIn(MemberRequestDto request) {
-        Member member = memberRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-
-        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        return member;
+    public List<MemberDto> getAllMembers() {
+        return memberRepository.findAll().stream()
+                .map(member -> new MemberDto(member.getId(), member.getEmail()))
+                .collect(Collectors.toList());
     }
-
-
 }
