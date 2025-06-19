@@ -26,10 +26,10 @@
 <div id="photoList"></div>
 
 <script>
-    let token = null;
+    let token = localStorage.getItem("jwtToken") || null;
 
     function signup() {
-        fetch("http://localhost:8080/api/members/signup", {
+        fetch("http://localhost:8080/api/auth/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -41,31 +41,40 @@
                 if (!res.ok) {
                     throw new Error(`HTTP Error: ${res.status}`);
                 }
+                alert("회원가입 성공! 로그인 해주세요.");
                 return res.json();
             })
-            .then(data => {
-                token = data.token; // 서버가 JWT 반환한다고 가정
-                alert("로그인 성공");
-            });
+            .catch(err => alert(err.message));
     }
 
     function login() {
-        fetch("http://localhost:8080/api/members/login", {
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        fetch("http://localhost:8080/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: document.getElementById("loginEmail").value,
-                password: document.getElementById("loginPassword").value
-            })
+            body: JSON.stringify({ email, password })
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("로그인 실패");
+                }
+                return res.json();
+            })
             .then(data => {
-                token = data.token; // 서버가 JWT 반환한다고 가정
+                token = data.token;
+                localStorage.setItem("jwtToken", token);
                 alert("로그인 성공");
-            });
+            })
+            .catch(err => alert(err.message));
     }
 
     function upload() {
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
+
         const file = document.getElementById("imageFile").files[0];
         const tip = document.getElementById("tip").value;
 
@@ -80,28 +89,60 @@
             },
             body: formData
         })
-            .then(res => res.json())
-            .then(data => alert("업로드 성공"));
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("업로드 실패");
+                }
+                return res.json();
+            })
+            .then(data => {
+                alert("업로드 성공");
+                loadPhotos();
+            })
+            .catch(err => alert(err.message));
     }
 
     function loadPhotos() {
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
+
         fetch("http://localhost:8080/api/media/list", {
             headers: {
                 "Authorization": "Bearer " + token
             }
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("불러오기 실패");
+                }
+                return res.json();
+            })
             .then(data => {
                 const container = document.getElementById("photoList");
                 container.innerHTML = "";
                 data.forEach(media => {
                     const img = document.createElement("img");
-                    img.src = media.url; // 서버에서 파일 경로 반환한다고 가정
+                    img.src = media.url; // 서버가 반환한 URL
                     img.style.width = "200px";
+                    img.style.margin = "10px";
                     container.appendChild(img);
+
+                    const tip = document.createElement("p");
+                    tip.innerText = media.tip || "";
+                    container.appendChild(tip);
                 });
-            });
+            })
+            .catch(err => alert(err.message));
     }
+
+    // 페이지 로드 시 토큰 유효성 확인 가능 (선택)
+    window.onload = function() {
+        if (token) {
+            console.log("JWT 토큰 감지됨");
+        }
+    };
 </script>
 </body>
 </html>
