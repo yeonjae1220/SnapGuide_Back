@@ -43,10 +43,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            log.info("🔍 auth 헤더: {}", request.getHeader("auth"));
             // 1. Request Header 로부터 Access Token을 추출한다.
             String token = jwtTokenProvider.resolveToken(request);
-            log.info("token :" + token);
+            log.info("1️⃣ 들어온 요청 URI: {}", request.getRequestURI());
+            log.info("🔍 auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
+            log.info("2️⃣ 추출된 토큰: {}", token);
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
@@ -71,12 +72,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 }
-
-//    @Bean
-//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-//        final RequestMatcher matcher = new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
-//        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(matcher);
-//        filter.setAuthenticationFailureHandler(new AuthenticationEntryPointFailureHandler(this.authenticationEntryPoint));
-//        filter.setAuthenticationManager(new ProviderManager(this.authenticationProvider));
-//        return filter;
-//    }

@@ -41,7 +41,7 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
 
-//    private final UserDetailsService userDetailsService;
+//    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
 
 
@@ -58,12 +58,14 @@ public class SecurityConfig {
      * 	•	설정한 내용을 바탕으로 AuthenticationManager 인스턴스를 생성합니다.
      */
 
+
 //    @Bean
 //    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
 //        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
 //        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
 //        return builder.build();
 //    }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
