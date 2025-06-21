@@ -27,6 +27,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
 import yeonjae.snapguide.service.CustomUserDetailsService;
+import yeonjae.snapguide.service.TokenBlacklistService;
 
 @Configuration
 @EnableWebSecurity  // 스프링 시큐리티 필터가 스프링 필터체인에 등록이 된다.
@@ -39,6 +40,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final TokenBlacklistService tokenBlacklistService;
 
 
 //    private final CustomUserDetailsService userDetailsService;
@@ -112,7 +114,7 @@ public class SecurityConfig {
         final RequestMatcher matcher =
                 new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
 
-        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, matcher);
+        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, matcher, tokenBlacklistService);
 
         // 선택: 인증 실패 시 동작 처리
 //        filter.setAuthenticationFailureHandler(
