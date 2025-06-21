@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
+import yeonjae.snapguide.service.TokenBlacklistService;
 
 import java.io.IOException;
 @Slf4j
@@ -31,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static final String BEARER_PREFIX = "Bearer ";
     private final JwtTokenProvider jwtTokenProvider;
     private final RequestMatcher whiteListMatcher;
+    private final TokenBlacklistService tokenBlacklistService;
 
     private final String UTF_8 = "utf-8";
 
@@ -50,10 +52,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.info("2️⃣ 추출된 토큰: {}", token);
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
-                Authentication authentication = jwtTokenProvider.getAuthentication(token);
-                // 4. SecurityContext에 인증 정보 저장
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (!tokenBlacklistService.isAccessTokenBlacklisted(token)) {
+                    // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
+                    Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                    // 4. SecurityContext에 인증 정보 저장
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+
             }
             // 5. 다음 필터로 진행
             filterChain.doFilter(request, response);

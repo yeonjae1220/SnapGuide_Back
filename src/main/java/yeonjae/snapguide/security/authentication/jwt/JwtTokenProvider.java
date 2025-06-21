@@ -132,6 +132,9 @@ public class JwtTokenProvider {
 
         // Claim에서 권한 정보를 추출한다.
         // 1. "MEMBER,ADMIN" → [SimpleGrantedAuthority("MEMBER"), ...]
+        /**
+         * https://guswls28.tistory.com/137 의 getAuthentication 메서드 설명 참고
+         */
         Collection<? extends GrantedAuthority> authorities = Arrays
                 .stream(claims.get(AUTHORIZATION_HEADER).toString().split(","))
                 .map(String::trim)
@@ -219,6 +222,11 @@ public class JwtTokenProvider {
         }
         log.info("Authorization 헤더 없음 또는 빈 값");
         throw new CustomException(ErrorCode.MISSING_AUTH_HEADER);
+    }
+
+    public long getExpiration(String token) {
+        Claims claims = parseClaims(token);
+        return claims.getExpiration().getTime() - System.currentTimeMillis(); // 위에 시간 뽑는 코드랑, 시스템 시간과 로컬 시간?
     }
 
 }

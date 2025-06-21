@@ -6,6 +6,11 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+  # Redis 설정
+  data:
+    redis:
+      host: localhost
+      port: 6379 # redis 데이터베이스는 기본적으로 6379 포트 사용
   servlet:
     multipart:
       max-file-size: 10MB

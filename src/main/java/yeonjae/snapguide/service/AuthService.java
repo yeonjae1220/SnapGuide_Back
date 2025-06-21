@@ -19,6 +19,8 @@ import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
+import yeonjae.snapguide.infrastructure.cache.redis.RedisRefreshToken;
+import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
 import yeonjae.snapguide.repository.RefreshTokenRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
@@ -36,6 +38,8 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisRefreshTokenRepository redisRefreshTokenRepository;
+    private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
 
 
@@ -62,12 +66,12 @@ public class AuthService {
                  authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
 
         // 4. RefreshToken 저장
-        RefreshToken refreshToken = RefreshToken.builder()
+        RedisRefreshToken refreshToken = RedisRefreshToken.builder()
                 .key(authentication.getName())
                 .value(jwtToken.getRefreshToken())
                 .build();
 
-        refreshTokenRepository.save(refreshToken);
+        redisRefreshTokenRepository.save(refreshToken);
 
         // 5. 토큰 발급
         return jwtToken;
@@ -88,7 +92,7 @@ public class AuthService {
         Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequestDTO.getAccessToken());
 
         // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
-        RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
+        RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(authentication.getName())
                 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
 
         // 4. Refresh Token 일치하는지 검사
@@ -98,12 +102,19 @@ public class AuthService {
 
         // 5. 새로운 토큰 생성
         JwtToken jwtToken = null;
+        // ✅ 기존 토큰들을 블랙리스트에 등록
+        long accessTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getAccessToken());
+        long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
+        // 기존 accessToken 블랙 리스트에 추가
+        tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
         if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
             jwtToken = jwtTokenProvider
                     .generateToken(authentication.getAuthorities(),  // 권한 정보
                             authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
             // 6. 저장소 정보 업데이트
-            refreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+            redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+            // 기존 refreshToken 블랙 리스트에 추가
+            tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
         } else {
             // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
             jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보
@@ -112,6 +123,33 @@ public class AuthService {
 
         // 토큰 발급
         return jwtToken;
+    }
+
+    @Transactional
+    public void logout(TokenRequestDto tokenRequestDto) {
+        String accessToken = tokenRequestDto.getAccessToken();
+
+        if (!jwtTokenProvider.validateToken(accessToken)) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        Authentication authentication = jwtTokenProvider.getAuthentication(accessToken);
+        String email = authentication.getName();
+
+        // 1. AccessToken 블랙리스트 등록 (만료 시각까지 TTL 설정)
+        long accessTokenExpiration = jwtTokenProvider.getExpiration(accessToken);
+        tokenBlacklistService.blacklistAccessToken(accessToken, accessTokenExpiration);
+
+        // 2. RefreshToken 블랙리스트 등록 (옵션)
+        String refreshToken = tokenRequestDto.getRefreshToken();
+        if (jwtTokenProvider.validateToken(refreshToken)) {
+            long refreshTokenExpiration = jwtTokenProvider.getExpiration(refreshToken);
+            tokenBlacklistService.blacklistRefreshToken(refreshToken, refreshTokenExpiration);
+        }
+
+        // 3. Redis에서 RefreshToken 삭제
+        redisRefreshTokenRepository.deleteById(email);
+
     }
 
 }

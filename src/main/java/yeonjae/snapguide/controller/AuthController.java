@@ -2,6 +2,7 @@ package yeonjae.snapguide.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,7 @@ import yeonjae.snapguide.service.AuthService;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final RedisTemplate<String, String> redisTemplate;
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request) {
         // 회원가입 처리
@@ -30,6 +32,12 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<?> reissue(@RequestBody @Valid TokenRequestDto token) {
         return ResponseEntity.ok(authService.reissue(token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody TokenRequestDto tokenRequestDto) {
+        authService.logout(tokenRequestDto);
+        return ResponseEntity.ok("로그아웃 되었습니다.");
     }
 
     @GetMapping("/test")
