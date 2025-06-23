@@ -29,10 +29,22 @@ jobs:
 
       - name: Transition Jira Issue to Done
         if: steps.extract-key.outputs.issue_key != ''
+        run: |
+          echo "Transitioning Jira issue: ${{ steps.extract-key.outputs.issue_key }} to '완료'"
+        continue-on-error: true
+
+      - name: Perform Jira Transition
+        if: steps.extract-key.outputs.issue_key != ''
         uses: atlassian/gajira-transition@v3
         with:
           issue: ${{ steps.extract-key.outputs.issue_key }}
           transition: "완료"
+
+      - name: Log before GitHub comment
+        if: steps.extract-key.outputs.issue_key != ''
+        run: |
+          echo "Adding comment to GitHub Issue #${{ github.event.issue.number }}"
+          echo "Jira URL: ${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.extract-key.outputs.issue_key }}"
 
       - name: Add comment on GitHub issue
         if: steps.extract-key.outputs.issue_key != ''
