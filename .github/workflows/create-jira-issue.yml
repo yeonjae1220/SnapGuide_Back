@@ -19,16 +19,16 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
 
-      - name: Checkout main code
+      - name: Checkout master code
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: master
 
       - name: Issue Parser
         uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
         with:
-          template-path: .github/ISSUE_TEMPLATE/jira-issue-form.yml
+          template-path: .github/issue_template/jira-issue-form.yml
 
       - name: Check if base branch exists
         id: check-branch
@@ -61,27 +61,27 @@ jobs:
             ${{ github.event.issue.body }}
 
       - name: Create Jira Issue
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         id: create
         uses: atlassian/gajira-create@v3
         with:
-          project: FE
+          project: SNAP
           issuetype: Task
           summary: '${{ github.event.issue.title }}'
           description: '${{ steps.md2jira.outputs.output-text }}'
 
       - name: Log created issue
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         run: echo "Jira Issue ${{ steps.issue-parser.outputs.issueparser_parentKey || 'UNKNOWN' }}/${{ steps.create.outputs.issue || 'UNKNOWN' }} was created"
 
       - name: Checkout selected base branch
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.issue-parser.outputs.issueparser_baseBranch }}
 
       - name: Create branch with Ticket number
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         run: |
           GITHUB_ISSUE_NUMBER="${{ github.event.issue.number }}"
           JIRA_ISSUE_KEY="${{ steps.create.outputs.issue }}"
@@ -102,7 +102,7 @@ jobs:
           git push origin "${BRANCH_NAME}"
 
       - name: Define issue number with fallback
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         run: |
           if [ -z "${{ steps.create.outputs.issue }}" ]; then
             echo "ISSUE_NUMBER=UNKNOWN" >> $GITHUB_ENV
@@ -111,7 +111,7 @@ jobs:
           fi
 
       - name: Update issue title with branch type and Jira issue key
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         run: |
           CUSTOM_BRANCH_NAME="${{ steps.issue-parser.outputs.issueparser_branch }}"
           JIRA_ISSUE_KEY="${{ steps.create.outputs.issue }}"
@@ -120,7 +120,7 @@ jobs:
           echo "NEW_TITLE=[${BRANCH_TYPE}] ${JIRA_ISSUE_KEY} ${{ github.event.issue.title }}" >> $GITHUB_ENV
 
       - name: Apply updated issue title
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         uses: actions-cool/issues-helper@v3
         with:
           actions: 'update-issue'
@@ -128,7 +128,7 @@ jobs:
           title: '${{ env.NEW_TITLE }}'
 
       - name: Add comment with Jira issue link
-        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'FE-') && env.BRANCH_EXISTS == 'true'
+        if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         uses: actions-cool/issues-helper@v3
         with:
           actions: 'create-comment'
