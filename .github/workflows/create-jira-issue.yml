@@ -60,6 +60,13 @@ jobs:
 
             ${{ github.event.issue.body }}
 
+      - name: Log parsed Jira parent key and base branch
+        run: |
+          echo "Parsed Parent Key: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'"
+          echo "Parsed Base Branch: '${{ steps.issue-parser.outputs.issueparser_baseBranch }}'"
+          echo "Parsed Custom Branch Name: '${{ steps.issue-parser.outputs.issueparser_branch }}'"
+          echo "Branch exists? ${{ env.BRANCH_EXISTS }}"
+
       - name: Create Jira Issue
         if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
         id: create
@@ -97,7 +104,8 @@ jobs:
           fi
 
           BRANCH_NAME="${BRANCH_TYPE}/#${GITHUB_ISSUE_NUMBER}-${BRANCH_DETAIL}-${JIRA_ISSUE_KEY}"
-
+          
+          echo "Creating branch: ${BRANCH_NAME}"
           git checkout -b "${BRANCH_NAME}"
           git push origin "${BRANCH_NAME}"
 
