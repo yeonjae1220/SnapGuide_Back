@@ -28,7 +28,7 @@ jobs:
         uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
         with:
-          template-path: .github/issue_template/jira-issue-form.yml
+          template-path: .github/ISSUE_TEMPLATE/jira-issue-form.yml
 
       - name: Check if base branch exists
         id: check-branch
