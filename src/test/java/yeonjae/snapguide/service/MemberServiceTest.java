@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.domain.member.LoginType;
+import yeonjae.snapguide.domain.member.Provider;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -39,7 +39,7 @@ class MemberServiceTest {
         assertEquals("test@example.com", savedMember.getEmail());
         assertTrue(passwordEncoder.matches("dummyPassword", savedMember.getPassword()));
         assertEquals("dummyNickname", savedMember.getNickname());
-        assertEquals(LoginType.LOCAL, savedMember.getLoginType());
+        assertEquals(Provider.LOCAL, savedMember.getLoginType());
     }
 
     @Test
@@ -73,7 +73,7 @@ class MemberServiceTest {
                 .email(email)
                 .password(encodedPassword)
                 .nickname("dummy")
-                .loginType(LoginType.LOCAL)
+                .loginType(Provider.LOCAL)
                 .build();
         memberRepository.save(member);
 
@@ -87,7 +87,7 @@ class MemberServiceTest {
         // then
         assertNotNull(loginMember);
         assertEquals(email, loginMember.getEmail());
-        assertEquals(LoginType.LOCAL, loginMember.getLoginType());
+        assertEquals(Provider.LOCAL, loginMember.getLoginType());
     }
 
     @Test
@@ -114,7 +114,7 @@ class MemberServiceTest {
                 .email(email)
                 .password(passwordEncoder.encode(realPassword))
                 .nickname("wrongpassuser")
-                .loginType(LoginType.LOCAL)
+                .loginType(Provider.LOCAL)
                 .build();
         memberRepository.save(member);
 
