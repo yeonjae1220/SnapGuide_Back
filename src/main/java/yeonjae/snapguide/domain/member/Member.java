@@ -2,15 +2,10 @@ package yeonjae.snapguide.domain.member;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import yeonjae.snapguide.infrastructure.persistence.jpa.entity.BaseEntity;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -24,6 +19,8 @@ public class Member extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // private String loginId; // form 로그인용
+
     @Column(nullable = false)
     private String email;
 
@@ -34,7 +31,7 @@ public class Member extends BaseEntity {
     private String nickname;
 
     @Enumerated(EnumType.STRING)
-    private LoginType loginType; // LOCAL, GOOGLE, KAKAO, APPLE
+    private Provider provider; // LOCAL, GOOGLE, KAKAO, APPLE
 
     private String providerId; // 소셜 로그인 고유 ID
 

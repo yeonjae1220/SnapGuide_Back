@@ -20,6 +20,8 @@ import org.springframework.security.web.authentication.AuthenticationEntryPointF
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import yeonjae.snapguide.domain.member.Authority;
+import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
+import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
 import yeonjae.snapguide.security.authentication.exception.JwtAccessDeniedHandler;
 import yeonjae.snapguide.security.authentication.exception.JwtAuthenticationEntryPoint;
 import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
@@ -41,6 +43,9 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final TokenBlacklistService tokenBlacklistService;
+
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
 
 //    private final CustomUserDetailsService userDetailsService;
@@ -84,9 +89,21 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
                                 .anyRequest()
                                 .authenticated()
                 )
+                // OAuth 2.0 로그인 방식 설정
+                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
+//                        .defaultSuccessUrl("/oauth-login")
+//                        .failureUrl("/oauth-login/login")
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
+                        .permitAll())
+                .logout((auth) -> auth
+                        .logoutUrl("/oauth-login/logout")
+                        .logoutSuccessUrl("/oauth-login/login"))
                 .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화 // ID, password 문자열을 Base64로 인코딩하여 전달하는 구조
