@@ -24,4 +24,5 @@ public class RedisRefreshToken {
         this.value = token;
         return this;
     }
+
 }
