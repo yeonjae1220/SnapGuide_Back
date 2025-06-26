@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API 테스트</title>
+</head>
+<body>
+<h2>API 테스트</h2>
+
+<button onclick="callApi()">/api/auth/test 호출</button>
+<p id="result"></p>
+
+<script>
+    function callApi() {
+        const token = localStorage.getItem("accessToken");
+
+        if (!token) {
+            alert("JWT 토큰이 없습니다.");
+            return;
+        }
+
+        fetch("http://localhost:8080/api/auth/test", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("API 실패");
+                return res.text();
+            })
+            .then(data => {
+                document.getElementById("result").innerText = data;
+            })
+            .catch(err => alert(err.message));
+    }
+</script>
+</body>
+</html>
