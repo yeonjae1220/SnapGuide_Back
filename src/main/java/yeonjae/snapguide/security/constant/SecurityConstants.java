@@ -31,6 +31,8 @@ public final class SecurityConstants {
 		 */
 		public static final String[] DEV_TOOL = {"/.well-known/**", "/favicon.ico", "/css/**", "/js/**", "/images/**"};
 
+
+
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
 //			whiteList.addAll(Arrays.stream(TEST_API).toList());
