@@ -119,6 +119,7 @@ public class AuthService {
             // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
             jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보
                     authentication.getName());
+            // refreshToken은 보안상 재전달 x
         }
 
         // 토큰 발급
