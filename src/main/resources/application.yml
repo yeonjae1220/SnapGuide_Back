@@ -24,15 +24,15 @@ spring:
         show_sql: true
         format_sql: true
         spring.jpa.properties.hibernate.use_sql_comments: true
-#  security:
-#    oauth2:
-#      client:
-#        registration:
-#          google:
-#            client-id: your-client-id
-#            client-secret: your-client-secret
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1054453650839-fcku1a78a83p0739eb3mcv76pidtqlm0.apps.googleusercontent.com
+            client-secret: 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
 #            redirect-uri: "{baseUrl}/login/oauth2/code/google"
-#            scope: profile, email
+            scope: profile, email
 
 #  thymeleaf:
 #    enabled: false

@@ -1,13 +1,8 @@
 package yeonjae.snapguide.service.memberSerivce;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.domain.member.LoginType;
-import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
-import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 
 import java.util.List;

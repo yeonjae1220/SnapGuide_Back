@@ -38,6 +38,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)  throws ServletException, IOException {
+
+        log.info("1️⃣ [doFilterInternal] 요청 URI: {}", request.getRequestURI());
+        log.info("2️⃣ [doFilterInternal] 요청 Method: {}", request.getMethod());
+        log.info("3️⃣ [doFilterInternal] request: class={}, hashCode={}", request.getClass().getSimpleName(), System.identityHashCode(request));
+        log.info("4️⃣ [doFilterInternal] response: class={}, hashCode={}", response.getClass().getSimpleName(), System.identityHashCode(response));
+        log.info("5️⃣ [doFilterInternal] filterChain: class={}, hashCode={}", filterChain.getClass().getSimpleName(), System.identityHashCode(filterChain));
+
+
         if (!whiteListMatcher.matches(request)) {
             // 화이트리스트 요청은 필터 생략
             filterChain.doFilter(request, response);
