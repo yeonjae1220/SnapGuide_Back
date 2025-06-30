@@ -252,6 +252,7 @@
                 data.forEach(media => {
                     const img = document.createElement("img");
                     img.src = "http://localhost:8080" + media.url;
+                    img.loading = "lazy"; // ✅ lazy 속성 추가
                     console.log("요청 URL : ", img.src);
                     img.style.width = "200px";
                     img.style.margin = "10px";
