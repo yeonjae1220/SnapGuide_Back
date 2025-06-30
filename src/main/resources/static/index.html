@@ -219,9 +219,9 @@
                 const container = document.getElementById("photoList");
                 container.innerHTML = "";
                 data.forEach(media => {
+                    console.log("media 객체:", media);
                     const img = document.createElement("img");
-                    // img.src = "http://localhost:8080" + media.url;
-                    img.src = "http://localhost:8080/media/files/" + media.fileName;
+                    img.src = "http://localhost:8080" + media.url;
                     console.log("요청 URL : ", img.src)
                     img.style.width = "200px";
                     img.style.margin = "10px";
