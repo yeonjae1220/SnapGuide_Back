@@ -91,6 +91,7 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
                                 .anyRequest()
                                 .authenticated()
                 )

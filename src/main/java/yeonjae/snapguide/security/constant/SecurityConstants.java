@@ -31,6 +31,8 @@ public final class SecurityConstants {
 		 */
 		public static final String[] DEV_TOOL = {"/.well-known/**", "/favicon.ico", "/css/**", "/js/**", "/images/**"};
 
+		public static final String[] FILE_IO = {"/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/**", "/uploads/**", "/media/**"};
+
 
 
 		public static List<String> getAllPatterns() {
@@ -42,6 +44,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(LOCAL_LOGIN_API).toList());
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
+			whiteList.addAll(Arrays.stream(FILE_IO).toList());
 			return whiteList;
 		}
 
