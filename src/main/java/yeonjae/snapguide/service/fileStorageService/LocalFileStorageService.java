@@ -10,8 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
@@ -22,17 +24,36 @@ public class LocalFileStorageService implements FileStorageService{
     /**
      * System.getProperty("user.dir")는 JVM이 실행 중인 현재 디렉토리의 절대 경로
      */
-    private final String uploadPath = System.getProperty("user.dir") + "/uploads";
+//    private final String uploadPath = System.getProperty("user.dir") + "/uploads";
+
+
+//    private final Path uploadDir = Paths.get("uploads");
+    // 변경: 절대 경로 사용
+    private final Path uploadDir = Paths.get("/Users/kim-yeonjae/Desktop/Study/snapguide/uploads");
+
+//    public LocalFileStorageService() throws IOException {
+//        if (!Files.exists(uploadDir)) {
+//            Files.createDirectories(uploadDir);
+//        }
+//    }
 
     // TODO : 년, 월, 일로 파일 이름 분류해서 넣어주기
     @Override
     public File saveFile(MultipartFile file) throws IOException {
-        String uuid = UUID.randomUUID().toString();
-        String savedPath = uploadPath + "/" + uuid + "_" + file.getOriginalFilename();
-        // 로컬 파일 저장
-        File dest = new File(savedPath);
-        file.transferTo(dest);
-        return dest;
+        String extension = getExtension(file.getOriginalFilename());
+        String newFileName = UUID.randomUUID() + extension;
+
+        Path targetPath = uploadDir.resolve(newFileName);
+        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        System.out.println("user.dir : " + System.getProperty("user.dir"));
+        System.out.println("File saved to: " + targetPath.toAbsolutePath());
+        return targetPath.toFile();
+    }
+
+    private String getExtension(String originalFilename) {
+        if (originalFilename == null) return "";
+        int lastDot = originalFilename.lastIndexOf('.');
+        return lastDot != -1 ? originalFilename.substring(lastDot) : "";
     }
 
     @Override

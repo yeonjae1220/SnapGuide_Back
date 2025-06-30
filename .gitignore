@@ -37,4 +37,4 @@ out/
 .vscode/
 
 ### Redus ###
-dump.rdb
+SnapGuide_Back/dump.rdb
