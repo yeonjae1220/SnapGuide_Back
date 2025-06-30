@@ -30,13 +30,18 @@
 <div id="authResult"></div>
 
 <h1>사진 업로드</h1>
-<input type="file" id="imageFile" />
+<input type="file" id="imageFile" name="file" multiple>
+<label for="tip"></label>
 <textarea id="tip" placeholder="팁을 입력하세요"></textarea>
 <button onclick="upload()">업로드</button>
 
 <h1>사진 목록 보기</h1>
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
+
+<h1>모든 사진 보기</h1>
+<button onclick="allPhotos()">모든 사진 불러오기</button>
+<div id="allPhoto"></div>
 
 <h1>멤버 리스트 보기</h1>
 <button onclick="loadMembers()">멤버 리스트 불러오기</button>
@@ -171,13 +176,16 @@
     function upload() {
         if (!token) return alert("로그인이 필요합니다.");
 
-        const file = document.getElementById("imageFile").files[0];
-        const tip = document.getElementById("tip").value;
+        const files = document.getElementById("imageFile").files;
+        // const tip = document.getElementById("tip").value;
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("tip", tip);
 
-        fetch("http://localhost:8080/api/media/upload", {
+        for (const file of files) {
+            formData.append("files", file); // ← 이름은 반드시 서버에서 지정한 "files"와 같아야 함
+        }
+        // formData.append("tip", tip); // 백엔드가 아직 tip을 받진 않지만, 필요시 대비
+
+        fetch("http://localhost:8080/media/upload", {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -197,8 +205,39 @@
 
     function loadPhotos() {
         if (!token) return alert("로그인이 필요합니다.");
+        fetch("http://localhost:8080/media/list", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("불러오기 실패");
+                return res.json();
+            })
+            .then(data => {
+                const container = document.getElementById("photoList");
+                container.innerHTML = "";
+                data.forEach(media => {
+                    console.log("media 객체:", media);
+                    const img = document.createElement("img");
+                    img.src = "http://localhost:8080" + media.url;
+                    console.log("요청 URL : ", img.src)
+                    img.style.width = "200px";
+                    img.style.margin = "10px";
+                    container.appendChild(img);
 
-        fetch("http://localhost:8080/api/media/list", {
+                    // const tip = document.createElement("p");
+                    // tip.innerText = media.tip || "";
+                    // container.appendChild(tip);
+                });
+            })
+            .catch(err => alert(err.message));
+    }
+
+    function allPhotos() {
+        fetch("http://localhost:8080/media/allphoto", {
+            method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
             }
@@ -212,14 +251,12 @@
                 container.innerHTML = "";
                 data.forEach(media => {
                     const img = document.createElement("img");
-                    img.src = media.url;
+                    img.src = "http://localhost:8080" + media.url;
+                    img.loading = "lazy"; // ✅ lazy 속성 추가
+                    console.log("요청 URL : ", img.src);
                     img.style.width = "200px";
                     img.style.margin = "10px";
                     container.appendChild(img);
-
-                    const tip = document.createElement("p");
-                    tip.innerText = media.tip || "";
-                    container.appendChild(tip);
                 });
             })
             .catch(err => alert(err.message));

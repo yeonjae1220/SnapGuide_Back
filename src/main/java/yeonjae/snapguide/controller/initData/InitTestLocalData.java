@@ -11,7 +11,7 @@
 //import yeonjae.snapguide.domain.member.Authority;
 //import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 //import yeonjae.snapguide.service.AuthService;
-//import yeonjae.snapguide.service.FileStorageService;
+//import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 //import yeonjae.snapguide.service.locationSerivce.LocationService;
 //import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 //import yeonjae.snapguide.service.mediaSerivce.MediaService;
