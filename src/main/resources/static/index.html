@@ -39,6 +39,10 @@
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
 
+<h1>모든 사진 보기</h1>
+<button onclick="allPhotos()">모든 사진 불러오기</button>
+<div id="allPhoto"></div>
+
 <h1>멤버 리스트 보기</h1>
 <button onclick="loadMembers()">멤버 리스트 불러오기</button>
 <ul id="memberList"></ul>
@@ -216,7 +220,9 @@
                 container.innerHTML = "";
                 data.forEach(media => {
                     const img = document.createElement("img");
-                    img.src = "http://localhost:8080" + media.url;
+                    // img.src = "http://localhost:8080" + media.url;
+                    img.src = "http://localhost:8080/media/files/" + media.fileName;
+                    console.log("요청 URL : ", img.src)
                     img.style.width = "200px";
                     img.style.margin = "10px";
                     container.appendChild(img);
@@ -224,6 +230,32 @@
                     // const tip = document.createElement("p");
                     // tip.innerText = media.tip || "";
                     // container.appendChild(tip);
+                });
+            })
+            .catch(err => alert(err.message));
+    }
+
+    function allPhotos() {
+        fetch("http://localhost:8080/media/allphoto", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("불러오기 실패");
+                return res.json();
+            })
+            .then(data => {
+                const container = document.getElementById("photoList");
+                container.innerHTML = "";
+                data.forEach(media => {
+                    const img = document.createElement("img");
+                    img.src = "http://localhost:8080" + media.url;
+                    console.log("요청 URL : ", img.src);
+                    img.style.width = "200px";
+                    img.style.margin = "10px";
+                    container.appendChild(img);
                 });
             })
             .catch(err => alert(err.message));

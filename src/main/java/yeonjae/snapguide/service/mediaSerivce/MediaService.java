@@ -36,11 +36,12 @@ public class MediaService {
                 File savedFile = fileStorageService.saveFile(file);
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
                 Location location = locationService.extractAndResolveLocation(savedFile);
-                String filePath = savedFile.getAbsolutePath();
+//                String filePath = savedFile.getAbsolutePath();
+                String publicUrl = "/media/files/" + savedFile.getName(); // 전체 경로 대신 public URL TODO : 너무 로컬 저장 방식 하드 코딩이다. 고쳐야함
 
                 Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())
-                        .mediaUrl(filePath)
+                        .mediaUrl(publicUrl)
                         .fileSize(file.getSize())
                         .build();
 
@@ -53,6 +54,11 @@ public class MediaService {
 
     public List<Media> getAllMedia() {
         return mediaRepository.findAll();
+    }
+
+    public String getPublicUrl(File savedFile) {
+        // 외부 uploads 디렉토리는 루트에 그대로 매핑되므로 `/uuid.jpg` 형태면 됨
+        return "/" + savedFile.getName();
     }
 
 }

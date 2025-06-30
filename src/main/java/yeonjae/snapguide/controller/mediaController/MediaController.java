@@ -13,10 +13,10 @@ import yeonjae.snapguide.service.fileStorageService.MediaResponseDto;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -28,7 +28,7 @@ public class MediaController {
     private final MediaService mediaService;
 
     @PostMapping("/upload")
-    public ResponseEntity<List<Long>> upload(@RequestParam("files") MultipartFile[] files) throws IOException {
+    public ResponseEntity<?> upload(@RequestParam("files") MultipartFile[] files) throws IOException {
         List<Long> ids = mediaService.saveAll(Arrays.asList(files));
         return ResponseEntity.ok(ids);
     }
@@ -39,10 +39,11 @@ public class MediaController {
         List<MediaResponseDto> response = mediaList.stream()
                 .map(media -> new MediaResponseDto(media.getMediaUrl()))
                 .collect(Collectors.toList());
+        log.info("media/list response : " + response);
         return ResponseEntity.ok(response);
     }
 
-    // URL로 접근할 수 있게 매핑 (e.g. /media/files/uuid_name.jpg)
+//     URL로 접근할 수 있게 매핑 (e.g. /media/files/uuid_name.jpg)
     @GetMapping("/files/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) throws IOException {
         Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", filename);
@@ -55,6 +56,26 @@ public class MediaController {
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG) // TODO :  동적으로 감지하게 해줘야함
                 .body(file);
+    }
+
+    @GetMapping("/allphoto")
+    public ResponseEntity<List<Map<String, String>>> listAllUploadedFiles() throws IOException {
+        Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads");
+        if (!Files.exists(uploadPath)) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<Map<String, String>> files = Files.list(uploadPath)
+                .filter(Files::isRegularFile)
+                .map(path -> {
+                    Map<String, String> fileMap = new HashMap<>();
+                    fileMap.put("fileName", path.getFileName().toString());
+                    fileMap.put("url", "/media/files/" + path.getFileName());
+                    return fileMap;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(files);
     }
 
 
