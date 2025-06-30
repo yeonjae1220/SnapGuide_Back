@@ -1,4 +1,4 @@
-package yeonjae.snapguide.service;
+package yeonjae.snapguide.service.mediaMetaDataSerivce;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.SpringBootTest;
 import yeonjae.snapguide.domain.cameraModel.CameraModel;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.CameraModelExtractor;
@@ -19,9 +20,9 @@ import java.io.File;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
-class MetaDataServiceTest {
+class MediaMetaDataServiceTest {
 
     @Mock
     private MediaMetaDataRepository mediaMetaDataRepository;

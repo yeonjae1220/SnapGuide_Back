@@ -16,6 +16,9 @@
 <input id="loginPassword" placeholder="비밀번호" type="password" />
 <button onclick="login()">로그인</button>
 
+<h1>구글 로그인</h1>
+<a href="/oauth2/authorization/google">구글 로그인</a>
+
 <h1>토큰 재발급</h1>
 <button onclick="reissueToken()">토큰 재발급</button>
 
@@ -252,10 +255,34 @@
             })
             .catch(err => alert(err.message));
     }
+// google 로그인 리다이렉트 용
+    function getTokenFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get("accessToken");
+        const refreshToken = urlParams.get("refreshToken");
 
+        if (accessToken && refreshToken) {
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            alert("구글 로그인 성공!");
+            // URL 깔끔하게 정리 (토큰 쿼리 제거)
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    // 웹 브라우저에서 문서 전체(HTML, CSS, 이미지 등 모든 리소스) 가 로드된 후 실행되는 이벤트 핸들러
+    // window.onload는 브라우저가 HTML 페이지의 모든 요소를 다 불러온 다음 실행할 JavaScript 코드를 정의하는 방식
+    // 작동 방식
+    // 1.	HTML 페이지가 파싱되고,
+    // 2.	외부 CSS, 이미지, iframe 등 모든 리소스가 다 로드된 뒤,
+    // 3.	window.onload에 등록된 함수가 실행됩니다.
     window.onload = function() {
+        getTokenFromURL();
+        token = localStorage.getItem("accessToken");
+
         if (token) {
             console.log("JWT 토큰 감지됨");
+        } else {
+            console.log("토큰 없음");
         }
     };
 </script>
