@@ -1,6 +1,7 @@
 package yeonjae.snapguide.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -8,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TokenBlacklistService {
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -18,6 +20,7 @@ public class TokenBlacklistService {
      * access 토큰 블랙리스트 처리
      */
     public void blacklistAccessToken(String token, long expirationMillis) {
+        log.info("블랙리스트 된 엑세스 토큰 : {}", token);
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
                 "blacklisted",
@@ -30,6 +33,7 @@ public class TokenBlacklistService {
      * refresh 토큰 블랙리스트 처리
      */
     public void blacklistRefreshToken(String token, long expirationMillis) {
+        log.info("블랙리스트 된 리프레시 토큰 : {}", token);
         redisTemplate.opsForValue().set(
                 REFRESH_PREFIX + token,
                 "blacklisted",
@@ -42,7 +46,18 @@ public class TokenBlacklistService {
      * access 토큰이 블랙리스트인지 확인
      */
     public boolean isAccessTokenBlacklisted(String token) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(ACCESS_PREFIX + token));
+//        return Boolean.TRUE.equals(redisTemplate.hasKey(ACCESS_PREFIX + token)); // NPE(NullPointerException)를 방지하면서 안전하게 boolean 비교를 수행합니다. null인 경우도 false 처리됩니다.
+        String key = ACCESS_PREFIX + token;
+        Boolean hasKey = redisTemplate.hasKey(key);
+
+        if (Boolean.TRUE.equals(hasKey)) {
+            String blacklistedToken = (String) redisTemplate.opsForValue().get(key);
+            log.warn("🔒 블랙리스트에 등록된 토큰 감지: {}", blacklistedToken);
+        } else {
+            log.info("✅ 블랙리스트에 없음");
+        }
+
+        return Boolean.TRUE.equals(hasKey);
     }
 
     /**
