@@ -27,6 +27,11 @@ public class MemberController {
 
     @GetMapping
     public ResponseEntity<List<MemberDto>> getMembers(@RequestHeader("Authorization") String authHeader) {
+        log.info("in the controller");
+        List<MemberDto> members = memberService.getAllMembers();
+        for (MemberDto member : members) {
+            log.info("멤버: id={}, email={}", member.getId(), member.getEmail());
+        }
         // 토큰 검증은 Spring Security 필터에서 진행됨
         return ResponseEntity.ok(memberService.getAllMembers());
     }
