@@ -61,10 +61,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 if (!tokenBlacklistService.isAccessTokenBlacklisted(token)) {
+                    log.info("토큰은 블랙리스트에 없음 (정상)");
                     // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
                     Authentication authentication = jwtTokenProvider.getAuthentication(token);
                     // 4. SecurityContext에 인증 정보 저장
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    log.warn("블랙리스트에 있는 토큰입니다. 요청 차단");
+                    throw new CustomException(ErrorCode.INVALID_TOKEN);
                 }
 
             }
