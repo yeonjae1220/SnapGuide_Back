@@ -33,7 +33,7 @@ public class MediaService {
             List<Long> ids = new ArrayList<>();
 
             for (MultipartFile file : files) {
-                File savedFile = fileStorageService.saveFile(file);
+                File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
                 Location location = locationService.extractAndResolveLocation(savedFile);
 //                String filePath = savedFile.getAbsolutePath();
