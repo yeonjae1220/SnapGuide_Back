@@ -35,6 +35,11 @@
 <textarea id="tip" placeholder="팁을 입력하세요"></textarea>
 <button onclick="upload()">업로드</button>
 
+<h1>유저 가이드 작성 리스트</h1>
+<button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
+<div id="guidePhotos"></div>
+<div id="guideTip"></div>
+
 <h1>사진 목록 보기</h1>
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
@@ -196,15 +201,15 @@
         if (!token) return alert("로그인이 필요합니다.");
 
         const files = document.getElementById("imageFile").files;
-        // const tip = document.getElementById("tip").value;
+        const tip = document.getElementById("tip").value;
         const formData = new FormData();
 
         for (const file of files) {
             formData.append("files", file); // ← 이름은 반드시 서버에서 지정한 "files"와 같아야 함
         }
-        // formData.append("tip", tip); // 백엔드가 아직 tip을 받진 않지만, 필요시 대비
+        formData.append("tip", tip);
 
-        fetch("http://localhost:8080/media/upload", {
+        fetch("http://localhost:8080/guide/api/upload", {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -219,6 +224,11 @@
                 alert("업로드 성공");
             })
             .catch(err => alert(err.message));
+    }
+
+    function loadUserGuides() {
+        if (!token) return alert("로그인이 필요합니다.");
+
     }
 
     function loadPhotos() {

@@ -23,8 +23,19 @@ public class GuideCreateTestDto {
         this.mediaIds = new ArrayList<>();
     }
 
+    private GuideCreateTestDto(Long memberId, String tip, Long locationId, List<Long> mediaIds) {
+        this.memberId = memberId;
+        this.tip = tip;
+        this.locationId = locationId;
+        this.mediaIds = mediaIds;
+    }
+
     public static GuideCreateTestDto of(Long memberId, String tip, Long locationId) {
         return new GuideCreateTestDto(memberId, tip, locationId);
+    }
+
+    public static GuideCreateTestDto of(Long memberId, String tip, Long locationId, List<Long> mediaIds) {
+        return new GuideCreateTestDto(memberId, tip, locationId, mediaIds);
     }
 
 
