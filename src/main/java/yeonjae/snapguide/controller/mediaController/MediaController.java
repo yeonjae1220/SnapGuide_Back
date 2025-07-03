@@ -32,10 +32,19 @@ public class MediaController {
 
 
     @PostMapping("/upload")
-    public ResponseEntity<?> upload(@RequestParam("files") MultipartFile[] files) throws IOException {
+    public ResponseEntity<?> upload(@RequestParam("files") MultipartFile[] files,
+                                    @RequestParam(value = "tip", required = false) String tip
+                                    )throws IOException {
+        log.info("tip 내용: {}", tip);
         List<Long> ids = mediaService.saveAll(Arrays.asList(files));
         return ResponseEntity.ok(ids);
     }
+
+//    @PostMapping("/upload")
+//    public ResponseEntity<?> upload(@RequestParam("files") MultipartFile[] files) throws IOException {
+//        List<Long> ids = mediaService.saveAll(Arrays.asList(files));
+//        return ResponseEntity.ok(ids);
+//    }
 
     @GetMapping("/list")
     public ResponseEntity<List<MediaResponseDto>> list() {
