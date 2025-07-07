@@ -76,7 +76,7 @@ class AuthServiceTest {
         ReflectionTestUtils.setField(dto, "refreshToken", token.getRefreshToken());
         // 최소한 1ms 정도 시간 차를 두면 issuedAt이 달라져 JWT 전체가 달라짐
         // 이거 없으면 아래 엑세스 토큰 비교 값 동일하게 나온다
-        Thread.sleep(5);  // or delay using clock mocking
+        Thread.sleep(1000);  // or delay using clock mocking
 
         // 4일 이상 남은 상태로 설정되어 있어야 함
         JwtToken reissued = authService.reissue(dto);
