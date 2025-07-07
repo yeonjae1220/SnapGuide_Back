@@ -35,6 +35,10 @@
 <textarea id="tip" placeholder="팁을 입력하세요"></textarea>
 <button onclick="upload()">업로드</button>
 
+<h1>유저 가이드 작성 리스트</h1>
+<button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
+<div id="guideWrap"></div>
+
 <h1>사진 목록 보기</h1>
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
@@ -196,15 +200,15 @@
         if (!token) return alert("로그인이 필요합니다.");
 
         const files = document.getElementById("imageFile").files;
-        // const tip = document.getElementById("tip").value;
+        const tip = document.getElementById("tip").value;
         const formData = new FormData();
 
         for (const file of files) {
             formData.append("files", file); // ← 이름은 반드시 서버에서 지정한 "files"와 같아야 함
         }
-        // formData.append("tip", tip); // 백엔드가 아직 tip을 받진 않지만, 필요시 대비
+        formData.append("tip", tip);
 
-        fetch("http://localhost:8080/media/upload", {
+        fetch("http://localhost:8080/guide/api/upload", {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -219,6 +223,49 @@
                 alert("업로드 성공");
             })
             .catch(err => alert(err.message));
+    }
+
+    function loadUserGuides() {
+        if (!token) return alert("로그인이 필요합니다.");
+
+        fetch("http://localhost:8080/guide/api/my", {
+            headers: { "Authorization": "Bearer " + token }
+        })
+            .then(r => r.json())
+            .then(list => {
+                const wrap = document.getElementById("guideWrap");
+                wrap.innerHTML = "";
+                list.forEach(g => {
+                    const card = document.createElement("div");
+                    card.className = "guide-card";
+
+                    /* 인스타 방식: 첫 번째 이미지를 썸네일, 나머지는 숨겨두고 클릭 시 슬라이드 */
+                    const imgBox = document.createElement("div");
+                    imgBox.className = "img-box";
+                    g.media.slice(0,10).forEach((m,i)=>{
+                        const img = document.createElement("img");
+                        img.src = "http://localhost:8080"+m.url;
+                        if(i!==0){ img.style.display="none"; }
+                        imgBox.appendChild(img);
+                    });
+                    // 클릭 시 다음 사진
+                    imgBox.onclick = () => {
+                        const imgs = imgBox.querySelectorAll("img");
+                        let idx = [...imgs].findIndex(el=>el.style.display!=="none");
+                        imgs[idx].style.display="none";
+                        imgs[(idx+1)%imgs.length].style.display="block";
+                    };
+
+                    const tip = document.createElement("p");
+                    tip.textContent = g.tip;
+
+                    const loc = document.createElement("span");
+                    loc.textContent = g.locationName;
+
+                    card.append(imgBox, tip, loc);
+                    wrap.appendChild(card);
+                });
+            });
     }
 
     function loadPhotos() {
@@ -430,4 +477,10 @@
 </script>
 </body>
 </html>
+
+<style>
+    .guide-card{border:1px solid #ddd;margin:10px;padding:10px;width:240px}
+    .img-box{width:100%;height:240px;overflow:hidden;position:relative;cursor:pointer}
+    .img-box img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+</style>
 

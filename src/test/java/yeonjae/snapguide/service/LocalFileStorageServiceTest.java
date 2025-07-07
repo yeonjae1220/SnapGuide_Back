@@ -32,7 +32,7 @@ class LocalFileStorageServiceTest {
 
         // then
         assertTrue(savedFile.exists());
-        assertTrue(savedFile.getName().contains("test.jpg"));
+//        assertTrue(savedFile.getName().contains("test.jpg")); // 메서드 내부에서 저장할 때 파일 이름 UUID 으로 변경함
 
         // cleanup
         savedFile.delete();
