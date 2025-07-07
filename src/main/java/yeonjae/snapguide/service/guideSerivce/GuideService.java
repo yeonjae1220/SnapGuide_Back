@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
+import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
@@ -73,6 +74,10 @@ public class GuideService {
             guide.assignGuide(media); // 양방향 관계 저장
             media.assignMedia(guide); // media ← guide 연결
         }
+    }
+
+    public List<GuideResponseDto> getMyGuides(Long memberId) {
+        return guideRepository.findAllByMemberId(memberId);
     }
 
 }

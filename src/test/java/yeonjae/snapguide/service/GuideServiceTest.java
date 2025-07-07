@@ -103,10 +103,7 @@ class GuideServiceTest {
         );
 
         List<Long> mediaIds = new ArrayList<>();
-        for (MultipartFile file : files) {
-            Long mediaId = mediaService.saveMedia(file);
-            mediaIds.add(mediaId);
-        }
+        mediaIds = mediaService.saveAll(files);
 
         // when
         guideService.linkMediaToGuide(guideId, mediaIds);
