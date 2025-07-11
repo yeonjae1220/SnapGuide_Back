@@ -1,11 +1,13 @@
 package yeonjae.snapguide.service.fileStorageService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import yeonjae.snapguide.service.fileStorageService.fileConverter.HeicConverter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,6 +21,7 @@ import java.util.UUID;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class LocalFileStorageService implements FileStorageService{
 
     /**
@@ -30,30 +33,52 @@ public class LocalFileStorageService implements FileStorageService{
 //    private final Path uploadDir = Paths.get("uploads");
     // 변경: 절대 경로 사용
     private final Path uploadDir = Paths.get("/Users/kim-yeonjae/Desktop/Study/snapguide/uploads");
+    private final Path uploadOriginalDir = Paths.get("/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/originals");
+    private final HeicConverter heicConverter = new HeicConverter();
 
-//    public LocalFileStorageService() throws IOException {
-//        if (!Files.exists(uploadDir)) {
-//            Files.createDirectories(uploadDir);
-//        }
+//    @PostConstruct
+//    public void init() throws IOException {
+//        Files.createDirectories(uploadDir);
+//        Files.createDirectories(uploadOriginalDir);
 //    }
 
     // TODO : 년, 월, 일로 파일 이름 분류해서 넣어주기
     @Override
-    public File saveFile(MultipartFile file) throws IOException {
-        String extension = getExtension(file.getOriginalFilename());
-        String newFileName = UUID.randomUUID() + extension;
+    public File saveFile(MultipartFile multipartFile) throws IOException {
+        String originalFileName = multipartFile.getOriginalFilename();
+        if (originalFileName == null) throw new IOException("파일 이름이 없습니다.");
 
-        Path targetPath = uploadDir.resolve(newFileName);
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-        System.out.println("user.dir : " + System.getProperty("user.dir"));
-        System.out.println("File saved to: " + targetPath.toAbsolutePath());
+        String extension = getExtension(originalFileName); // 예: "jpg", "heic"
+        String baseFileName = UUID.randomUUID().toString();
+
+        if (extension.equals("heic")) {
+            // HEIC 원본 저장
+            Path heicOriginalPath = uploadOriginalDir.resolve(baseFileName + ".heic");
+            Files.copy(multipartFile.getInputStream(), heicOriginalPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("[saveFile] HEIC 원본 저장됨 → {}", heicOriginalPath.toAbsolutePath());
+
+            // HEIC → JPG 변환
+            File jpegFile = heicConverter.convertHeicToJpg(heicOriginalPath.toFile(), uploadDir.toString());
+            log.info("[saveFile] HEIC → JPG 변환 완료 → {}", jpegFile.getAbsolutePath());
+            return jpegFile;
+        }
+
+        // 일반 이미지 저장 (원래 확장자 유지)
+        Path targetPath = uploadDir.resolve(baseFileName + "." + extension);
+        Files.copy(multipartFile.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        log.info("[saveFile] 일반 파일 저장 완료 → {}", targetPath.toAbsolutePath());
         return targetPath.toFile();
     }
 
-    private String getExtension(String originalFilename) {
-        if (originalFilename == null) return "";
-        int lastDot = originalFilename.lastIndexOf('.');
-        return lastDot != -1 ? originalFilename.substring(lastDot) : "";
+    /**
+     * 확장자 추출 (예: "jpg", "heic", "png")
+     */
+    private String getExtension(String fileName) {
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(lastDot + 1).toLowerCase();
     }
 
     @Override

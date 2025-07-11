@@ -2,6 +2,7 @@ package yeonjae.snapguide.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -15,11 +16,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReverseGeocodingService {
     private final GoogleMapsConfig googleMapsConfig;
     private final WebClient webClient = WebClient.create("https://maps.googleapis.com");
 
     public Mono<Location> reverseGeocode(double lat, double lng) {
+        log.info("[ReverseGeocodingService, reverseGeocode] : start");
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/maps/api/geocode/json")
@@ -33,6 +36,8 @@ public class ReverseGeocodingService {
                         ObjectMapper mapper = new ObjectMapper();
                         GeocodingResponseDto response = mapper.readValue(json, GeocodingResponseDto.class);
 
+                        log.info("[ReverseGeocodingService, reverseGeocode] : working");
+
                         return response.getResults().stream()
                                 .findFirst()
                                 .map(result -> buildLocationFromResult(result, lat, lng))
@@ -40,6 +45,7 @@ public class ReverseGeocodingService {
 
                     } catch (Exception e) {
                         // TODO : 로그로
+                        log.info("[ReverseGeocodingService, reverseGeocode] : exception catched");
                         e.printStackTrace();
                         return null;
                     }

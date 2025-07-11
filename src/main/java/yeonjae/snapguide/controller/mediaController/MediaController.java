@@ -40,12 +40,6 @@ public class MediaController {
         return ResponseEntity.ok(ids);
     }
 
-//    @PostMapping("/upload")
-//    public ResponseEntity<?> upload(@RequestParam("files") MultipartFile[] files) throws IOException {
-//        List<Long> ids = mediaService.saveAll(Arrays.asList(files));
-//        return ResponseEntity.ok(ids);
-//    }
-
     @GetMapping("/list")
     public ResponseEntity<List<MediaResponseDto>> list() {
         List<Media> mediaList = mediaService.getAllMedia();
@@ -71,13 +65,14 @@ public class MediaController {
             contentType = "application/octet-stream";
         }
 
-        // ✅ .heic인 경우 강제 다운로드 유도
-        if (filename.toLowerCase().endsWith(".heic")) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + file.getFilename() + "\"")
-                    .body(file);
-        }
+        // heic인 경우 강제 다운로드 유도
+        // jpeg 변환으로 변경
+//        if (filename.toLowerCase().endsWith(".heic")) {
+//            return ResponseEntity.ok()
+//                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+//                    .header("Content-Disposition", "attachment; filename=\"" + file.getFilename() + "\"")
+//                    .body(file);
+//        }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
@@ -101,7 +96,7 @@ public class MediaController {
                     String fileName = path.getFileName().toString().toUpperCase();
                     return fileName.endsWith(".JPG") || fileName.endsWith(".JPEG") ||
                             fileName.endsWith(".PNG") || fileName.endsWith(".GIF") ||
-                            fileName.endsWith(".WEBP") || fileName.endsWith(".HEIC");
+                            fileName.endsWith(".WEBP");
                 })
                 .sorted(Comparator.comparing(Path::getFileName))
                 .toList();
@@ -136,7 +131,7 @@ public class MediaController {
                     String fileName = path.getFileName().toString().toUpperCase();
                     return fileName.endsWith(".JPG") || fileName.endsWith(".JPEG") ||
                             fileName.endsWith(".PNG") || fileName.endsWith(".GIF") ||
-                            fileName.endsWith(".WEBP") || fileName.endsWith(".HEIC"); // 필요한 확장자만 허용
+                            fileName.endsWith(".WEBP"); // 필요한 확장자만 허용
                 })
                 .count();
 
