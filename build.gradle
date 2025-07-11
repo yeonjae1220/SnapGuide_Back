@@ -77,6 +77,8 @@ dependencies {
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
+	//HEIC -> JPEG 변환용
+	implementation 'org.im4java:im4java:1.4.0'
 }
 
 tasks.named('test') {
