@@ -40,16 +40,16 @@ class LocationServiceTest {
         try (MockedStatic<ExifCoordinateExtractor> mockExtractor = mockStatic(ExifCoordinateExtractor.class)) {
             double[] coords = new double[]{37.5665, 126.9780}; // Seoul
             Location mockLocation = Location.builder()
-                    .locationName("Gwanggyo Lake Park")
+                    .formattedAddress("Gwanggyo Lake Park")
                     .latitude(37.2752)
                     .longitude(127.0469)
                     .country("South Korea")
                     .region("Gyeonggi-do")
                     .subRegion("Suwon-si")
-                    .locality("Yeongtong-gu")
-                    .route("Gwanggyo-ro")
+                    .district("Yeongtong-gu")
+                    .street("Gwanggyo-ro")
                     .streetNumber("123")
-                    .premise("Lakeside Plaza")
+                    .buildingName("Lakeside Plaza")
                     .subPremise("Cafe Blossom")
                     .build();
 
@@ -63,7 +63,7 @@ class LocationServiceTest {
 
             // then
             assertNotNull(location);
-            assertEquals("Gwanggyo Lake Park", location.getLocationName());
+            assertEquals("Gwanggyo Lake Park", location.getFormattedAddress());
         }
     }
 
