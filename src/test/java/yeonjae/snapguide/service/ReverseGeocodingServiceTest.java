@@ -47,7 +47,7 @@ class ReverseGeocodingServiceTest {
         System.out.println("location = " + location);
 
         assertNotNull(location, "Location 객체가 null이 아니어야 합니다.");
-        assertNotNull(location.getLocationName(), "주소 문자열이 null이 아니어야 합니다.");
+        assertNotNull(location.getFormattedAddress(), "주소 문자열이 null이 아니어야 합니다.");
         assertEquals(lat, location.getLatitude());
         assertEquals(lng, location.getLongitude());
 
@@ -57,7 +57,7 @@ class ReverseGeocodingServiceTest {
         // 저장된 Location이 다시 조회되는지 확인
         Optional<Location> saved = locationRepository.findById(location.getId());
         assertTrue(saved.isPresent(), "저장된 Location이 DB에 존재해야 합니다.");
-        assertEquals(location.getLocationName(), saved.get().getLocationName());
+        assertEquals(location.getFormattedAddress(), saved.get().getFormattedAddress());
 
 
     }

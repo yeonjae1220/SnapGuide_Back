@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.domain.location.LocationDto;
+import yeonjae.snapguide.domain.location.LocationMapper;
 import yeonjae.snapguide.service.config.GoogleMapsConfig;
 import yeonjae.snapguide.service.util.googleMapApiDto.AddressComponentDto;
 import yeonjae.snapguide.service.util.googleMapApiDto.GeocodingResponseDto;
@@ -28,10 +30,12 @@ public class ReverseGeocodingService {
                         .path("/maps/api/geocode/json")
                         .queryParam("latlng", lat + "," + lng)
                         .queryParam("key", googleMapsConfig.getKey())
+                        .queryParam("language", "en")
                         .build())
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(json -> {
+                    log.info("[ReverseGeocodingService] Google API 응답 JSON: {}", json);
                     try {
                         ObjectMapper mapper = new ObjectMapper();
                         GeocodingResponseDto response = mapper.readValue(json, GeocodingResponseDto.class);
@@ -40,7 +44,10 @@ public class ReverseGeocodingService {
 
                         return response.getResults().stream()
                                 .findFirst()
-                                .map(result -> buildLocationFromResult(result, lat, lng))
+                                .map(result -> {
+                                    LocationDto dto = buildDtoFromResult(result, lat, lng);
+                                    return LocationMapper.toEntity(dto);
+                                })
                                 .orElse(null);
 
                     } catch (Exception e) {
@@ -51,25 +58,54 @@ public class ReverseGeocodingService {
                     }
                 });
     }
-
-    private Location buildLocationFromResult(GeocodingResultDto result, double lat, double lng) {
-        Location.LocationBuilder builder = Location.builder()
-                .locationName(result.getFormattedAddress())
+// 우선 한국용
+    private LocationDto buildDtoFromResult(GeocodingResultDto result, double lat, double lng) {
+        LocationDto.LocationDtoBuilder builder = LocationDto.builder()
+                .formattedAddress(result.getFormattedAddress())
                 .latitude(lat)
                 .longitude(lng);
+//                .locale(locale);
 
         for (AddressComponentDto comp : result.getAddressComponents()) {
             List<String> types = comp.getTypes();
-            if (types.contains("country")) builder.country(comp.getLongName());
+            if (types.contains("country")) builder.countryCode(comp.getShortName()).country(comp.getLongName());
             else if (types.contains("administrative_area_level_1")) builder.region(comp.getLongName());
-            else if (types.contains("administrative_area_level_2")) builder.subRegion(comp.getLongName());
-            else if (types.contains("locality")) builder.locality(comp.getLongName());
-            else if (types.contains("route")) builder.route(comp.getLongName());
+            else if (types.contains("locality")) builder.city(comp.getLongName()); // 일본에서 시, 그리고 karuizawa같은 마치
+            else if (types.contains("administrative_area_level_2")) builder.subRegion(comp.getLongName()); // 일본에서 구가 여기 들어가는 듯 함
+            else if (types.contains("sublocality_level_1")) builder.subRegion(comp.getLongName());
+            else if (types.contains("sublocality_level_2")) builder.district(comp.getLongName());
+//            else if (types.contains("route")) builder.street(comp.getLongName());
+            else if (types.contains("sublocality_level_4")) builder.street(comp.getLongName());
             else if (types.contains("street_number")) builder.streetNumber(comp.getLongName());
-            else if (types.contains("premise")) builder.premise(comp.getLongName());
+            else if (types.contains("premise")) builder.buildingName(comp.getLongName());
             else if (types.contains("subpremise")) builder.subPremise(comp.getLongName());
+            else if (types.contains("postal_code")) builder.postalCode(comp.getLongName());
         }
 
         return builder.build();
     }
+
+//    private Location buildLocationFromResult(GeocodingResultDto result, double lat, double lng) {
+//        Location.LocationBuilder builder = Location.builder()
+//                .locationName(result.getFormattedAddress())
+//                .latitude(lat)
+//                .longitude(lng);
+//
+//        log.info("[ReverseGeocodingService, buildLocationFromResult] : getAddressComponent: {}", result.getAddressComponents());
+//
+//        for (AddressComponentDto comp : result.getAddressComponents()) {
+//            List<String> types = comp.getTypes();
+//            log.info("[ReverseGeocodingService, buildLocationFromResult] : AddressComponent types: {}", comp.getTypes());
+//            if (types.contains("country")) builder.country(comp.getLongName());
+//            else if (types.contains("administrative_area_level_1")) builder.region(comp.getLongName());
+//            else if (types.contains("administrative_area_level_2")) builder.subRegion(comp.getLongName());
+//            else if (types.contains("locality")) builder.locality(comp.getLongName());
+//            else if (types.contains("route")) builder.route(comp.getLongName());
+//            else if (types.contains("street_number")) builder.streetNumber(comp.getLongName());
+//            else if (types.contains("premise")) builder.premise(comp.getLongName());
+//            else if (types.contains("subpremise")) builder.subPremise(comp.getLongName());
+//        }
+//
+//        return builder.build();
+//    }
 }
