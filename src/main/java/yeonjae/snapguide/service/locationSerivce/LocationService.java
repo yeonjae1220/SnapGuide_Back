@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.domain.location.LocationDto;
+import yeonjae.snapguide.domain.location.LocationMapper;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtractor;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
-import yeonjae.snapguide.service.ReverseGeocodingService;
+import yeonjae.snapguide.service.NearbyPlaceService;
+//import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.io.File;
 import java.util.Optional;
@@ -16,7 +19,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class LocationService {
     private final LocationRepository locationRepository;
-    private final ReverseGeocodingService reverseGeocodingService;
+//    private final ReverseGeocodingService reverseGeocodingService;
+    private final NearbyPlaceService nearbyPlaceService;
     // 좌표 값 추출 && 저장
     public Location extractAndResolveLocation(File file) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
@@ -26,23 +30,30 @@ public class LocationService {
         double[] latLng = coordinate.orElseThrow(() ->
                 new IllegalArgumentException("좌표 정보가 없습니다."));
 
-        Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
+//        Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
+        LocationDto locationDto = nearbyPlaceService
+                .getNearbyRepresentativePlace(latLng[0], latLng[1], 100)
+                .orElseThrow(() -> new IllegalStateException(
+                        "nearby place api failed for lat=" + latLng[0] + ", lng=" + latLng[1]
+                ));
+        Location location = LocationMapper.toEntity(locationDto);
         // 2. 해당 Guide 찾기 TODO : Media, Location과 Guide 연관관계 연결 해줘야함
-        if (location == null) {
-            throw new IllegalStateException("Reverse geocoding failed for lat=" + latLng[0] + ", lng=" + latLng[1]);
-        }
+//        if (location == null) {
+//            throw new IllegalStateException("Reverse geocoding failed for lat=" + latLng[0] + ", lng=" + latLng[1]);
+//        }
         return locationRepository.save(location); // 아마 코드가 media까지 흘러 들어가서 CascadeType.PERSIST으로 저장될텐데, 그래도 혹시 몰라 넣어줌
     }
 
     // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
     public Location saveLocation(Double lat, Double lng) {
-        Location location = reverseGeocodingService.reverseGeocode(lat, lng).block();
-        if (location == null) {
-            throw new IllegalStateException("Reverse geocoding failed for lat=" + lat + ", lng=" + lng);
-        }
+        LocationDto locationDto = nearbyPlaceService
+                .getNearbyRepresentativePlace(lat, lng, 100)
+                .orElseThrow(() -> new IllegalStateException(
+                        "nearby place api failed for lat=" + lat + ", lng=" + lat
+                ));
+        Location location = LocationMapper.toEntity(locationDto);
         return locationRepository.save(location);
     }
-
 }
 /**
  * TODO

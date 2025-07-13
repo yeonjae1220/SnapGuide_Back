@@ -13,19 +13,25 @@ public class LocationDto {
     private Double latitude;
     private Double longitude;
 
-    private String countryCode;
-    private String formattedAddress;
-
-    private String country;
-    private String region;
-    private String city;
-    private String subRegion;
+    private String placeId;
+    private String name;
+    private String address;
     private String district;
-    private String street;
-    private String streetNumber;
-    private String buildingName;
-    private String subPremise;
-    private String postalCode;
+    private String region;
+    private String countryCode;
 
-//    private String locale; // "ko", "en", "ja", ...
+//    private String countryCode;
+//    private String formattedAddress;
+//
+//    private String country;
+//    private String region;
+//    private String city;
+//    private String subRegion;
+//    private String district;
+//    private String street;
+//    private String streetNumber;
+//    private String buildingName;
+//    private String subPremise;
+//    private String postalCode;
+
 }

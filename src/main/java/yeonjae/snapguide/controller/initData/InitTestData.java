@@ -7,6 +7,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.domain.location.LocationDto;
+import yeonjae.snapguide.domain.location.LocationMapper;
 import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.Provider;
@@ -14,7 +16,8 @@ import yeonjae.snapguide.repository.guideRepository.GuideRepository;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
-import yeonjae.snapguide.service.ReverseGeocodingService;
+import yeonjae.snapguide.service.NearbyPlaceService;
+//import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.util.List;
 
@@ -27,7 +30,8 @@ public class InitTestData {
     private final GuideRepository guideRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final ReverseGeocodingService reverseGeocodingService;
+    //    private final ReverseGeocodingService reverseGeocodingService;
+    private final NearbyPlaceService nearbyPlaceService;
 
     @PostConstruct
     public void init() {
@@ -42,8 +46,12 @@ public class InitTestData {
         memberRepository.save(member);
 
         for (int i = 1; i <= 5; i++) {
-
-            Location location = reverseGeocodingService.reverseGeocode(37.5 + (i * 0.01), 127.0 + (i * 0.01)).block();
+            LocationDto locationDto = nearbyPlaceService
+                    .getNearbyRepresentativePlace(37.5 + (i * 0.05), 127.0 + (i * 0.05), 100)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "nearby place api failed"
+                    ));
+            Location location = LocationMapper.toEntity(locationDto);
             locationRepository.save(location);
 
             Guide guide = Guide.builder()
