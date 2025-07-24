@@ -20,18 +20,4 @@ public class LocationDto {
     private String region;
     private String countryCode;
 
-//    private String countryCode;
-//    private String formattedAddress;
-//
-//    private String country;
-//    private String region;
-//    private String city;
-//    private String subRegion;
-//    private String district;
-//    private String street;
-//    private String streetNumber;
-//    private String buildingName;
-//    private String subPremise;
-//    private String postalCode;
-
 }

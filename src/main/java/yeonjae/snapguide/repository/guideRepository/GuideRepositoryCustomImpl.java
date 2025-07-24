@@ -34,7 +34,8 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
 
         // ① 가이드 + 위치 한 번에 fetch
         List<Tuple> guides = queryFactory
-                .select(g.id, g.tip, l.address)
+                // .select(g.id, g.tip, l.address)
+                .select(g.id, g.tip, l.formattedAddress)
                 .from(g)
                 .leftJoin(g.location, l) // HACK : fetchJoin?
                 .where(g.author.id.eq(memberId))
@@ -67,7 +68,7 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
                 .map(t -> new GuideResponseDto(
                         t.get(g.id),
                         t.get(g.tip),
-                        t.get(l.address),
+                        t.get(l.formattedAddress),
                         mediaMap.getOrDefault(t.get(g.id), List.of())
                 )).toList();
 

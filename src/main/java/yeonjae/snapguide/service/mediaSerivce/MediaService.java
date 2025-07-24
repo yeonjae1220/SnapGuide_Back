@@ -1,6 +1,5 @@
 package yeonjae.snapguide.service.mediaSerivce;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,8 @@ public class MediaService {
             for (MultipartFile file : files) {
                 File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
-                Location location = locationService.extractAndResolveLocation(savedFile);
+//                Location location = locationService.extractAndResolveNearByLocation(savedFile);
+                Location location = locationService.extractAndResolveGeoLocation(savedFile);
 //                String filePath = savedFile.getAbsolutePath();
                 String publicUrl = "/media/files/" + savedFile.getName(); // 전체 경로 대신 public URL TODO : 너무 로컬 저장 방식 하드 코딩이다. 고쳐야함
 

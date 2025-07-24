@@ -8,8 +8,9 @@ import yeonjae.snapguide.domain.location.LocationDto;
 import yeonjae.snapguide.domain.location.LocationMapper;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtractor;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
-import yeonjae.snapguide.service.NearbyPlaceService;
-//import yeonjae.snapguide.service.ReverseGeocodingService;
+import yeonjae.snapguide.service.mapService.googleMapService.NearbyPlaceService;
+import yeonjae.snapguide.service.mapService.googleMapService.ReverseGeocodingService;
+//import yeonjae.snapguide.service.mapService.googleMapService.ReverseGeocodingService;
 
 import java.io.File;
 import java.util.Optional;
@@ -19,10 +20,49 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class LocationService {
     private final LocationRepository locationRepository;
-//    private final ReverseGeocodingService reverseGeocodingService;
+    private final ReverseGeocodingService reverseGeocodingService;
     private final NearbyPlaceService nearbyPlaceService;
     // 좌표 값 추출 && 저장
-    public Location extractAndResolveLocation(File file) {
+
+    /**
+     * for save coordinate only (no third party api response in server)
+     */
+    public Location extractAndResolveCoord(File file) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
+        if (coordinate.isEmpty()) {
+            return null;
+        }
+        double[] latLng = coordinate.orElseThrow(() ->
+                new IllegalArgumentException("좌표 정보가 없습니다."));
+
+        // TODO : db에 같은 좌표가 있다면 새로 location을 만드는게 아닌, 저장 할 것
+
+        Location location = Location.builder()
+                .latitude(latLng[0])
+                .longitude(latLng[1])
+                .build();
+
+        return locationRepository.save(location);
+    }
+
+    public Location saveCoordLocation(Double lat, Double lng) {
+        // TODO : db에 같은 좌표가 있다면 새로 location을 만드는게 아닌, 저장 할 것
+
+        Location location = Location.builder()
+                .latitude(lat)
+                .longitude(lng)
+                .build();
+
+        return locationRepository.save(location);
+    }
+
+
+
+    /**
+     * for NearbyPlaceService
+     */
+
+    public Location extractAndResolveNearByLocation(File file) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
         if (coordinate.isEmpty()) {
             return null;
@@ -45,7 +85,7 @@ public class LocationService {
     }
 
     // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
-    public Location saveLocation(Double lat, Double lng) {
+    public Location saveNearByLocation(Double lat, Double lng) {
         LocationDto locationDto = nearbyPlaceService
                 .getNearbyRepresentativePlace(lat, lng, 100)
                 .orElseThrow(() -> new IllegalStateException(
@@ -54,6 +94,37 @@ public class LocationService {
         Location location = LocationMapper.toEntity(locationDto);
         return locationRepository.save(location);
     }
+
+    /**
+     * for ReverseGeocodingService
+     */
+    public Location extractAndResolveGeoLocation(File file) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
+        if (coordinate.isEmpty()) {
+            return null;
+        }
+        double[] latLng = coordinate.orElseThrow(() ->
+                new IllegalArgumentException("좌표 정보가 없습니다."));
+
+        Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
+        // 2. 해당 Guide 찾기 TODO : Media, Location과 Guide 연관관계 연결 해줘야함
+        if (location == null) {
+            throw new IllegalStateException("Reverse geocoding failed for lat=" + latLng[0] + ", lng=" + latLng[1]);
+        }
+        return locationRepository.save(location); // 아마 코드가 media까지 흘러 들어가서 CascadeType.PERSIST으로 저장될텐데, 그래도 혹시 몰라 넣어줌
+    }
+
+    // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
+    public Location saveGeoLocation(Double lat, Double lng) {
+        Location location = reverseGeocodingService.reverseGeocode(lat, lng).block();
+        if (location == null) {
+            throw new IllegalStateException("Reverse geocoding failed for lat=" + lat + ", lng=" + lng);
+        }
+        return locationRepository.save(location);
+    }
+
+
+
 }
 /**
  * TODO

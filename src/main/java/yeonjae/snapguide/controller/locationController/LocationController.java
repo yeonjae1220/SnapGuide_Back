@@ -20,7 +20,7 @@ public class LocationController {
 
     @PostMapping("/api/upload")
     public ResponseEntity<String> saveLocation(@RequestBody LocationRequestDto requestDto) {
-        Location location = locationService.saveLocation(requestDto.getLatitude(), requestDto.getLongitude());
+        Location location = locationService.saveGeoLocation(requestDto.getLatitude(), requestDto.getLongitude());
 
         return ResponseEntity.ok("위치 저장 완료");
     }

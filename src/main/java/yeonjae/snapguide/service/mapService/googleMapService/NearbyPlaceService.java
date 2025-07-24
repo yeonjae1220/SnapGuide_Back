@@ -1,4 +1,4 @@
-package yeonjae.snapguide.service;
+package yeonjae.snapguide.service.mapService.googleMapService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
