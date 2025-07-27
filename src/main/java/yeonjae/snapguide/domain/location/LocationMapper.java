@@ -21,6 +21,27 @@ public class LocationMapper {
                 .build();
     }
 
+    public static Location toEntityWithJson(LocationDto dto, String rawJson) {
+        return Location.builder()
+                .latitude(dto.getLatitude())
+                .longitude(dto.getLongitude())
+                .countryCode(dto.getCountryCode())
+                .formattedAddress(dto.getFormattedAddress())
+                .country(dto.getCountry())
+                .region(dto.getRegion())
+                .city(dto.getCity())
+                .subRegion(dto.getSubRegion())
+                .district(dto.getDistrict())
+                .street(dto.getStreet())
+                .streetNumber(dto.getStreetNumber())
+                .buildingName(dto.getBuildingName())
+                .subPremise(dto.getSubPremise())
+                .postalCode(dto.getPostalCode())
+//                .locale(dto.getLocale())
+                .rawJson(rawJson)
+                .build();
+    }
+
     public static LocationDto toDto(Location entity) {
         return LocationDto.builder()
                 .latitude(entity.getLatitude())
