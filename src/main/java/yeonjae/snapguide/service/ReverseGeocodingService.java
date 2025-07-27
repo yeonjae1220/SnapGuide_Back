@@ -42,19 +42,30 @@ public class ReverseGeocodingService {
 
                         log.info("[ReverseGeocodingService, reverseGeocode] : working");
 
+                        // google geocoding api 사용량 초과 응답을 받을 경우 좌표 정보만 저장
+                        String status = response.getStatus();
+                        if ("OVER_QUERY_LIMIT".equals(status)) {
+                            log.warn("Geocoding API quota exceeded. Storing coordinates only.");
+                            return Location.builder()
+                                    .latitude(lat)
+                                    .longitude(lng)
+                                    .build(); // 주소 없이 좌표만 저장
+                        }
+
                         return response.getResults().stream()
                                 .findFirst()
                                 .map(result -> {
                                     LocationDto dto = buildDtoFromResult(result, lat, lng);
-                                    return LocationMapper.toEntity(dto);
+                                    return LocationMapper.toEntityWithJson(dto, json); // toEntity만 하다가 JSON 전체 추가 저장을 위해 이렇게 함
                                 })
                                 .orElse(null);
 
                     } catch (Exception e) {
-                        // TODO : 로그로
-                        log.info("[ReverseGeocodingService, reverseGeocode] : exception catched");
-                        e.printStackTrace();
-                        return null;
+                        log.error("Error during reverse geocoding", e);
+                        return Location.builder()
+                                .latitude(lat)
+                                .longitude(lng)
+                                .build();
                     }
                 });
     }

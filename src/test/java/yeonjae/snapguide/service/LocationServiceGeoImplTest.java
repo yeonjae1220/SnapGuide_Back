@@ -9,11 +9,10 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
-import yeonjae.snapguide.controller.locationController.locationDto.LocationRequestDto;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtractor;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
-import yeonjae.snapguide.service.locationSerivce.LocationService;
+import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 
 import java.io.File;
 import java.util.Optional;
@@ -24,11 +23,11 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class LocationServiceTest {
+class LocationServiceGeoImplTest {
     @Mock
     private ReverseGeocodingService reverseGeocodingService;
     @InjectMocks
-    private LocationService locationService;
+    private LocationServiceGeoImpl locationServiceGeoImpl;
     @Mock
     private LocationRepository locationRepository;
 
@@ -59,7 +58,7 @@ class LocationServiceTest {
             when(reverseGeocodingService.reverseGeocode(37.5665, 126.9780)).thenReturn(Mono.just(mockLocation));
             when(locationRepository.save(any(Location.class))).thenReturn(mockLocation);
             // when
-            Location location = locationService.extractAndResolveLocation(dummyFile);
+            Location location = locationServiceGeoImpl.extractAndResolveLocation(dummyFile);
 
             // then
             assertNotNull(location);
@@ -83,7 +82,7 @@ class LocationServiceTest {
         Mockito.when(locationRepository.save(mockLocation)).thenReturn(mockLocation);
 
         // when
-        Location result = locationService.saveLocation(lat, lng);
+        Location result = locationServiceGeoImpl.saveLocation(lat, lng);
 
         // then
         Assertions.assertNotNull(result);
@@ -106,7 +105,7 @@ class LocationServiceTest {
         // when & then
         IllegalStateException ex = Assertions.assertThrows(
                 IllegalStateException.class,
-                () -> locationService.saveLocation(lat, lng)
+                () -> locationServiceGeoImpl.saveLocation(lat, lng)
         );
 
         Assertions.assertTrue(ex.getMessage().contains("Reverse geocoding failed"));
