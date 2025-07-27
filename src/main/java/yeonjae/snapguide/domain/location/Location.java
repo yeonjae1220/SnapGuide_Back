@@ -80,4 +80,9 @@ public class Location {
     // 사용자의 언어 또는 출력용 주소 언어
 //    private String locale;        // "ko", "en", "ja", ...
 
+
+    // json 전체 저장
+    @Lob
+    private String rawJson;
+
 }
