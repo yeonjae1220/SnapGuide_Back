@@ -13,8 +13,12 @@ public class LocationDto {
     private Double latitude;
     private Double longitude;
 
+    private String locationName;
+
     private String countryCode;
     private String formattedAddress;
+
+    private String provider;
 
     private String country;
     private String region;

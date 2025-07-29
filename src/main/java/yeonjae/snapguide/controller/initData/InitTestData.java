@@ -30,8 +30,8 @@ public class InitTestData {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ReverseGeocodingService reverseGeocodingService;
-
-    @PostConstruct
+// 잠깐 꺼둠
+//    @PostConstruct
     public void init() {
         // 1. 테스트 회원 생성
         Member member = Member.builder()
