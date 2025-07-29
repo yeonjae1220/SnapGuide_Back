@@ -74,7 +74,8 @@ public class ReverseGeocodingService {
         LocationDto.LocationDtoBuilder builder = LocationDto.builder()
                 .formattedAddress(result.getFormattedAddress())
                 .latitude(lat)
-                .longitude(lng);
+                .longitude(lng)
+                .provider("google");
 //                .locale(locale);
 
         for (AddressComponentDto comp : result.getAddressComponents()) {

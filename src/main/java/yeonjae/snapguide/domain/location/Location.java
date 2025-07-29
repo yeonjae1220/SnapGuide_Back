@@ -21,10 +21,14 @@ public class Location {
     private Double latitude;
     private Double longitude;
 
+    private String locationName;
+
     // 국가 코드 (예: "KR", "JP", "US")
     private String countryCode;
     // 전체 포맷 주소 (Google Maps의 formatted_address)
     private String formattedAddress;
+
+    private String provider;
 
     private String country;
     /**ㅈ
