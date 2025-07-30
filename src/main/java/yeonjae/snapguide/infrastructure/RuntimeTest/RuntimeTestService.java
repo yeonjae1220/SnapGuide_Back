@@ -3,6 +3,7 @@ package yeonjae.snapguide.infrastructure.RuntimeTest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 import yeonjae.snapguide.infrastructure.aop.TimeTrace;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
@@ -16,17 +17,20 @@ public class RuntimeTestService {
     private final LocationRepository locationRepository ;
 
     private record LocationPoint(String name, double lat, double lng) {}
+
     private final List<LocationPoint> testLocations = List.of(
             new LocationPoint("New York", Math.toDegrees(0.6068093722690607), Math.toDegrees(0.7094027578544309)),
             new LocationPoint("Tokyo", Math.toDegrees(0.6194755291745206), Math.toDegrees(2.325462150946811)),
             new LocationPoint("Saint Petersburg", Math.toDegrees(0.9726429847642717), Math.toDegrees(0.6569802578810394)),
             new LocationPoint("Shanghai", Math.toDegrees(0.7935381851032774), Math.toDegrees(1.4827008328004827)),
             new LocationPoint("Busan", 35.09661444, 129.0305818)
+//            new LocationPoint("Pacific ocean", 8.573916, -171.641706) // 등록 안되어 있는 위치
     );
 
     private final List<Double> radiusKmList = List.of(1.0, 5.0, 10.0, 50.0);
 
     @TimeTrace
+    @Transactional
     public void testExactCoordinateSearch() {
         log.info("=== Start Exact Coordinate Search Test ===");
         StopWatch watch = new StopWatch("CoordinateSearchSummary");
@@ -40,6 +44,7 @@ public class RuntimeTestService {
     }
 
     @TimeTrace
+    @Transactional
     public void testSquareSearch() {
         log.info("=== Start Square Search Test ===");
         StopWatch watch = new StopWatch("SquareSearchSummary");
@@ -56,6 +61,7 @@ public class RuntimeTestService {
     }
 
     @TimeTrace
+    @Transactional
     public void testRadiusSearch() {
         log.info("=== Start Radius (Haversine) Search Test ===");
         StopWatch watch = new StopWatch("RadiusSearchSummary");
@@ -72,6 +78,7 @@ public class RuntimeTestService {
     }
 
     @TimeTrace
+    @Transactional
     public void testOptimizedSearch() {
         log.info("=== Start BoundingBox + Java Haversine Filter Test ===");
         StopWatch watch = new StopWatch("OptimizedSearchSummary");

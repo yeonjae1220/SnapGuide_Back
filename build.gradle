@@ -86,6 +86,9 @@ dependencies {
 
 	// aop
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	//postgreSQL
+	runtimeOnly 'org.postgresql:postgresql'
 }
 
 tasks.named('test') {

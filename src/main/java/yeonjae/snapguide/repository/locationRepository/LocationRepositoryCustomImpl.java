@@ -1,5 +1,6 @@
 package yeonjae.snapguide.repository.locationRepository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -54,21 +55,29 @@ public class LocationRepositoryCustomImpl implements LocationRepositoryCustom{
     @Override
     public List<Location> findWithinRadius(double targetLat, double targetLng, double radiusInKm) {
         QLocation location = QLocation.location;
-
-        // 지구 반지름 (단위: km)
         final double R = 6371;
 
-        NumberExpression<Double> distance = Expressions.numberTemplate(Double.class,
-                "({0} * acos(cos(radians({1})) * cos(radians({2})) * cos(radians({3}) - radians({4})) + sin(radians({1})) * sin(radians({2}))))",
-                R,
+        // acos 내부 수식 (모든 파라미터 명시)
+        NumberExpression<Double> acosInput = Expressions.numberTemplate(Double.class,
+                "LEAST(1.0, GREATEST(-1.0, cos(radians({0})) * cos(radians({1})) * cos(radians({2}) - radians({3})) + sin(radians({0})) * sin(radians({1}))))",
                 targetLat,
                 location.latitude,
                 targetLng,
                 location.longitude
         );
 
+        // 거리 계산식
+        NumberExpression<Double> distance = Expressions.numberTemplate(Double.class,
+                "{0} * acos({1})",
+                R,
+                acosInput
+        );
+
+        // 거리 비교
+        BooleanExpression withinRadius = distance.loe(radiusInKm);
+
         return jpaQueryFactory.selectFrom(location)
-                .where(distance.loe(radiusInKm))
+                .where(withinRadius)
                 .fetch();
     }
 
