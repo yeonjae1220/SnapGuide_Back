@@ -23,6 +23,7 @@ public class LocationRepositoryCustomImpl implements LocationRepositoryCustom{
     private static final int METERS_PER_KM = 1000;
 
     // 좌표로 정확히 일치하는 지점 찾기 (소수점 비교 대신 Point 비교)
+    // 같은 좌표에 POI가 여러개 있을 수 있어서 일단 List로 둔다.
     @Override
     public List<Location> findLocationByCoordinate(Double lat, Double lng) {
         QLocation location = QLocation.location;
