@@ -2,10 +2,13 @@ package yeonjae.snapguide.infrastructure.RuntimeTest;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
+import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.infrastructure.aop.TimeTrace;
+import yeonjae.snapguide.repository.locationRepository.GeoUtil;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
 import java.util.List;
@@ -36,7 +39,8 @@ public class RuntimeTestService {
         StopWatch watch = new StopWatch("CoordinateSearchSummary");
         for (RuntimeTestService.LocationPoint location : testLocations) {
             watch.start(location.name());
-            locationRepository.findLocationByCoordinate(location.lat(), location.lng);
+            List<Location> result = locationRepository.findLocationByCoordinate(location.lat(), location.lng);
+            logLocations(location.name(), result);
             watch.stop();
             log.info("📍 [{}] coordinate matched", location.name());
         }
@@ -52,7 +56,8 @@ public class RuntimeTestService {
             for (Double radius : radiusKmList) {
                 String taskName = String.format("%s - Square %.0fkm", location.name(), radius);
                 watch.start(taskName);
-                locationRepository.findWithinSquare(location.lat(), location.lng, radius);
+                List<Location> result = locationRepository.findWithinSquare(location.lat(), location.lng, radius);
+                logLocations(location.name(), result);
                 watch.stop();
                 log.info("🟦 [{}] square radius {}km matched", location.name(), radius);
             }
@@ -69,7 +74,8 @@ public class RuntimeTestService {
             for (Double radius : radiusKmList) {
                 String taskName = String.format("%s - Radius %.0fkm", location.name(), radius);
                 watch.start(taskName);
-                locationRepository.findWithinRadius(location.lat(), location.lng(), radius);
+                List<Location> result = locationRepository.findWithinRadius(location.lat(), location.lng(), radius);
+                logLocations(location.name(), result);
                 watch.stop();
                 log.info("🟢 [{}] radius {}km matched", location.name(), radius);
             }
@@ -86,11 +92,61 @@ public class RuntimeTestService {
             for (Double radius : radiusKmList) {
                 String taskName = String.format("%s - Optimized %.0fkm", location.name(), radius);
                 watch.start(taskName);
-                locationRepository.findNearby(location.lat(), location.lng(), radius);
+                List<Location> result =  locationRepository.findNearby(location.lat(), location.lng(), radius);
+                logLocations(location.name(), result);
                 watch.stop();
                 log.info("✅ [{}] optimized radius {}km matched", location.name(), radius);
             }
         }
         log.info("\n{}", watch.prettyPrint());
+    }
+
+    @TimeTrace
+    @Transactional
+    public void findNearbyNative() {
+        log.info("=== findNearByNative + Java Haversine Filter Test ===");
+        StopWatch watch = new StopWatch("OptimizedSearchSummary");
+        for (LocationPoint location : testLocations) {
+            for (Double radius : radiusKmList) {
+                String taskName = String.format("%s - Optimized %.0fkm", location.name(), radius);
+                watch.start(taskName);
+                List<Location> result =  locationRepository.findNearbyNative(location.lat(), location.lng(), radius * 1000);
+                logLocations(location.name(), result);
+                watch.stop();
+                log.info("✅ [{}] optimized radius {}km matched", location.name(), radius);
+            }
+        }
+        log.info("\n{}", watch.prettyPrint());
+    }
+
+
+
+    @TimeTrace
+    @Transactional
+    public void findNearbyOptimized() {
+        log.info("=== findNearbyOptimized + Java Haversine Filter Test ===");
+        StopWatch watch = new StopWatch("OptimizedSearchSummary");
+        for (LocationPoint location : testLocations) {
+            for (Double radius : radiusKmList) {
+                String taskName = String.format("%s - Optimized %.0fkm", location.name(), radius);
+                watch.start(taskName);
+                double[] box = GeoUtil.getBoundingBox(location.lat(), location.lng(), radius);
+                double minLat = box[0], maxLat = box[1];
+                double minLng = box[2], maxLng = box[3];
+                List<Location> result =  locationRepository.findNearbyOptimized(location.lat(), location.lng(), radius * 1000,
+                        minLat, minLng, maxLat, maxLng);
+                logLocations(location.name(), result);
+                watch.stop();
+                log.info("✅ [{}] optimized radius {}km matched", location.name(), radius);
+            }
+        }
+        log.info("\n{}", watch.prettyPrint());
+    }
+
+    private void logLocations(String context, List<Location> locations) {
+        for (Location loc : locations) {
+            Point point = loc.getCoordinate();
+            log.info("🔍 [{}] {} - Coordinate: (lat={}, lng={})", context, loc.getLocationName(), point.getY(), point.getX());
+        }
     }
 }

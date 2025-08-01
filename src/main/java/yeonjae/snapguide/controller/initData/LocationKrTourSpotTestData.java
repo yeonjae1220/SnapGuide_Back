@@ -1,6 +1,5 @@
 package yeonjae.snapguide.controller.initData;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +7,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import yeonjae.snapguide.domain.location.GeometryUtils;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
@@ -34,15 +34,17 @@ public class LocationKrTourSpotTestData implements ApplicationRunner {
 
             List<Location> newLocations = new ArrayList<>();
             for (TourSpotDto spot : spots) {
-                boolean exists = locationRepository.existsByLatitudeAndLongitude(
-                        spot.getLatitude(), spot.getLongitude());
+                boolean exists = locationRepository.existsByCoordinate(
+//                        spot.getLatitude(), spot.getLongitude());
+                        GeometryUtils.createPoint(spot.getLatitude(), spot.getLongitude()));
 
                 if (!exists) {
                     Location location = Location.builder()
                             .locationName(spot.getName())
                             .formattedAddress(spot.getRoadAddress())
-                            .latitude(spot.getLatitude())
-                            .longitude(spot.getLongitude())
+//                            .latitude(spot.getLatitude())
+//                            .longitude(spot.getLongitude())
+                            .coordinate(GeometryUtils.createPoint(spot.getLatitude(), spot.getLongitude()))
                             .rawJson(objectMapper.writeValueAsString(spot))
                             .provider("행정안전부")
                             .build();

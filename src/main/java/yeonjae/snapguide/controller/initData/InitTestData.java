@@ -30,7 +30,7 @@ public class InitTestData {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ReverseGeocodingService reverseGeocodingService;
-// 잠깐 꺼둠
+// 잠깐 꺼둠, Point type에 맞춰서 해야함
 //    @PostConstruct
     public void init() {
         // 1. 테스트 회원 생성
