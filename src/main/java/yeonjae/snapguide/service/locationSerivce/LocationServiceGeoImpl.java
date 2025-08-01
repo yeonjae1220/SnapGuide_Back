@@ -9,6 +9,7 @@ import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,6 +27,12 @@ public class LocationServiceGeoImpl implements LocationService {
         double[] latLng = coordinate.orElseThrow(() ->
                 new IllegalArgumentException("좌표 정보가 없습니다."));
 
+        // Location이 존재할경우 처리
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(latLng[0], latLng[1]);
+        if (!locationByCoordinate.isEmpty()) {
+            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        }
+
         Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
         // 2. 해당 Guide 찾기 TODO : Media, Location과 Guide 연관관계 연결 해줘야함
         if (location == null) {
@@ -36,6 +43,12 @@ public class LocationServiceGeoImpl implements LocationService {
 
     // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
     public Location saveLocation(Double lat, Double lng) {
+        // Location이 존재할경우 처리
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(lat, lng);
+        if (!locationByCoordinate.isEmpty()) {
+            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        }
+
         Location location = reverseGeocodingService.reverseGeocode(lat, lng).block();
         if (location == null) {
             throw new IllegalStateException("Reverse geocoding failed for lat=" + lat + ", lng=" + lng);
