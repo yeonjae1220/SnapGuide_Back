@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import yeonjae.snapguide.domain.location.GeometryUtils;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.location.LocationDto;
 import yeonjae.snapguide.domain.location.LocationMapper;
@@ -47,8 +48,9 @@ public class ReverseGeocodingService {
                         if ("OVER_QUERY_LIMIT".equals(status)) {
                             log.warn("Geocoding API quota exceeded. Storing coordinates only.");
                             return Location.builder()
-                                    .latitude(lat)
-                                    .longitude(lng)
+//                                    .latitude(lat)
+//                                    .longitude(lng)
+                                    .coordinate(GeometryUtils.createPoint(lat, lng))
                                     .build(); // 주소 없이 좌표만 저장
                         }
 
@@ -63,8 +65,9 @@ public class ReverseGeocodingService {
                     } catch (Exception e) {
                         log.error("Error during reverse geocoding", e);
                         return Location.builder()
-                                .latitude(lat)
-                                .longitude(lng)
+//                                .latitude(lat)
+//                                .longitude(lng)
+                                .coordinate(GeometryUtils.createPoint(lat, lng))
                                 .build();
                     }
                 });
@@ -73,8 +76,9 @@ public class ReverseGeocodingService {
     private LocationDto buildDtoFromResult(GeocodingResultDto result, double lat, double lng) {
         LocationDto.LocationDtoBuilder builder = LocationDto.builder()
                 .formattedAddress(result.getFormattedAddress())
-                .latitude(lat)
-                .longitude(lng)
+//                .latitude(lat)
+//                .longitude(lng)
+                .coordinate(GeometryUtils.createPoint(lat, lng))
                 .provider("google");
 //                .locale(locale);
 
