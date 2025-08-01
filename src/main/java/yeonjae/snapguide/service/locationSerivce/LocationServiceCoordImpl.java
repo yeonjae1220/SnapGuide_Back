@@ -9,6 +9,7 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtra
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -29,6 +30,12 @@ public class LocationServiceCoordImpl implements LocationService{
         double[] latLng = coordinate.orElseThrow(() ->
                 new IllegalArgumentException("좌표 정보가 없습니다."));
 
+        // Location이 존재할경우 처리
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(latLng[0], latLng[1]);
+        if (!locationByCoordinate.isEmpty()) {
+            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        }
+
         Location location = Location.builder()
 //                .latitude(latLng[0])
 //                .longitude(latLng[1])
@@ -39,6 +46,12 @@ public class LocationServiceCoordImpl implements LocationService{
     }
 
     public Location saveLocation(Double lat, Double lng) {
+        // Location이 존재할경우 처리
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(lat, lng);
+        if (!locationByCoordinate.isEmpty()) {
+            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        }
+
         Location location = Location.builder()
 //                .latitude(lat)
 //                .longitude(lng)
