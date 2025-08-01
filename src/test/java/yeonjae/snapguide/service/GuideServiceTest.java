@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.domain.guide.Guide;
+import yeonjae.snapguide.domain.location.GeometryUtils;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
@@ -55,8 +56,9 @@ class GuideServiceTest {
 
         Location location = Location.builder()
                 .formattedAddress("Gwanggyo Lake Park")
-                .latitude(37.2752)
-                .longitude(127.0469)
+//                .latitude(37.2752)
+//                .longitude(127.0469)
+                .coordinate(GeometryUtils.createPoint(37.2752, 127.0469))
                 .country("South Korea")
                 .region("Gyeonggi-do")
                 .subRegion("Suwon-si")

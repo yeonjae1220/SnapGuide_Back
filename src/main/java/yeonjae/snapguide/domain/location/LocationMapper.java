@@ -3,8 +3,9 @@ package yeonjae.snapguide.domain.location;
 public class LocationMapper {
     public static Location toEntity(LocationDto dto) {
         return Location.builder()
-                .latitude(dto.getLatitude())
-                .longitude(dto.getLongitude())
+//                .latitude(dto.getLatitude())
+//                .longitude(dto.getLongitude())
+                .coordinate(dto.getCoordinate())
                 .locationName(dto.getLocationName())
                 .countryCode(dto.getCountryCode())
                 .formattedAddress(dto.getFormattedAddress())
@@ -25,8 +26,9 @@ public class LocationMapper {
 
     public static Location toEntityWithJson(LocationDto dto, String rawJson) {
         return Location.builder()
-                .latitude(dto.getLatitude())
-                .longitude(dto.getLongitude())
+//                .latitude(dto.getLatitude())
+//                .longitude(dto.getLongitude())
+                .coordinate(dto.getCoordinate())
                 .countryCode(dto.getCountryCode())
                 .formattedAddress(dto.getFormattedAddress())
                 .country(dto.getCountry())
@@ -46,8 +48,9 @@ public class LocationMapper {
 
     public static LocationDto toDto(Location entity) {
         return LocationDto.builder()
-                .latitude(entity.getLatitude())
-                .longitude(entity.getLongitude())
+//                .latitude(entity.getLatitude())
+//                .longitude(entity.getLongitude())
+                .coordinate(entity.getCoordinate())
                 .countryCode(entity.getCountryCode())
                 .formattedAddress(entity.getFormattedAddress())
                 .country(entity.getCountry())

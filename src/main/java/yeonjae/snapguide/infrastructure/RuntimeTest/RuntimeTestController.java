@@ -39,5 +39,11 @@ public class RuntimeTestController {
     public void testOptimizedSearch() {
         runtimeTestService.testOptimizedSearch();
     }
+
+    @GetMapping("/findNearbyNativeTest")
+    public void findNearbyNative() {runtimeTestService.findNearbyNative();}
+
+    @GetMapping("/findNearbyOptimized")
+    public void findNearbyOptimized() {runtimeTestService.findNearbyOptimized();}
 }
 

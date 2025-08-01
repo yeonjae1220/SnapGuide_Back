@@ -9,6 +9,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import yeonjae.snapguide.domain.location.GeometryUtils;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
@@ -63,8 +64,9 @@ public class LocationKaggleTestData implements ApplicationRunner {
                 String rawJson = objectMapper.writeValueAsString(row);
 
                 Location location = Location.builder()
-                        .latitude(latDeg)
-                        .longitude(lngDeg)
+//                        .latitude(latDeg)
+//                        .longitude(lngDeg)
+                        .coordinate(GeometryUtils.createPoint(latDeg, lngDeg))
                         .provider(provider)
                         .formattedAddress(address)
                         .rawJson(rawJson)

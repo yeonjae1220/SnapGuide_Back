@@ -4,14 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.locationtech.jts.geom.Point;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LocationDto {
-    private Double latitude;
-    private Double longitude;
+//    private Double latitude;
+//    private Double longitude;
+    private Point coordinate;
 
     private String locationName;
 

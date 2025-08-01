@@ -3,6 +3,7 @@ package yeonjae.snapguide.service.locationSerivce;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yeonjae.snapguide.domain.location.GeometryUtils;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtractor;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
@@ -29,8 +30,9 @@ public class LocationServiceCoordImpl implements LocationService{
                 new IllegalArgumentException("좌표 정보가 없습니다."));
 
         Location location = Location.builder()
-                .latitude(latLng[0])
-                .longitude(latLng[1])
+//                .latitude(latLng[0])
+//                .longitude(latLng[1])
+                .coordinate(GeometryUtils.createPoint(latLng[0], latLng[1]))
                 .build();
 
         return locationRepository.save(location);
@@ -38,8 +40,9 @@ public class LocationServiceCoordImpl implements LocationService{
 
     public Location saveLocation(Double lat, Double lng) {
         Location location = Location.builder()
-                .latitude(lat)
-                .longitude(lng)
+//                .latitude(lat)
+//                .longitude(lng)
+                .coordinate(GeometryUtils.createPoint(lat, lng))
                 .build();
         return locationRepository.save(location);
     }
