@@ -2,10 +2,15 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:h2:tcp://localhost/~/snapguide
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:postgresql://localhost:5432/snapguidedb
+    username: postgres
+    password: 5418
+    driver-class-name: org.postgresql.Driver
+#    hikari:
+#      connection-timeout: 30000
+#      maximum-pool-size: 150
+#      minimum-idle: 50
+#      idle-timeout: 10000
   # Redis 설정
   data:
     redis:
@@ -18,12 +23,13 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         show_sql: true
         format_sql: true
         spring.jpa.properties.hibernate.use_sql_comments: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   security:
     oauth2:
       client:

@@ -1,6 +1,5 @@
 package yeonjae.snapguide.service.mediaSerivce;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -12,7 +11,7 @@ import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
-import yeonjae.snapguide.service.locationSerivce.LocationService;
+import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
@@ -26,7 +25,7 @@ import java.util.List;
 public class MediaService {
     private final FileStorageService fileStorageService;
     private final MediaMetaDataService mediaMetaDataService;
-    private final LocationService locationService;
+    private final LocationServiceGeoImpl locationServiceGeoImpl;
     private final GuideService guideService;
     private final MediaRepository mediaRepository;
 
@@ -35,7 +34,7 @@ public class MediaService {
             for (MultipartFile file : files) {
                 File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
-                Location location = locationService.extractAndResolveLocation(savedFile);
+                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile);
 //                String filePath = savedFile.getAbsolutePath();
                 String publicUrl = "/media/files/" + savedFile.getName(); // 전체 경로 대신 public URL TODO : 너무 로컬 저장 방식 하드 코딩이다. 고쳐야함
 

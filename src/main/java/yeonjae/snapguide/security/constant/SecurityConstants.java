@@ -37,7 +37,7 @@ public final class SecurityConstants {
 
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
-//			whiteList.addAll(Arrays.stream(TEST_API).toList());
+			whiteList.addAll(Arrays.stream(TEST_API).toList());
 			whiteList.addAll(Arrays.stream(SWAGGER_V3).toList());
 			whiteList.addAll(Arrays.stream(AUTH_API).toList());
 			whiteList.addAll(Arrays.stream(USER_API).toList());
