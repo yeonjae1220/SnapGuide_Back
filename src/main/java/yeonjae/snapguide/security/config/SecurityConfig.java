@@ -84,7 +84,7 @@ public class SecurityConfig {
                 // 조건 별 요청 허용 or 제한 설정
                 .authorizeHttpRequests(
                         authorize -> authorize
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).hasAnyAuthority("MEMBER", "ADMIN")
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()//.hasAnyAuthority("MEMBER", "ADMIN")
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()

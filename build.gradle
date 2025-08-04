@@ -71,12 +71,27 @@ dependencies {
 	// oauth2.0
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
-	//Querydsl 추가
+	// Querydsl 추가
 	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
 	annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jakarta"
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
+	// HEIC -> JPEG 변환용
+	implementation 'org.im4java:im4java:1.4.0'
+
+	// openCSV (오픈 데이터 가져온거 처리)
+	implementation("com.opencsv:opencsv:5.9")
+	implementation("com.fasterxml.jackson.core:jackson-databind")
+
+	// aop
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	//postgreSQL
+	implementation 'org.postgresql:postgresql:42.7.3'
+	implementation 'org.hibernate:hibernate-spatial:6.4.4.Final' // PostGIS 지원을 위해 필요
+	// implementation 'com.querydsl:querydsl-spatial'
+	implementation 'org.locationtech.jts:jts-core:1.19.0' // JTS Geometry 라이브러리 추가, Point 타입 사용하기 위해서. jts는 공간 관련 기능을 제공하는 Java의 라이브러리이다.
 }
 
 tasks.named('test') {
