@@ -29,7 +29,7 @@
 <button onclick="authTest()">인증된 사용자 확인</button>
 <div id="authResult"></div>
 
-<h1>사진 업로드</h1>
+<h1>가이드 업로드</h1>
 <input type="file" id="imageFile" name="file" multiple>
 <label for="tip"></label>
 <textarea id="tip" placeholder="팁을 입력하세요"></textarea>
@@ -237,6 +237,8 @@
             .catch(err => alert(err.message));
     }
 
+
+
     function loadUserGuides() {
         if (!token) return alert("로그인이 필요합니다.");
 
@@ -274,7 +276,24 @@
                     // const loc = document.createElement("span");
                     // loc.textContent = g.locationName;
 
-                    card.append(imgBox, tip);
+                    const updateBtn = document.createElement("button");
+                    updateBtn.textContent = "✏️ 수정";
+                    updateBtn.onclick = () => {
+                        const newTip = prompt("새 팁 내용을 입력하세요:", g.tip);
+                        if (newTip) updateGuide(g.id, newTip);
+                    };
+
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.textContent = "🗑 삭제";
+                    deleteBtn.onclick = () => {
+                        if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id);
+                    };
+
+                    const btnGroup = document.createElement("div");
+                    btnGroup.className = "button-group";
+                    btnGroup.append(updateBtn, deleteBtn);
+
+                    card.append(imgBox, tip, updateBtn, btnGroup);
                     wrap.appendChild(card);
                 });
             });
@@ -325,8 +344,26 @@
                 // const loc = document.createElement("span");
                 // loc.textContent = g.locationName + ` (${g.distance.toFixed(1)}m)`; // 거리 표시
 
+                const updateBtn = document.createElement("button");
+                updateBtn.textContent = "✏️ 수정";
+                updateBtn.onclick = () => {
+                    const newTip = prompt("새 팁 내용을 입력하세요:", g.tip);
+                    if (newTip) updateGuide(g.id, newTip);
+                };
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "🗑 삭제";
+                deleteBtn.onclick = () => {
+                    if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id);
+                };
+
+
+                const btnGroup = document.createElement("div");
+                btnGroup.className = "button-group";
+                btnGroup.append(updateBtn, deleteBtn);
+
                 // card.append(imgBox, tip, loc);
-                card.append(imgBox, tip);
+                card.append(imgBox, tip, updateBtn, btnGroup);
                 wrap.appendChild(card);
             });
         })
@@ -458,6 +495,37 @@
                 loadingText.style.display = "none";
             });
     }
+
+    function updateGuide(id, newTip) {
+        fetch(`/guide/api/update`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ id : id, tip : newTip })
+        }).then(() => {
+            alert("수정 완료");
+            loadUserGuides();
+        }).catch(err => {
+            alert("수정 실패");
+            console.error(err);
+        });
+    }
+
+    function deleteGuide(id) {
+        fetch(`/guide/api/delete/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        }).then(() => {
+            alert("삭제 완료");
+            loadUserGuides();
+        }).catch(err => {
+            alert("삭제 실패");
+            console.error(err);
+        });
+    }
+
     // 📌 시작 버튼
     startBtn.addEventListener("click", () => {
         page = 0;

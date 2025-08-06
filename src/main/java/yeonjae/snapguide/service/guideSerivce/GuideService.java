@@ -3,6 +3,10 @@ package yeonjae.snapguide.service.guideSerivce;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
@@ -80,6 +84,32 @@ public class GuideService {
 
     public List<GuideResponseDto> getMyGuides(Long memberId) {
         return guideRepository.findAllByMemberId(memberId);
+    }
+
+    public void updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
+
+        Member member = memberRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
+
+        if (!guide.getAuthor().getId().equals(member.getId())) {
+            throw new AccessDeniedException("본인의 가이드만 수정할 수 있습니다.");
+        }
+        guide.updateTip(newTip);
+    }
+
+    public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
+
+        Member member = memberRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
+
+        if (!guide.getAuthor().getId().equals(member.getId())) {
+            throw new AccessDeniedException("본인의 가이드만 삭제할 수 있습니다.");
+        }
+        guideRepository.delete(guide);
     }
 
     public List<GuideDto> findGuidesNear(double lat, double lng, double radius) { // km
