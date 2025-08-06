@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
+import yeonjae.snapguide.domain.guide.GuideDto;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
@@ -68,6 +69,17 @@ public class GuideController {
         Long memberId = member.getId();
         return ResponseEntity.ok(guideService.getMyGuides(memberId));
     }
+
+    @GetMapping("/api/nearby")
+    public List<GuideDto> getNearbyGuides(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "20") double radius
+    ) {
+        return guideService.findGuidesNear(lat, lng, radius);
+    }
+
+
 
     /**
      * 멤버 아이디를 가지고 멤버의 가이드 리스트 쭉 가져오기

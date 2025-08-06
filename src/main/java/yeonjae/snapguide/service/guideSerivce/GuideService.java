@@ -8,10 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
+import yeonjae.snapguide.domain.guide.GuideDto;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.guideRepository.GuideRepository;
+import yeonjae.snapguide.repository.locationRepository.GeoUtil;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
@@ -78,6 +80,47 @@ public class GuideService {
 
     public List<GuideResponseDto> getMyGuides(Long memberId) {
         return guideRepository.findAllByMemberId(memberId);
+    }
+
+    public List<GuideDto> findGuidesNear(double lat, double lng, double radius) { // km
+        log.info("📍 [findGuidesNear] 요청 위치: lat = {}, lng = {}, radius = {} km", lat, lng, radius);
+
+        double[] box = GeoUtil.getBoundingBox(lat, lng, radius);
+        double minLat = box[0], maxLat = box[1];
+        double minLng = box[2], maxLng = box[3];
+        List<Location> locations =  locationRepository.findNearbyOptimized(lat, lng, radius,
+                minLat, minLng, maxLat, maxLng);
+
+        log.info("📌 [findNearbyOptimized] 반환된 Location 수: {}", locations.size());
+        locations.forEach(loc ->
+                log.info("    ▸ Location ID = {}, 이름 = {}, 좌표 = {}",
+                        loc.getId(),
+                        loc.getLocationName(),
+                        loc.getCoordinate())
+        );
+
+        // 위치 ID를 기준으로 가이드 찾기
+        List<Long> locationIds = locations.stream()
+                .map(Location::getId)
+                .toList();
+
+        log.info("🧭 조회할 Location ID 목록: {}", locationIds);
+
+        List<Guide> guides = guideRepository.findByLocationIdIn(locationIds);
+        log.info("📘 Guide 수: {}", guides.size());
+        guides.forEach(g ->
+                log.info("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
+                        g.getId(),
+                        g.getTip(),
+                        g.getLocation().getId())
+        );
+
+        List<GuideDto> result = guides.stream()
+                .map(GuideDto::fromEntity)
+                .toList();
+
+        log.info("✅ 최종 반환 GuideDto 수: {}", result.size());
+        return result;
     }
 
 }
