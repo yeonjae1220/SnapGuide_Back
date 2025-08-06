@@ -28,7 +28,7 @@ public class LocationServiceGeoImpl implements LocationService {
                 new IllegalArgumentException("좌표 정보가 없습니다."));
 
         // Location이 존재할경우 처리
-        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(latLng[0], latLng[1]);
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
         if (!locationByCoordinate.isEmpty()) {
             return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
         }
@@ -44,7 +44,7 @@ public class LocationServiceGeoImpl implements LocationService {
     // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
     public Location saveLocation(Double lat, Double lng) {
         // Location이 존재할경우 처리
-        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinate(lat, lng);
+        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(lat, lng);
         if (!locationByCoordinate.isEmpty()) {
             return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
         }

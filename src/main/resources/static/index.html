@@ -39,6 +39,18 @@
 <button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
 <div id="guideWrap"></div>
 
+<h1>거리별 가이드 보기</h1>
+<!-- 거리 선택 토글 -->
+<select id="radiusSelect">
+    <option value="5">5km</option>
+    <option value="10">10km</option>
+    <option value="20">20km</option>
+    <option value="50">50km</option>
+    <option value="100">100km</option>
+</select>
+<button onclick="fetchGuides()">가이드 조회</button>
+<div id="guideNear"></div>
+
 <h1>사진 목록 보기</h1>
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
@@ -259,12 +271,68 @@
                     const tip = document.createElement("p");
                     tip.textContent = g.tip;
 
-                    const loc = document.createElement("span");
-                    loc.textContent = g.locationName;
+                    // const loc = document.createElement("span");
+                    // loc.textContent = g.locationName;
 
-                    card.append(imgBox, tip, loc);
+                    card.append(imgBox, tip);
                     wrap.appendChild(card);
                 });
+            });
+    }
+
+    function fetchGuides(){
+        if (!token) return alert("로그인이 필요합니다.");
+
+        // 현재 위치 (예시)
+        // const currentLat = 35.202186;
+        // const currentLng = 128.709007;
+        const currentLat = 37.51;
+        const currentLng = 127.01;
+
+        const radius = document.getElementById('radiusSelect').value;
+        fetch(`/guide/api/nearby?lat=${currentLat}&lng=${currentLng}&radius=${radius}`, {
+            headers: { "Authorization": "Bearer " + token }
+        })
+        .then(res => res.json())
+        .then(list => {
+            console.log("📦 받아온 가이드 리스트:", list);  // ← 여기에 로그 추가!
+            const wrap = document.getElementById("guideNear");
+            wrap.innerHTML = "";
+            list.forEach(g => {
+                const card = document.createElement("div");
+                card.className = "guide-card";
+
+                const imgBox = document.createElement("div");
+                imgBox.className = "img-box";
+
+                g.media.slice(0, 10).forEach((m, i) => {
+                    const img = document.createElement("img");
+                    img.src = "http://localhost:8080" + m.url;
+                    if (i !== 0) img.style.display = "none";
+                    imgBox.appendChild(img);
+                });
+
+                imgBox.onclick = () => {
+                    const imgs = imgBox.querySelectorAll("img");
+                    let idx = [...imgs].findIndex(el => el.style.display !== "none");
+                    imgs[idx].style.display = "none";
+                    imgs[(idx + 1) % imgs.length].style.display = "block";
+                };
+
+                const tip = document.createElement("p");
+                tip.textContent = g.tip;
+
+                // const loc = document.createElement("span");
+                // loc.textContent = g.locationName + ` (${g.distance.toFixed(1)}m)`; // 거리 표시
+
+                // card.append(imgBox, tip, loc);
+                card.append(imgBox, tip);
+                wrap.appendChild(card);
+            });
+        })
+            .catch(err => {
+                console.error("가이드 로딩 실패:", err);
+                alert("가이드를 불러오는 중 오류가 발생했습니다.");
             });
     }
 

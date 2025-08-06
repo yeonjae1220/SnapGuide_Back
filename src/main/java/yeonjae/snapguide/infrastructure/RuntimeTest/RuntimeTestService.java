@@ -39,7 +39,7 @@ public class RuntimeTestService {
         StopWatch watch = new StopWatch("CoordinateSearchSummary");
         for (RuntimeTestService.LocationPoint location : testLocations) {
             watch.start(location.name());
-            List<Location> result = locationRepository.findLocationByCoordinate(location.lat(), location.lng);
+            List<Location> result = locationRepository.findLocationByCoordinateNative(location.lat(), location.lng);
             logLocations(location.name(), result);
             watch.stop();
             log.info("📍 [{}] coordinate matched", location.name());
