@@ -103,6 +103,11 @@ public class GuideController {
         return guideService.findGuidesNear(lat, lng, radius);
     }
 
+//    @GetMapping("/api/distance")
+//    public List<GuideDto> getGuidesDistance() {
+//
+//    }
+
 
 
     /**
