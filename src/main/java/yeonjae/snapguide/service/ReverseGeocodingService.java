@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import yeonjae.snapguide.domain.location.GeometryUtils;
@@ -45,14 +46,12 @@ public class ReverseGeocodingService {
 
                         // google geocoding api 사용량 초과 응답을 받을 경우 좌표 정보만 저장
                         String status = response.getStatus();
-                        if ("OVER_QUERY_LIMIT".equals(status)) {
-                            log.warn("Geocoding API quota exceeded. Storing coordinates only.");
+                        if ("OVER_QUERY_LIMIT".equals(status) || CollectionUtils.isEmpty(response.getResults())) {
+                            log.warn("Geocoding API quota exceeded or no results returned. Storing coordinates only.");
                             return Location.builder()
-//                                    .latitude(lat)
-//                                    .longitude(lng)
                                     .coordinate(GeometryUtils.createPoint(lat, lng))
-                                    .build(); // 주소 없이 좌표만 저장
-                        }
+                                    .build();
+                        }// 주소 없이 좌표만 저장
 
                         return response.getResults().stream()
                                 .findFirst()

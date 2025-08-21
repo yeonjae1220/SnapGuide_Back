@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
@@ -47,6 +48,7 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
 
+    private final CorsConfigurationSource corsConfigurationSource;
 
 //    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
@@ -105,7 +107,8 @@ public class SecurityConfig {
                 .logout((auth) -> auth
                         .logoutUrl("/oauth-login/logout")
                         .logoutSuccessUrl("/oauth-login/login"))
-                .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
+                // .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화 // ID, password 문자열을 Base64로 인코딩하여 전달하는 구조
                 .formLogin(AbstractHttpConfigurer::disable) // Form Login 비활성화

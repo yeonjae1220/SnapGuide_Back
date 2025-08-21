@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
+//import yeonjae.snapguide.domain.guide.GuideDistanceDto;
 import yeonjae.snapguide.domain.guide.GuideDto;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
@@ -152,5 +153,9 @@ public class GuideService {
         log.info("✅ 최종 반환 GuideDto 수: {}", result.size());
         return result;
     }
+
+//    public List<GuideDistanceDto> distanceGuide(double lat, double lng) {
+//
+//    }
 
 }
