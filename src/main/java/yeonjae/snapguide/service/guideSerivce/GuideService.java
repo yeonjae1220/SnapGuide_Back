@@ -16,6 +16,7 @@ import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.domain.guide.GuideDto;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
+import yeonjae.snapguide.domain.media.MediaDto;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.guideRepository.GuideRepository;
 import yeonjae.snapguide.repository.locationRepository.GeoUtil;
@@ -87,7 +88,7 @@ public class GuideService {
         return guideRepository.findAllByMemberId(memberId);
     }
 
-    public void updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
+    public GuideResponseDto updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
@@ -98,6 +99,18 @@ public class GuideService {
             throw new AccessDeniedException("본인의 가이드만 수정할 수 있습니다.");
         }
         guide.updateTip(newTip);
+//        guideRepository.save(guide); // 변경감지로 자동 반영되지만 save로 명시해도 OK
+        // DTO로 변환해서 반환
+//        return new GuideResponseDto(guide.getId(), guide.getTip());
+        return GuideResponseDto.builder()
+                .id(guide.getId())
+                .tip(guide.getTip())
+                // NOTE : 아래 두개는 일단 보류.. locationName은 딱히 중요하지 않은 것 같고, media도 필요한가? 리소스만 쓰는거 같음
+                .locationName("") //
+                .media(guide.getMediaList().stream()
+                        .map(media -> new MediaDto(media.getMediaName(), media.getMediaUrl()))
+                        .toList())
+                .build();
     }
 
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
