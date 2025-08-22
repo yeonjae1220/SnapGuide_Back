@@ -84,8 +84,9 @@ public class GuideController {
     }
 
     @PutMapping("/api/update")
-    public void updateTip(@RequestBody GuideUpdateRequestDto req, @AuthenticationPrincipal UserDetails userDetails) {
-        guideService.updateTip(req.getId(), req.getTip(), userDetails);
+    public ResponseEntity<GuideResponseDto> updateTip(@RequestBody GuideUpdateRequestDto req, @AuthenticationPrincipal UserDetails userDetails) {
+        GuideResponseDto updated =  guideService.updateTip(req.getId(), req.getTip(), userDetails);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/api/delete/{id}")
