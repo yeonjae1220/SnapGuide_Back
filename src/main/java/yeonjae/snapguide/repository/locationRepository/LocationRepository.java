@@ -12,6 +12,22 @@ public interface LocationRepository extends JpaRepository<Location, Long>,  Loca
 //    boolean existsByLatitudeAndLongitude(double latitude, double longitude);
     boolean existsByCoordinate(Point coordinate);
 
+
+
+    @Query(value = """
+    SELECT *
+    FROM location
+    WHERE ST_DWithin(
+        coordinate,
+        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+        0.00001
+    )
+""", nativeQuery = true)
+    List<Location> findLocationByCoordinateNative(
+            @Param("lat") Double lat, @Param("lng") Double lng
+    );
+
+
     @Query(value = """
     SELECT * FROM location
     WHERE ST_DWithin(
