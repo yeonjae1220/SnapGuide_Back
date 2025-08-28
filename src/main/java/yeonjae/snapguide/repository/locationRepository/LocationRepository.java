@@ -13,6 +13,7 @@ public interface LocationRepository extends JpaRepository<Location, Long>,  Loca
     boolean existsByCoordinate(Point coordinate);
 
 
+
     @Query(value = """
     SELECT *
     FROM location
@@ -25,6 +26,7 @@ public interface LocationRepository extends JpaRepository<Location, Long>,  Loca
     List<Location> findLocationByCoordinateNative(
             @Param("lat") Double lat, @Param("lng") Double lng
     );
+
 
     @Query(value = """
     SELECT * FROM location
