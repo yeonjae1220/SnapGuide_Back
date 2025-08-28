@@ -11,6 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
+
+import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
+import yeonjae.snapguide.domain.guide.GuideDto;
+
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
@@ -31,16 +35,28 @@ public class GuideController {
     @PostMapping("/api/upload")
     public Long testCreateGuide(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("files") MultipartFile[] files,
+
+            @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "tip", required = false) String tip)
             throws IOException {
+
+        // 둘 다 비었을 경우 업로드 차단
+        boolean hasNoFiles = (files == null || files.length == 0);
+        boolean hasNoTip = (tip == null || tip.trim().isEmpty());
+
+        if (hasNoFiles && hasNoTip) {
+            throw new IllegalArgumentException("사진 또는 팁 중 하나는 필수입니다.");
+        }
 
         // 지금 유저 찾는 코드가 너무 돌고 돔, 거기다가 memberRepository의존까지 가지게 됨
         String email = userDetails.getUsername();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("no member : " +  email));
         Long memberId = member.getId();
-        List<Long> ids = mediaService.saveAll(Arrays.asList(files));
+
+        // 사진 저장
+        List<Long> ids = hasNoFiles ? List.of() : mediaService.saveAll(Arrays.asList(files));
+
         /**
          * TODO : 위치 정보 , media 대표 사진에서 뽑아 와야함, 혹은 collection 써서 전체적으로 뽑아두기?
          * -> 사용자에게 공개될 장소 정보, 제한적 공개 필요
@@ -48,13 +64,17 @@ public class GuideController {
          * 사진들이 여러 장소에서 찍은 케이스 처리 필요 (여러 장소를 모두 저장하거나, 바운더리로 묶을 수 있으면 묶기)
          * 현재는 우선 저장된 media를 통해 조회해서 가장 먼저 나오는 위치 데이터 사용 -> location 데이터로 요청 보내야 할듯
          */
-        Long locationId = mediaService.getOneLocationId(ids);
+
+        // 위치 ID 추정 (없으면 null)
+        Long locationId = ids.isEmpty() ? null : mediaService.getOneLocationId(ids);
+
         GuideCreateTestDto request =  GuideCreateTestDto.of(memberId, tip, locationId, ids);
 
         Long guideId = guideService.createGuide(request);
 
-        if (request.getMediaIds() != null && !request.getMediaIds().isEmpty()) {
-            guideService.linkMediaToGuide(guideId, request.getMediaIds());
+        // 사진이 있다면 가이드에 연결
+        if (!ids.isEmpty()) {
+            guideService.linkMediaToGuide(guideId, ids);
         }
 
         return guideId;
@@ -68,6 +88,34 @@ public class GuideController {
         Long memberId = member.getId();
         return ResponseEntity.ok(guideService.getMyGuides(memberId));
     }
+
+
+    @PutMapping("/api/update")
+    public ResponseEntity<GuideResponseDto> updateTip(@RequestBody GuideUpdateRequestDto req, @AuthenticationPrincipal UserDetails userDetails) {
+        GuideResponseDto updated =  guideService.updateTip(req.getId(), req.getTip(), userDetails);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/api/delete/{id}")
+    public void deleteGuide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        guideService.deleteGuide(id, userDetails);
+    }
+
+
+    @GetMapping("/api/nearby")
+    public List<GuideDto> getNearbyGuides(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "20") double radius
+    ) {
+        return guideService.findGuidesNear(lat, lng, radius);
+    }
+
+//    @GetMapping("/api/distance")
+//    public List<GuideDto> getGuidesDistance() {
+//
+//    }
+
 
     /**
      * 멤버 아이디를 가지고 멤버의 가이드 리스트 쭉 가져오기

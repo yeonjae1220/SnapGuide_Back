@@ -67,6 +67,7 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
                 .map(t -> new GuideResponseDto(
                         t.get(g.id),
                         t.get(g.tip),
+                        t.get(g.author.id), // NOTE : 이거 조회 성능에 영향 주는지 확인 해야함 (위에도 있음)
                         t.get(l.formattedAddress),
                         mediaMap.getOrDefault(t.get(g.id), List.of())
                 )).toList();

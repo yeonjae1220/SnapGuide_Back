@@ -64,4 +64,14 @@ public class Guide extends BaseEntity {
         * null 방어 코드를 추가하면, 추후 다른 코드에서도 안전하게 사용할 수 있습니다. 다만 이건 임시 해결일 뿐, 엔티티 자체를 null-safe하게 만드는 게 최선입니다.
          */
     }
+
+    /*
+    Spring Data JPA에서는 @Transactional이 있는 서비스 계층에서
+    엔티티의 값을 setter나 커스텀 메서드로 변경하면
+    Dirty Checking에 의해 자동으로 update 쿼리가 날아가게 됩니다.
+     */
+
+    public void updateTip (String newTip) {
+        this.tip = newTip;
+    }
 }

@@ -20,6 +20,7 @@ import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.util.List;
 
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -33,36 +34,51 @@ public class InitTestData {
 // 잠깐 꺼둠, Point type에 맞춰서 해야함
 //    @PostConstruct
     public void init() {
+
+        if (memberRepository.findByEmail("test1").isPresent()) {
+            return;
+        }
+        if (memberRepository.findByEmail("test2").isPresent()) {
+            return;
+        }
+
         // 1. 테스트 회원 생성
-        Member member = Member.builder()
-                .email("test")
+        Member member1 = Member.builder()
+                .email("test1")
                 .password(passwordEncoder.encode("test"))
-                .nickname("테스트유저")
+                .nickname("테스트유저1")
                 .provider(Provider.LOCAL)
                 .authority(List.of(Authority.MEMBER))
                 .build();
-        memberRepository.save(member);
+        memberRepository.save(member1);
+
+        Member member2 = Member.builder()
+                .email("test2")
+                .password(passwordEncoder.encode("test"))
+                .nickname("테스트유저2")
+                .provider(Provider.LOCAL)
+                .authority(List.of(Authority.MEMBER))
+                .build();
+        memberRepository.save(member2);
+
+
+
 
 
         // 2. 한국 내 5개 테스트 가이드
-        createGuidesForCountry(member, 37.5, 127.0, "한국");
-
+        createGuidesForCountry(member1, 37.5, 127.0, "한국");
         // 3. 일본
-        createGuidesForCountry(member, 35.6895, 139.6917, "일본"); // 도쿄
-
+        createGuidesForCountry(member1, 35.6895, 139.6917, "일본"); // 도쿄
         // 4. 중국
-        createGuidesForCountry(member, 31.2304, 121.4737, "중국"); // 상하이
-
+        createGuidesForCountry(member1, 31.2304, 121.4737, "중국"); // 상하이
         // 5. 러시아
-        createGuidesForCountry(member, 55.7558, 37.6173, "러시아"); // 모스크바
-
+        createGuidesForCountry(member2, 55.7558, 37.6173, "러시아"); // 모스크바
         // 6. 미국
-        createGuidesForCountry(member, 40.7128, -74.0060, "미국"); // 뉴욕
-
+        createGuidesForCountry(member2, 40.7128, -74.0060, "미국"); // 뉴욕
         // 7. 루마니아
-        createGuidesForCountry(member, 44.4268, 26.1025, "루마니아"); // 부쿠레슈티
-
+        createGuidesForCountry(member2, 44.4268, 26.1025, "루마니아"); // 부쿠레슈티
         log.info("[InitTestData] : 다국적 테스트 데이터 생성 완료");
+
 
 
     }
