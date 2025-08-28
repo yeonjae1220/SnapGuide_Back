@@ -35,12 +35,14 @@ public class LocationKrTourSpotTestData implements ApplicationRunner {
             List<Location> newLocations = new ArrayList<>();
             for (TourSpotDto spot : spots) {
                 boolean exists = locationRepository.existsByCoordinate(
+
                         GeometryUtils.createPoint(spot.getLatitude(), spot.getLongitude()));
 
                 if (!exists) {
                     Location location = Location.builder()
                             .locationName(spot.getName())
                             .formattedAddress(spot.getRoadAddress())
+
                             .coordinate(GeometryUtils.createPoint(spot.getLatitude(), spot.getLongitude()))
                             .rawJson(objectMapper.writeValueAsString(spot))
                             .provider("행정안전부")

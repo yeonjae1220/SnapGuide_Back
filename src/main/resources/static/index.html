@@ -39,6 +39,7 @@
 <button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
 <div id="guideWrap"></div>
 
+<<<<<<< HEAD
 <h1>거리별 가이드 보기</h1>
 <!-- 거리 선택 토글 -->
 <select id="radiusSelect">
@@ -51,6 +52,8 @@
 <button onclick="fetchGuides()">가이드 조회</button>
 <div id="guideNear"></div>
 
+=======
+>>>>>>> origin/master
 <h1>사진 목록 보기</h1>
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
@@ -238,7 +241,6 @@
     }
 
 
-
     function loadUserGuides() {
         if (!token) return alert("로그인이 필요합니다.");
 
@@ -273,6 +275,7 @@
                     const tip = document.createElement("p");
                     tip.textContent = g.tip;
 
+
                     // const loc = document.createElement("span");
                     // loc.textContent = g.locationName;
 
@@ -294,10 +297,12 @@
                     btnGroup.append(updateBtn, deleteBtn);
 
                     card.append(imgBox, tip, updateBtn, btnGroup);
+
                     wrap.appendChild(card);
                 });
             });
     }
+
 
     function fetchGuides(){
         if (!token) return alert("로그인이 필요합니다.");
@@ -372,6 +377,7 @@
                 alert("가이드를 불러오는 중 오류가 발생했습니다.");
             });
     }
+
 
     function loadPhotos() {
         if (!token) return alert("로그인이 필요합니다.");
@@ -495,6 +501,33 @@
                 loadingText.style.display = "none";
             });
     }
+    // 📌 시작 버튼
+    startBtn.addEventListener("click", () => {
+        page = 0;
+        done = false;
+        photoContainer.innerHTML = "";
+        nextBtn.style.display = "inline-block";
+        prevBtn.style.display = "inline-block";
+        nextBtn.disabled = false;
+        fetchPhotoCount();
+        allPhotos();
+    });
+
+    // 📌 다음 페이지
+    nextBtn.addEventListener("click", () => {
+        if (!done) {
+            page++;
+            allPhotos();
+        }
+    });
+
+    // 📌 이전 페이지
+    prevBtn.addEventListener("click", () => {
+        if (page > 0) {
+            page--;
+            allPhotos();
+        }
+    });
 
     function updateGuide(id, newTip) {
         fetch(`/guide/api/update`, {

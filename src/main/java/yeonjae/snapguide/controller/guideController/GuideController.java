@@ -11,8 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
+
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.domain.guide.GuideDto;
+
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
@@ -33,6 +35,7 @@ public class GuideController {
     @PostMapping("/api/upload")
     public Long testCreateGuide(
             @AuthenticationPrincipal UserDetails userDetails,
+
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "tip", required = false) String tip)
             throws IOException {
@@ -53,6 +56,7 @@ public class GuideController {
 
         // 사진 저장
         List<Long> ids = hasNoFiles ? List.of() : mediaService.saveAll(Arrays.asList(files));
+
         /**
          * TODO : 위치 정보 , media 대표 사진에서 뽑아 와야함, 혹은 collection 써서 전체적으로 뽑아두기?
          * -> 사용자에게 공개될 장소 정보, 제한적 공개 필요
@@ -60,10 +64,12 @@ public class GuideController {
          * 사진들이 여러 장소에서 찍은 케이스 처리 필요 (여러 장소를 모두 저장하거나, 바운더리로 묶을 수 있으면 묶기)
          * 현재는 우선 저장된 media를 통해 조회해서 가장 먼저 나오는 위치 데이터 사용 -> location 데이터로 요청 보내야 할듯
          */
+
         // 위치 ID 추정 (없으면 null)
         Long locationId = ids.isEmpty() ? null : mediaService.getOneLocationId(ids);
 
         GuideCreateTestDto request =  GuideCreateTestDto.of(memberId, tip, locationId, ids);
+
         Long guideId = guideService.createGuide(request);
 
         // 사진이 있다면 가이드에 연결
@@ -82,6 +88,7 @@ public class GuideController {
         Long memberId = member.getId();
         return ResponseEntity.ok(guideService.getMyGuides(memberId));
     }
+
 
     @PutMapping("/api/update")
     public ResponseEntity<GuideResponseDto> updateTip(@RequestBody GuideUpdateRequestDto req, @AuthenticationPrincipal UserDetails userDetails) {
@@ -108,9 +115,6 @@ public class GuideController {
 //    public List<GuideDto> getGuidesDistance() {
 //
 //    }
-
-
-
 
 
     /**

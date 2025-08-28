@@ -19,7 +19,8 @@ import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.util.List;
-// 임시용22
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -33,6 +34,7 @@ public class InitTestData {
 // 잠깐 꺼둠, Point type에 맞춰서 해야함
 //    @PostConstruct
     public void init() {
+
         if (memberRepository.findByEmail("test1").isPresent()) {
             return;
         }

@@ -9,6 +9,7 @@ import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 import yeonjae.snapguide.service.util.googleMapApiDto.PlaceAutocompleteService;
 
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/location")
@@ -16,6 +17,7 @@ import yeonjae.snapguide.service.util.googleMapApiDto.PlaceAutocompleteService;
 public class LocationController {
     private final LocationServiceGeoImpl locationServiceGeoImpl;
     private final PlaceAutocompleteService placeAutocompleteService;
+
 
     @PostMapping("/api/upload")
     public ResponseEntity<String> saveLocation(@RequestBody LocationRequestDto requestDto) {
