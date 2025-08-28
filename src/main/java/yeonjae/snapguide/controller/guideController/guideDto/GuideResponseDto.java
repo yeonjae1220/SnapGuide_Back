@@ -14,9 +14,7 @@ import java.util.List;
 public class GuideResponseDto {
     private Long id;
     private String tip;
+    private Long authorId;
     private String locationName;   // ex) “서울 성동구…” // location으로 보내는게 낫나?
     private List<MediaDto> media;
-
-
-
 }

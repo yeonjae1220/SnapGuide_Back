@@ -105,6 +105,7 @@ public class GuideService {
         return GuideResponseDto.builder()
                 .id(guide.getId())
                 .tip(guide.getTip())
+                .authorId(guide.getAuthor().getId()) // NOTE : 이거 Member 조회에 성능 많이 먹는지 확인
                 // NOTE : 아래 두개는 일단 보류.. locationName은 딱히 중요하지 않은 것 같고, media도 필요한가? 리소스만 쓰는거 같음
                 .locationName("") //
                 .media(guide.getMediaList().stream()
@@ -166,6 +167,7 @@ public class GuideService {
         log.info("✅ 최종 반환 GuideDto 수: {}", result.size());
         return result;
     }
+
 
 //    public List<GuideDistanceDto> distanceGuide(double lat, double lng) {
 //
