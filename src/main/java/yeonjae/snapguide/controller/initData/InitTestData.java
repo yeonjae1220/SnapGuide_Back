@@ -19,7 +19,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.util.List;
-// 임시용
+// 임시용22
 @Component
 @RequiredArgsConstructor
 @Slf4j
