@@ -13,7 +13,6 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
-import yeonjae.snapguide.domain.guide.GuideDto;
 
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
@@ -22,17 +21,19 @@ import yeonjae.snapguide.service.mediaSerivce.MediaService;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/guide")
+@RequestMapping("/guide/api")
 @Slf4j
 public class GuideController {
     private final GuideService guideService;
     private final MediaService mediaService;
     private final MemberRepository memberRepository;
-    @PostMapping("/api/upload")
+    @PostMapping("/upload")
     public Long testCreateGuide(
             @AuthenticationPrincipal UserDetails userDetails,
 
@@ -80,7 +81,7 @@ public class GuideController {
         return guideId;
     }
 
-    @GetMapping("/api/my")
+    @GetMapping("/my")
     public ResponseEntity<List<GuideResponseDto>> myGuides(@AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
         Member member = memberRepository.findByEmail(email)
@@ -90,26 +91,45 @@ public class GuideController {
     }
 
 
-    @PutMapping("/api/update")
+    @PutMapping("/update")
     public ResponseEntity<GuideResponseDto> updateTip(@RequestBody GuideUpdateRequestDto req, @AuthenticationPrincipal UserDetails userDetails) {
         GuideResponseDto updated =  guideService.updateTip(req.getId(), req.getTip(), userDetails);
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/api/delete/{id}")
+    @DeleteMapping("/delete/{id}")
     public void deleteGuide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         guideService.deleteGuide(id, userDetails);
     }
 
 
-    @GetMapping("/api/nearby")
-    public List<GuideDto> getNearbyGuides(
+    @GetMapping("/nearby")
+    public List<GuideResponseDto> getNearbyGuides(
             @RequestParam double lat,
             @RequestParam double lng,
             @RequestParam(defaultValue = "20") double radius
     ) {
         return guideService.findGuidesNear(lat, lng, radius);
     }
+    // 게시글 상세 조회 API
+    @GetMapping("/{id}")
+    public ResponseEntity<GuideResponseDto> getGuide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        GuideResponseDto guideDto = guideService.findGuideById(id, userDetails);
+        return ResponseEntity.ok(guideDto);
+    }
+
+    @PostMapping("/like/{id}")
+    public ResponseEntity<Map<String, Object>> likeGuide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        boolean liked = guideService.toggleLike(id, userDetails);
+        GuideResponseDto updatedGuide = guideService.findGuideById(id, userDetails);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", liked);
+        response.put("likeCount", updatedGuide.getLikeCount());
+
+        return ResponseEntity.ok(response);
+    }
+
 
 //    @GetMapping("/api/distance")
 //    public List<GuideDto> getGuidesDistance() {
