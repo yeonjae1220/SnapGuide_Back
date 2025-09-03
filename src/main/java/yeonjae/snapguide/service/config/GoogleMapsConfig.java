@@ -22,3 +22,10 @@ public class GoogleMapsConfig {
  *     바로 이 코드를 넣을 수 도 있지만, 실무에서는 환경설정을 별도 Configuration Properties 클래스로 분리하여 처리합니다.
  *     라고 한다. 더 안전하고 테스트 가능한 구조라나
  */
+
+
+/**
+ * application.properties의 'google.maps.api' 설정을 담는 불변(immutable) 객체.
+ * Java record를 사용하면 final 필드, 생성자, getter, equals, hashCode, toString이 자동으로 생성됩니다.
+ * Setter가 없으므로 @Setter 어노테이션이 필요 없습니다.
+ */
