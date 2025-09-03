@@ -154,7 +154,7 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
                         guide.getTip(),
                         // 세션이 살아있을 때 Member 엔티티를 AuthorDto로 즉시 변환
                         MemberDto.fromEntity(guide.getAuthor()),
-                        guide.getLocation().getFormattedAddress(),
+                        guide.getLocation() != null ? guide.getLocation().getLocationName() : "no name", // NOTE : formattedAddress를 보내는게 낫지않나..?
                         mediaMap.getOrDefault(guide.getId(), List.of()),
                         guide.getLikeCount(),
                         // 메모리에 저장된 Set으로 좋아요 여부를 빠르게 확인
