@@ -65,6 +65,26 @@ google:
       key: AIzaSyC4A8g9EEFIPxc0GT09-Ibw7G9DMxeEwqA
 
 
+storage:
+  type: s3
+  local:
+    base-dir: /Users/kim-yeonjae/Desktop/Study/snapguide/uploads
+  nas:
+    mount-dir: /mnt/nas/snapguide
+cloud:
+  aws:
+    credentials:
+      access-key: AKIASV6SZK4NLWRR27O3
+      secret-key: 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
+    s3:
+      bucket: snapguide-bucket
+    region:
+      static: us-east-2
+    #cloud formation 기능을 사용하지 않기 위함.
+    stack:
+      auto: false
+
+
 springdoc:
   swagger-ui:
     # swagger-ui 접근 경로. default 값은 /swagger-ui.html이다.
