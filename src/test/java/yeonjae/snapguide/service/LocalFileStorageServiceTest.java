@@ -28,7 +28,7 @@ class LocalFileStorageServiceTest {
                 "dummy content".getBytes());
 
         // when
-        File savedFile = localFileStorageService.saveFile(multipartFile);
+        File savedFile = localFileStorageService.uploadFile(multipartFile);
 
         // then
         assertTrue(savedFile.exists());

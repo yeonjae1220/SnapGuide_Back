@@ -32,7 +32,7 @@ public class MediaService {
     public List<Long> saveAll(List<MultipartFile> files) throws IOException {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
-                File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
+                 File savedFile = fileStorageService.uploadFile(file); // 로컬 파일에 저장
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
                 Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile);
 //                String filePath = savedFile.getAbsolutePath();

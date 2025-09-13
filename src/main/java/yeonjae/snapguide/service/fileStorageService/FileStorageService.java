@@ -7,10 +7,15 @@ import java.io.File;
 import java.io.IOException;
 
 public interface FileStorageService {
-    File saveFile(MultipartFile file) throws IOException;
+    File uploadFile(MultipartFile file) throws IOException;
 
-    Resource loadFile(String filePath) throws IOException;
+    Resource downloadFile(String filePath) throws IOException;
 
+    void deleteFile(String filePath) throws IOException;
+
+    /**
+     * 파일 접근용 URL 생성
+     */
     String generatePublicUrl(String filePath);
 }
 
