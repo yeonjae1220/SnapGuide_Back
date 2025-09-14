@@ -12,7 +12,7 @@ import java.io.InputStream;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UploadFileDto {
-    InputStream inputStream;
+    byte[] imageBytes;
     String originalDir;
     String thumbnailDir;
 

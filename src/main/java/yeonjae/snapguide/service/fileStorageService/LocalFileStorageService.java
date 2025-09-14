@@ -80,7 +80,7 @@ public class LocalFileStorageService implements FileStorageService{
 
 //        return new ByteArrayInputStream(originalJpgBytes); // NOTE : 흠...
         return UploadFileDto.builder()
-                .inputStream(new ByteArrayInputStream(originalJpgBytes))
+                .imageBytes(originalJpgBytes)
                 .originalDir(originalPath.toString())
                 .thumbnailDir(thumbnailPath.toString())
                 .build();

@@ -91,7 +91,7 @@ public class S3FileStorageService implements FileStorageService{
         // return new UploadResult(originalFileUrl, webOriginalFileUrl, thumbnailFileUrl);
         // return webOriginalFileUrl.
         return UploadFileDto.builder()
-                .inputStream(webOriginalInputStream)
+                .imageBytes(webOriginalImageBytes)
                 .originalDir(webOriginalFileUrl)
                 .thumbnailDir(thumbnailFileUrl)
                 .build();
