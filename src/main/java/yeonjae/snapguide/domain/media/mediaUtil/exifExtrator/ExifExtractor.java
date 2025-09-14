@@ -8,6 +8,7 @@ import com.drew.metadata.exif.ExifSubIFDDirectory;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.domain.media.mediaUtil.exifUtil.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -17,9 +18,9 @@ import java.time.LocalDateTime;
  */
 
 public class ExifExtractor {
-    public static MediaMetaData extract(InputStream inputStream) {
+    public static MediaMetaData extract(byte[] imageBytes) {
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(inputStream);
+            Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(imageBytes));
             ExifSubIFDDirectory exif = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
             ExifIFD0Directory ifd0 = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
 

@@ -37,8 +37,8 @@ public class MediaService {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
                 UploadFileDto savedFile = fileStorageService.uploadFile(file); // 로컬 파일에 저장
-                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getInputStream());
-                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getInputStream());
+                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getImageBytes());
+                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getImageBytes());
                 String publicUrl = "/media/files/" + Paths.get(savedFile.getOriginalDir()).getFileName().toString(); // NOTE : localStorage용 저장 방법
 
                         Media media = Media.builder()

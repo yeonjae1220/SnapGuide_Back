@@ -7,7 +7,7 @@ import java.io.InputStream;
 
 public interface LocationService {
 //    public Location extractAndResolveLocation(File file);
-    public Location extractAndResolveLocation(InputStream inputStream);
+    public Location extractAndResolveLocation(byte[] imageBytes);
 
     public Location saveLocation(Double lat, Double lng);
 
