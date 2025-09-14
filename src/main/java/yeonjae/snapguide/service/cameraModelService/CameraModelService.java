@@ -10,17 +10,18 @@ import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.cameraModelRepository.CameraModelRepository;
 
 import java.io.File;
+import java.io.InputStream;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class CameraModelService {
     private final CameraModelRepository cameraModelRepository;
-    public CameraModel save(File file) {
+    public CameraModel save(InputStream inputStream) {
         // EXIF 메타데이터 추출
-        MediaMetaData metaData = ExifExtractor.extract(file);
+        MediaMetaData metaData = ExifExtractor.extract(inputStream);
         // 카메라 모델 추출 && 저장
-        CameraModel cameraModel = CameraModelExtractor.extract(file);
+        CameraModel cameraModel = CameraModelExtractor.extract(inputStream);
         return cameraModelRepository.save(cameraModel); // HACK : 얘도 나중에 cascade Persist로?
     }
 }

@@ -8,14 +8,15 @@ import org.springframework.stereotype.Component;
 import yeonjae.snapguide.domain.cameraModel.CameraModel;
 
 import java.io.File;
+import java.io.InputStream;
 
 @Component
 public class CameraModelExtractor {
-    public static CameraModel extract(File file) {
+    public static CameraModel extract(InputStream inputStream) {
         CameraModel model = new CameraModel();
 
         try{
-            Metadata metadata = ImageMetadataReader.readMetadata(file);
+            Metadata metadata = ImageMetadataReader.readMetadata(inputStream);
             ExifIFD0Directory ifd0 = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
             ExifSubIFDDirectory exif = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
 
