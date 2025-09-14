@@ -98,17 +98,23 @@ public class LocalFileStorageService implements FileStorageService{
     }
 
     private byte[] convertToJpg(MultipartFile multipartFile) throws IOException {
-        String extension = getExtension(multipartFile.getOriginalFilename());
+        // 1. 스트림을 딱 한 번만 읽어 byte[] 배열에 저장합니다. (매우 중요)
+        byte[] imageBytes = multipartFile.getBytes();
 
-        // HEIC인 경우, HEIC 변환기를 사용
-        if ("heic".equalsIgnoreCase(extension)) {
-            // heicConverter가 InputStream을 받아 byte[]를 반환한다고 가정
-            return heicConverter.convertToJpgBytes(multipartFile.getInputStream());
+        // 2. Tika를 사용해 실제 파일 형식을 감지합니다.
+        String mimeType = FileTypeDetector.detectMimeType(new ByteArrayInputStream(imageBytes));
+
+        // 3. 파일 확장자가 아닌, MIME 타입을 기준으로 분기합니다.
+        // HEIC/HEIF 형식은 "image/heic", "image/heif" MIME 타입을 가집니다.
+        if ("image/heic".equalsIgnoreCase(mimeType) || "image/heif".equalsIgnoreCase(mimeType)) {
+            // heicConverter는 새로운 스트림을 받아 처리합니다.
+            return heicConverter.convertToJpgBytes(new ByteArrayInputStream(imageBytes));
         }
 
-        // 그 외 이미지(JPG, PNG 등)는 Thumbnails를 이용해 JPG로 통일
+        // 4. 그 외 이미지(JPG, PNG 등)는 Thumbnails를 이용해 JPG로 통일합니다.
         ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream();
-        Thumbnails.of(multipartFile.getInputStream())
+        // Thumbnails도 새로운 스트림을 받아 처리합니다.
+        Thumbnails.of(new ByteArrayInputStream(imageBytes))
                 .scale(1.0)
                 .outputFormat("jpg")
                 .toOutputStream(jpgOutputStream);
