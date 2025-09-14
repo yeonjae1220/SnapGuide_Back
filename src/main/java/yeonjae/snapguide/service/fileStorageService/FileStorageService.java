@@ -5,9 +5,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface FileStorageService {
-    File uploadFile(MultipartFile file) throws IOException;
+    UploadFileDto uploadFile(MultipartFile file) throws IOException;
 
     Resource downloadFile(String filePath) throws IOException;
 

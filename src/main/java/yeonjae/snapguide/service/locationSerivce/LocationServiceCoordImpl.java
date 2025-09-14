@@ -9,6 +9,7 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtra
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,8 +23,8 @@ public class LocationServiceCoordImpl implements LocationService{
      * 좌표값만 저장 (나중에 api 무료 사용량 다 찼을 때 좌표만 저장하기 위해)
      */
 
-    public Location extractAndResolveLocation(File file) {
-        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
+    public Location extractAndResolveLocation(InputStream inputStream) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(inputStream);
         if (coordinate.isEmpty()) {
             return null;
         }

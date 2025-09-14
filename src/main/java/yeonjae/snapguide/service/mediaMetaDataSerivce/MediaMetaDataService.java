@@ -12,6 +12,7 @@ import yeonjae.snapguide.repository.mediaMetaDataRepository.MediaMetaDataReposit
 import yeonjae.snapguide.service.cameraModelService.CameraModelService;
 
 import java.io.File;
+import java.io.InputStream;
 
 /**
  * 얘가 CameraModel 까지 책임
@@ -22,10 +23,10 @@ import java.io.File;
 public class MediaMetaDataService {
     private final MediaMetaDataRepository mediaMetaDataRepository;
     private final CameraModelService cameraModelService;
-    public MediaMetaData extractAndSave(File file) {
+    public MediaMetaData extractAndSave(InputStream inputStream) {
         // EXIF 메타데이터 추출
-        MediaMetaData metaData = ExifExtractor.extract(file);
-        CameraModel cameraModel = cameraModelService.save(file);
+        MediaMetaData metaData = ExifExtractor.extract(inputStream);
+        CameraModel cameraModel = cameraModelService.save(inputStream);
         // CameraModel 을 MediaMetaData에 연결
         metaData.assignCameraModel(cameraModel);
         return mediaMetaDataRepository.save(metaData);
