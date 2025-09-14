@@ -108,6 +108,9 @@ dependencies {
 
 	// (선택) Secrets Manager를 사용한다면 아래 의존성 추가
 	// implementation "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager"
+
+	implementation 'org.apache.tika:tika-core:2.9.2' // Apache Tika , 파일확장자 검사용 특히 heic
+
 }
 
 tasks.named('test') {
