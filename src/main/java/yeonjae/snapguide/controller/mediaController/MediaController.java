@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,11 +13,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.media.MediaDto;
+import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 import yeonjae.snapguide.service.fileStorageService.MediaResponseDto;
+import yeonjae.snapguide.service.fileStorageService.S3FileStorageService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +35,7 @@ import java.util.stream.Stream;
 public class MediaController {
 
     private final MediaService mediaService;
+    private final FileStorageService fileStorageService;
 
 //    private final Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads");
     @Value("${storage.local.base-dir}")
@@ -57,6 +62,7 @@ public class MediaController {
     }
 
     // 파일 다운로드: URL로 접근 (e.g. /media/files/uuid.jpg)
+    /* 로컬 파일용
     @GetMapping("/files/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) throws IOException {
         try {
@@ -97,6 +103,33 @@ public class MediaController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+    */
+    // s3용
+    @GetMapping("/files/{filename:.+}")
+    public ResponseEntity<?> serveFileFromS3(@PathVariable String filename) {
+        // fileStorageService가 S3 구현체인지 확인 (선택적)
+        if (!(fileStorageService instanceof S3FileStorageService)) {
+            // 로컬이나 다른 저장소일 경우의 처리 로직
+            // 여기서는 S3가 아니면 에러를 반환하도록 예시 작성
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("S3 storage is not configured.");
+        }
+
+        S3FileStorageService s3Service = (S3FileStorageService) fileStorageService;
+        String presignedUrl = s3Service.generatePresignedUrl(filename);
+
+        if (presignedUrl == null) {
+            // 서비스에서 파일을 찾지 못했거나 URL 생성에 실패한 경우
+            return ResponseEntity.notFound().build();
+        }
+
+        // 302 Found 상태 코드와 함께 Location 헤더에 Presigned URL을 담아 응답
+        // 클라이언트(브라우저)는 이 응답을 받고 Location 헤더의 URL로 자동 리다이렉트합니다.
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create(presignedUrl));
+
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
     // 모든 업로드된 파일 목록 (MediaDto 리스트 반환)
