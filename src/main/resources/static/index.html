@@ -1,10 +1,8 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <title>SnapGuide Test with Server-Side Places API</title>
-    <!-- Google Maps API 스크립트는 JavaScript가 동적으로 로드합니다. -->
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding-bottom: 100px; line-height: 1.6; }
         h1, h3 { border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -35,14 +33,12 @@
     </style>
 </head>
 <body>
-<!-- HTML 구조는 기존과 동일 -->
 <h1>회원가입</h1>
 <input id="email" placeholder="이메일" /><input id="password" placeholder="비밀번호" type="password" /><button onclick="signup()">회원가입</button>
 <h1>로그인</h1>
 <input id="loginEmail" placeholder="이메일" /><input id="loginPassword" placeholder="비밀번호" type="password" /><button onclick="login()">로그인</button>
 <h1>구글 로그인</h1>
-<a href="/oauth2/authorization/google">구글 로그인</a>
-<h1>토큰 재발급</h1>
+<a id="googleLoginLink" href="#">구글 로그인</a> <h1>토큰 재발급</h1>
 <button onclick="reissueToken()">토큰 재발급</button>
 <h1>로그아웃</h1>
 <button onclick="logout()">로그아웃</button>
@@ -80,6 +76,11 @@
 <button onclick="loadMembers()">멤버 리스트 불러오기</button><ul id="memberList"></ul>
 
 <script>
+    // ====================================================================================
+    // 🔹 1. API 서버의 기본 주소를 변수로 선언합니다.
+    // ====================================================================================
+    const API_BASE_URL = "http://localhost:8081"; // 👈 서버 주소가 바뀌면 여기만 수정
+
     let token = localStorage.getItem("accessToken") || null;
 
     // 페이지 로딩 시 실행
@@ -88,7 +89,9 @@
         token = localStorage.getItem("accessToken");
         loadGoogleMapsScript();
 
-        // 🔹 중복되던 이벤트 리스너들을 여기서 한 번만 등록합니다.
+        // 구글 로그인 링크 설정
+        document.getElementById('googleLoginLink').href = `${API_BASE_URL}/oauth2/authorization/google`;
+
         const startBtn = document.getElementById("loadStartBtn");
         const nextBtn = document.getElementById("nextPageBtn");
         const prevBtn = document.getElementById("prevPageBtn");
@@ -96,7 +99,7 @@
         startBtn.addEventListener("click", () => {
             page = 0;
             done = false;
-            photoContainer.innerHTML = "";
+            document.getElementById("allPhoto").innerHTML = ""; // photoContainer -> allPhoto
             nextBtn.style.display = "inline-block";
             prevBtn.style.display = "inline-block";
             nextBtn.disabled = false;
@@ -108,7 +111,7 @@
     });
 
     function loadGoogleMapsScript() {
-        fetch("http://localhost:8080/api/maps/key")
+        fetch(`${API_BASE_URL}/api/maps/key`) // 👈 변수 사용
             .then(res => res.ok ? res.json() : Promise.reject("Could not fetch map API key."))
             .then(data => {
                 const apiKey = data.apiKey;
@@ -126,110 +129,40 @@
             });
     }
 
-    // 서버 기반 장소 검색 API
-    /**
-     * 서버에 장소 자동완성을 요청합니다. (React Native 코드와 동일 로직)
-     */
-    async function fetchPlaceAutocomplete(input) {
-        if (!input || input.trim().length < 2) return [];
-        if (!token) {
-            console.error('[fetchPlaceAutocomplete] 토큰이 유효하지 않습니다.');
-            alert('장소 검색을 위해 로그인이 필요합니다.');
-            return [];
-        }
-        try {
-            const url = `http://localhost:8080/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;
-            const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.status}`);
-            const data = await response.json();
-            return data?.predictions || [];
-        } catch (error) {
-            console.error('장소 자동완성 API 호출 오류:', error);
-            alert('장소를 검색하는 중 문제가 발생했습니다.');
-            return [];
-        }
-    }
-
-    /**
-     * 서버에 장소 상세 정보(좌표 포함)를 요청합니다. (React Native 코드와 동일 로직)
-     */
-    async function fetchPlaceDetails(placeId) {
-        if (!placeId) return null;
-        if (!token) {
-            console.error('[fetchPlaceDetails] 토큰이 유효하지 않습니다.');
-            alert('장소 상세 정보를 위해 로그인이 필요합니다.');
-            return null;
-        }
-        try {
-            const url = `http://localhost:8080/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;
-            const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.status}`);
-            const data = await response.json();
-            return data?.result || null;
-        } catch (error) {
-            console.error('장소 상세 정보 API 호출 오류:', error);
-            alert('장소의 상세 정보를 가져오는 데 실패했습니다.');
-            return null;
-        }
-    }
-
-
     // ====================================================================================
-    // 🔹 1. Google Maps 초기화 함수를 전역(window)에 할당합니다.
+    // 🔹 2. 모든 fetch 및 이미지 URL 호출에서 API_BASE_URL 변수를 사용하도록 수정합니다.
     // ====================================================================================
-    let map;
-    let marker;
-    let searchCircle;
-    let currentSearchCoords = null;
 
-    window.initMap = function() { // 👈 function initMap() -> window.initMap = function() 으로 변경!
-        console.log("Google Maps API loaded, executing initMap..."); // 👈 디버깅용 로그
-        const defaultLocation = { lat: 35.2283, lng: 128.6814 };
-        map = new google.maps.Map(document.getElementById('map'), { center: defaultLocation, zoom: 13 });
-        marker = new google.maps.Marker({ position: defaultLocation, map: map, draggable: true });
-        searchCircle = new google.maps.Circle({
-            strokeColor: '#4285F4', strokeWeight: 2, fillOpacity: 0.15, map: map,
-            center: defaultLocation, radius: 10000
-        });
+    // --- (이하 모든 함수에서 "http://localhost:8080" 을 `${API_BASE_URL}` 로 교체) ---
 
-        map.addListener('click', (e) => updateMapAndSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() }, '지도에서 선택한 위치'));
-        marker.addListener('dragend', (e) => updateMapAndSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() }, '마커 위치'));
-        document.getElementById('currentLocationBtn').onclick = handleGetCurrentLocation;
-        document.getElementById('radiusSelect').onchange = handleRadiusChange;
-        document.getElementById('locationSearchInput').addEventListener('input', debounce(handleLocationSearchInput, 300));
-
-        handleGetCurrentLocation();
-    }
-
-    // --- 이하 모든 함수는 이전 코드와 동일 ---
-    // (가독성을 위해 한 줄로 축약)
+    let map, marker, searchCircle, currentSearchCoords;
+    window.initMap=function(){const defaultLocation={lat:35.2283,lng:128.6814};map=new google.maps.Map(document.getElementById('map'),{center:defaultLocation,zoom:13});marker=new google.maps.Marker({position:defaultLocation,map:map,draggable:true});searchCircle=new google.maps.Circle({strokeColor:'#4285F4',strokeWeight:2,fillOpacity:0.15,map:map,center:defaultLocation,radius:10000});map.addListener('click',(e)=>updateMapAndSearch({lat:e.latLng.lat(),lng:e.latLng.lng()},'지도에서 선택한 위치'));marker.addListener('dragend',(e)=>updateMapAndSearch({lat:e.latLng.lat(),lng:e.latLng.lng()},'마커 위치'));document.getElementById('currentLocationBtn').onclick=handleGetCurrentLocation;document.getElementById('radiusSelect').onchange=handleRadiusChange;document.getElementById('locationSearchInput').addEventListener('input',debounce(handleLocationSearchInput,300));handleGetCurrentLocation()}
     let page=0,size=10,totalCount=0,loading=false,done=false;
     function debounce(func,delay){let timeout;return function(...args){clearTimeout(timeout);timeout=setTimeout(()=>func.apply(this,args),delay)}}
-    async function fetchPlaceAutocomplete(input){if(!input||input.trim().length<2||!token)return[];try{const url=`http://localhost:8080/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;const response=await fetch(url,{headers:{'Authorization':`Bearer ${token}`}});if(!response.ok)throw new Error(`Network response was not ok: ${response.status}`);const data=await response.json();return data?.predictions||[]}catch(error){console.error('장소 자동완성 API 호출 오류:',error);return[]}}
-    async function fetchPlaceDetails(placeId){if(!placeId||!token)return null;try{const url=`http://localhost:8080/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;const response=await fetch(url,{headers:{'Authorization':`Bearer ${token}`}});if(!response.ok)throw new Error(`Network response was not ok: ${response.status}`);const data=await response.json();return data?.result||null}catch(error){console.error('장소 상세 정보 API 호출 오류:',error);return null}}
+    async function fetchPlaceAutocomplete(input){if(!input||input.trim().length<2||!token)return[];try{const url=`${API_BASE_URL}/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;const response=await fetch(url,{headers:{'Authorization':`Bearer ${token}`}});if(!response.ok)throw new Error(`Network response was not ok: ${response.status}`);const data=await response.json();return data?.predictions||[]}catch(error){console.error('장소 자동완성 API 호출 오류:',error);return[]}}
+    async function fetchPlaceDetails(placeId){if(!placeId||!token)return null;try{const url=`${API_BASE_URL}/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;const response=await fetch(url,{headers:{'Authorization':`Bearer ${token}`}});if(!response.ok)throw new Error(`Network response was not ok: ${response.status}`);const data=await response.json();return data?.result||null}catch(error){console.error('장소 상세 정보 API 호출 오류:',error);return null}}
     async function handleLocationSearchInput(event){const query=event.target.value;const results=await fetchPlaceAutocomplete(query);displayAutocompleteResults(results)}
     function displayAutocompleteResults(predictions){const resultsContainer=document.getElementById('autocompleteResults');resultsContainer.innerHTML='';predictions.forEach(prediction=>{const item=document.createElement('div');item.textContent=prediction.description;item.onclick=async()=>{document.getElementById('locationSearchInput').value=prediction.description;resultsContainer.innerHTML='';const details=await fetchPlaceDetails(prediction.place_id);if(details&&details.geometry&&details.geometry.location){const coords={lat:details.geometry.location.lat,lng:details.geometry.location.lng};updateMapAndSearch(coords,prediction.description)}else{alert('장소의 좌표를 가져오는 데 실패했습니다.')}};resultsContainer.appendChild(item)})}
     function updateMapAndSearch(coords,locationName){currentSearchCoords=coords;document.getElementById('searchStatus').textContent=`기준 위치: ${locationName}`;map.panTo(coords);marker.setPosition(coords);searchCircle.setCenter(coords);const radius=document.getElementById('radiusSelect').value;fetchGuides(coords.lat,coords.lng,radius)}
     function handleGetCurrentLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition((position)=>{const coords={lat:position.coords.latitude,lng:position.coords.longitude};updateMapAndSearch(coords,'내 현재 위치')},()=>{alert('위치 정보를 가져올 수 없습니다. 기본 위치에서 검색합니다.');updateMapAndSearch({lat:35.2283,lng:128.6814},'창원 시청(기본값)')})}else{alert('이 브라우저에서는 위치 서비스를 지원하지 않습니다.')}}
     function handleRadiusChange(){if(!currentSearchCoords){alert('먼저 검색 기준 위치를 설정해주세요.');return}const radiusKm=document.getElementById('radiusSelect').value;searchCircle.setRadius(radiusKm*1000);fetchGuides(currentSearchCoords.lat,currentSearchCoords.lng,radiusKm)}
     function handleRedirectToken(){const urlParams=new URLSearchParams(window.location.search);const accessToken=urlParams.get("accessToken");const refreshToken=urlParams.get("refreshToken");if(accessToken&&refreshToken){localStorage.setItem("accessToken",accessToken);localStorage.setItem("refreshToken",refreshToken);alert("구글 로그인 성공!");window.history.replaceState({},document.title,window.location.pathname)}}
-    function signup(){fetch("http://localhost:8080/api/auth/signup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value,password:document.getElementById("password").value})}).then(res=>{if(!res.ok)throw new Error(`HTTP Error: ${res.status}`);alert("회원가입 성공! 로그인 해주세요.");return res.json()}).catch(err=>alert(err.message))}
-    function login(){const email=document.getElementById("loginEmail").value;const password=document.getElementById("loginPassword").value;fetch("http://localhost:8080/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})}).then(res=>{if(!res.ok)throw new Error("로그인 실패");return res.json()}).then(data=>{localStorage.setItem("accessToken",data.accessToken);localStorage.setItem("refreshToken",data.refreshToken);token=data.accessToken;alert("로그인 성공")}).catch(err=>alert(err.message))}
-    function reissueToken(){const accessToken=localStorage.getItem("accessToken");const refreshToken=localStorage.getItem("refreshToken");if(!accessToken||!refreshToken){return alert("토큰이 없습니다. 로그인 해주세요.")}fetch("http://localhost:8080/api/auth/reissue",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({accessToken:accessToken,refreshToken:refreshToken})}).then(res=>{if(!res.ok)throw new Error("토큰 재발급 실패");return res.json()}).then(data=>{localStorage.setItem("accessToken",data.accessToken);token=data.accessToken;if(data.refreshToken){localStorage.setItem("refreshToken",data.refreshToken)}alert("토큰이 재발급 되었습니다.")}).catch(err=>alert(err.message))}
-    function logout(){const accessToken=localStorage.getItem("accessToken");const refreshToken=localStorage.getItem("refreshToken");if(!accessToken){return alert("로그인이 필요합니다.")}fetch("http://localhost:8080/api/auth/logout",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({accessToken:accessToken,refreshToken:refreshToken})}).then(res=>{if(!res.ok)throw new Error("로그아웃 실패");localStorage.removeItem("accessToken");localStorage.removeItem("refreshToken");alert("로그아웃 되었습니다.")}).catch(err=>alert(err.message))}
-    function authTest(){const token=localStorage.getItem("accessToken");if(!token){alert("로그인이 필요합니다.");return}fetch("http://localhost:8080/api/auth/test",{method:"GET",headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("인증 실패");return res.text()}).then(data=>{document.getElementById("authResult").innerText=data}).catch(err=>alert(err.message))}
-    function upload(){if(!token)return alert("로그인이 필요합니다.");const files=document.getElementById("imageFile").files;const tip=document.getElementById("tip").value;const formData=new FormData();for(const file of files){formData.append("files",file)}formData.append("tip",tip);fetch("http://localhost:8080/guide/api/upload",{method:"POST",headers:{"Authorization":"Bearer "+token},body:formData}).then(res=>{if(!res.ok)throw new Error("업로드 실패");return res.json()}).then(data=>{alert("업로드 성공")}).catch(err=>alert(err.message))}
-    function toggleLike(guideId,likeBtn,likeCountSpan){if(!token)return alert("좋아요를 누르려면 로그인이 필요합니다.");fetch(`http://localhost:8080/guide/api/like/${guideId}`,{method:'POST',headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("좋아요 처리 실패");return res.json()}).then(data=>{likeBtn.textContent=data.liked?'❤️':'♡';likeCountSpan.textContent=data.likeCount}).catch(err=>alert(err.message))}
-    function createGuideCard(g){const card=document.createElement("div");card.className="guide-card";const imgBox=document.createElement("div");imgBox.className="img-box";if(g.media&&g.media.length>0){g.media.slice(0,10).forEach((m,i)=>{const img=document.createElement("img");img.src="http://localhost:8080"+m.url;if(i!==0){img.style.display="none"}imgBox.appendChild(img)});imgBox.onclick=()=>{const imgs=imgBox.querySelectorAll("img");let idx=[...imgs].findIndex(el=>el.style.display!=="none");imgs[idx].style.display="none";imgs[(idx+1)%imgs.length].style.display="block"}}const tip=document.createElement("p");tip.textContent=g.tip;const metaInfo=document.createElement("div");metaInfo.className="meta-info";const viewSpan=document.createElement("span");viewSpan.className="view-count";viewSpan.textContent=`조회수: ${g.viewCount||0}`;const likeContainer=document.createElement("span");const likeBtn=document.createElement("button");likeBtn.className="like-btn";likeBtn.textContent=g.userHasLiked?'❤️':'♡';const likeCountSpan=document.createElement("span");likeCountSpan.className="like-count";likeCountSpan.textContent=g.likeCount;likeBtn.onclick=()=>toggleLike(g.id,likeBtn,likeCountSpan);likeContainer.append(likeBtn,likeCountSpan);metaInfo.append(viewSpan,likeContainer);const updateBtn=document.createElement("button");updateBtn.textContent="✏️ 수정";updateBtn.onclick=()=>{const newTip=prompt("새 팁 내용을 입력하세요:",g.tip);if(newTip)updateGuide(g.id,newTip)};const deleteBtn=document.createElement("button");deleteBtn.textContent="🗑️ 삭제";deleteBtn.onclick=()=>{if(confirm("정말 삭제하시겠습니까?"))deleteGuide(g.id)};const btnGroup=document.createElement("div");btnGroup.className="button-group";btnGroup.append(updateBtn,deleteBtn);card.append(imgBox,tip,metaInfo,btnGroup);return card}
-    function loadUserGuides(){if(!token)return alert("로그인이 필요합니다.");fetch("http://localhost:8080/guide/api/my",{headers:{"Authorization":"Bearer "+token}}).then(r=>r.json()).then(list=>{const wrap=document.getElementById("guideWrap");wrap.innerHTML="";list.forEach(g=>{const card=createGuideCard(g);wrap.appendChild(card)})})}
-    function fetchGuides(lat,lng,radius){if(!token)return alert("로그인이 필요합니다.");document.getElementById("guideNear").innerHTML='<p>가이드를 불러오는 중...</p>';fetch(`http://localhost:8080/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok){console.error("서버 응답 오류:",res.status);throw new Error('가이드 로딩 실패: 서버 오류.')}return res.json()}).then(list=>{console.log("📦 받아온 가이드 리스트:",list);const wrap=document.getElementById("guideNear");wrap.innerHTML="";if(list.length===0){wrap.innerHTML='<p>주변에 가이드가 없습니다.</p>';return}list.forEach(g=>{const card=createGuideCard(g);wrap.appendChild(card)})}).catch(err=>{console.error("가이드 로딩 실패:",err);document.getElementById("guideNear").innerHTML='<p>가이드를 불러오는 중 오류가 발생했습니다.</p>';alert("가이드를 불러오는 중 오류가 발생했습니다.")})}
-    function loadPhotos(){if(!token)return alert("로그인이 필요합니다.");fetch("http://localhost:8080/media/list",{method:"GET",headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("불러오기 실패");return res.json()}).then(data=>{const container=document.getElementById("photoList");container.innerHTML="";data.forEach(media=>{console.log("media 객체:",media);const img=document.createElement("img");img.src="http://localhost:8080"+media.url;console.log("요청 URL : ",img.src);img.style.width="200px";img.style.margin="10px";container.appendChild(img)})}).catch(err=>alert(err.message))}
-    function fetchPhotoCount(){fetch("http://localhost:8080/media/allphoto/count",{headers:{"Authorization":"Bearer "+token}}).then(res=>res.json()).then(count=>{totalCount=count;countText.innerText=`📷 전체 사진 수: ${totalCount}개`}).catch(err=>{console.warn("총 개수 불러오기 실패",err)})}
-    function allPhotos(){if(loading)return;loading=true;loadingText.style.display="inline";fetch(`http://localhost:8080/media/allphoto?page=${page}&size=${size}`,{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("불러오기 실패");return res.json()}).then(data=>{if(page===0){prevBtn.disabled=true}else{prevBtn.disabled=false}if((page+1)*size>=totalCount){done=true;nextBtn.disabled=true;nextBtn.innerText="✅ 마지막 페이지"}else{done=false;nextBtn.disabled=false;nextBtn.innerText="➡️ 다음"}photoContainer.innerHTML="";data.forEach(media=>{const fileName=media.fileName.toLowerCase();const fileUrl="http://localhost:8080"+media.url;if(fileName.endsWith(".heic")){const link=document.createElement("a");link.href=fileUrl;link.innerText=`${media.fileName} (HEIC 파일 - 다운로드)`;link.download=media.fileName;link.style.display="block";link.style.margin="10px";photoContainer.appendChild(link)}else{const img=document.createElement("img");img.src=fileUrl;img.loading="lazy";img.style.width="200px";img.style.margin="10px";photoContainer.appendChild(img)}});loading=false;loadingText.style.display="none"}).catch(err=>{alert(err.message);loading=false;loadingText.style.display="none"})}
-    function updateGuide(id,newTip){fetch(`http://localhost:8080/guide/api/update`,{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({id:id,tip:newTip})}).then(()=>{alert("수정 완료");loadUserGuides()}).catch(err=>{alert("수정 실패");console.error(err)})}
-    function deleteGuide(id){fetch(`http://localhost:8080/guide/api/delete/${id}`,{method:"DELETE",headers:{"Authorization":"Bearer "+token}}).then(()=>{alert("삭제 완료");loadUserGuides()}).catch(err=>{alert("삭제 실패");console.error(err)})}
-    function loadMembers(){if(!token){alert("로그인이 필요합니다.");return}fetch("http://localhost:8080/api/members",{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("멤버 불러오기 실패");return res.json()}).then(data=>{const list=document.getElementById("memberList");list.innerHTML="";data.forEach(member=>{const li=document.createElement("li");li.textContent=`${member.id}: ${member.email}`;list.appendChild(li)})}).catch(err=>alert(err.message))}
+    function signup(){fetch(`${API_BASE_URL}/api/auth/signup`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value,password:document.getElementById("password").value})}).then(res=>{if(!res.ok)throw new Error(`HTTP Error: ${res.status}`);alert("회원가입 성공! 로그인 해주세요.");return res.json()}).catch(err=>alert(err.message))}
+    function login(){const email=document.getElementById("loginEmail").value;const password=document.getElementById("loginPassword").value;fetch(`${API_BASE_URL}/api/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})}).then(res=>{if(!res.ok)throw new Error("로그인 실패");return res.json()}).then(data=>{localStorage.setItem("accessToken",data.accessToken);localStorage.setItem("refreshToken",data.refreshToken);token=data.accessToken;alert("로그인 성공")}).catch(err=>alert(err.message))}
+    function reissueToken(){const accessToken=localStorage.getItem("accessToken");const refreshToken=localStorage.getItem("refreshToken");if(!accessToken||!refreshToken){return alert("토큰이 없습니다. 로그인 해주세요.")}fetch(`${API_BASE_URL}/api/auth/reissue`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({accessToken:accessToken,refreshToken:refreshToken})}).then(res=>{if(!res.ok)throw new Error("토큰 재발급 실패");return res.json()}).then(data=>{localStorage.setItem("accessToken",data.accessToken);token=data.accessToken;if(data.refreshToken){localStorage.setItem("refreshToken",data.refreshToken)}alert("토큰이 재발급 되었습니다.")}).catch(err=>alert(err.message))}
+    function logout(){const accessToken=localStorage.getItem("accessToken");const refreshToken=localStorage.getItem("refreshToken");if(!accessToken){return alert("로그인이 필요합니다.")}fetch(`${API_BASE_URL}/api/auth/logout`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({accessToken:accessToken,refreshToken:refreshToken})}).then(res=>{if(!res.ok)throw new Error("로그아웃 실패");localStorage.removeItem("accessToken");localStorage.removeItem("refreshToken");alert("로그아웃 되었습니다.")}).catch(err=>alert(err.message))}
+    function authTest(){const token=localStorage.getItem("accessToken");if(!token){alert("로그인이 필요합니다.");return}fetch(`${API_BASE_URL}/api/auth/test`,{method:"GET",headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("인증 실패");return res.text()}).then(data=>{document.getElementById("authResult").innerText=data}).catch(err=>alert(err.message))}
+    function upload(){if(!token)return alert("로그인이 필요합니다.");const files=document.getElementById("imageFile").files;const tip=document.getElementById("tip").value;const formData=new FormData();for(const file of files){formData.append("files",file)}formData.append("tip",tip);fetch(`${API_BASE_URL}/guide/api/upload`,{method:"POST",headers:{"Authorization":"Bearer "+token},body:formData}).then(res=>{if(!res.ok)throw new Error("업로드 실패");return res.json()}).then(data=>{alert("업로드 성공")}).catch(err=>alert(err.message))}
+    function toggleLike(guideId,likeBtn,likeCountSpan){if(!token)return alert("좋아요를 누르려면 로그인이 필요합니다.");fetch(`${API_BASE_URL}/guide/api/like/${guideId}`,{method:'POST',headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("좋아요 처리 실패");return res.json()}).then(data=>{likeBtn.textContent=data.liked?'❤️':'♡';likeCountSpan.textContent=data.likeCount}).catch(err=>alert(err.message))}
+    function createGuideCard(g){const card=document.createElement("div");card.className="guide-card";const imgBox=document.createElement("div");imgBox.className="img-box";if(g.media&&g.media.length>0){g.media.slice(0,10).forEach((m,i)=>{const img=document.createElement("img");img.src=`${API_BASE_URL}${m.url}`;if(i!==0){img.style.display="none"}imgBox.appendChild(img)});imgBox.onclick=()=>{const imgs=imgBox.querySelectorAll("img");let idx=[...imgs].findIndex(el=>el.style.display!=="none");imgs[idx].style.display="none";imgs[(idx+1)%imgs.length].style.display="block"}}const tip=document.createElement("p");tip.textContent=g.tip;const metaInfo=document.createElement("div");metaInfo.className="meta-info";const viewSpan=document.createElement("span");viewSpan.className="view-count";viewSpan.textContent=`조회수: ${g.viewCount||0}`;const likeContainer=document.createElement("span");const likeBtn=document.createElement("button");likeBtn.className="like-btn";likeBtn.textContent=g.userHasLiked?'❤️':'♡';const likeCountSpan=document.createElement("span");likeCountSpan.className="like-count";likeCountSpan.textContent=g.likeCount;likeBtn.onclick=()=>toggleLike(g.id,likeBtn,likeCountSpan);likeContainer.append(likeBtn,likeCountSpan);metaInfo.append(viewSpan,likeContainer);const updateBtn=document.createElement("button");updateBtn.textContent="✏️ 수정";updateBtn.onclick=()=>{const newTip=prompt("새 팁 내용을 입력하세요:",g.tip);if(newTip)updateGuide(g.id,newTip)};const deleteBtn=document.createElement("button");deleteBtn.textContent="🗑️ 삭제";deleteBtn.onclick=()=>{if(confirm("정말 삭제하시겠습니까?"))deleteGuide(g.id)};const btnGroup=document.createElement("div");btnGroup.className="button-group";btnGroup.append(updateBtn,deleteBtn);card.append(imgBox,tip,metaInfo,btnGroup);return card}
+    function loadUserGuides(){if(!token)return alert("로그인이 필요합니다.");fetch(`${API_BASE_URL}/guide/api/my`,{headers:{"Authorization":"Bearer "+token}}).then(r=>r.json()).then(list=>{const wrap=document.getElementById("guideWrap");wrap.innerHTML="";list.forEach(g=>{const card=createGuideCard(g);wrap.appendChild(card)})})}
+    function fetchGuides(lat,lng,radius){if(!token)return alert("로그인이 필요합니다.");document.getElementById("guideNear").innerHTML='<p>가이드를 불러오는 중...</p>';fetch(`${API_BASE_URL}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok){console.error("서버 응답 오류:",res.status);throw new Error('가이드 로딩 실패: 서버 오류.')}return res.json()}).then(list=>{console.log("📦 받아온 가이드 리스트:",list);const wrap=document.getElementById("guideNear");wrap.innerHTML="";if(list.length===0){wrap.innerHTML='<p>주변에 가이드가 없습니다.</p>';return}list.forEach(g=>{const card=createGuideCard(g);wrap.appendChild(card)})}).catch(err=>{console.error("가이드 로딩 실패:",err);document.getElementById("guideNear").innerHTML='<p>가이드를 불러오는 중 오류가 발생했습니다.</p>';alert("가이드를 불러오는 중 오류가 발생했습니다.")})}
+    function loadPhotos(){if(!token)return alert("로그인이 필요합니다.");fetch(`${API_BASE_URL}/media/list`,{method:"GET",headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("불러오기 실패");return res.json()}).then(data=>{const container=document.getElementById("photoList");container.innerHTML="";data.forEach(media=>{const img=document.createElement("img");img.src=`${API_BASE_URL}${media.url}`;img.style.width="200px";img.style.margin="10px";container.appendChild(img)})}).catch(err=>alert(err.message))}
+    function fetchPhotoCount(){const countText=document.getElementById("photoCountText");fetch(`${API_BASE_URL}/media/allphoto/count`,{headers:{"Authorization":"Bearer "+token}}).then(res=>res.json()).then(count=>{totalCount=count;countText.innerText=`📷 전체 사진 수: ${totalCount}개`}).catch(err=>{console.warn("총 개수 불러오기 실패",err)})}
+    function allPhotos(){if(loading)return;const photoContainer=document.getElementById("allPhoto");const loadingText=document.getElementById("loadingText");const prevBtn=document.getElementById("prevPageBtn");const nextBtn=document.getElementById("nextPageBtn");loading=true;loadingText.style.display="inline";fetch(`${API_BASE_URL}/media/allphoto?page=${page}&size=${size}`,{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("불러오기 실패");return res.json()}).then(data=>{if(page===0){prevBtn.disabled=true}else{prevBtn.disabled=false}if((page+1)*size>=totalCount){done=true;nextBtn.disabled=true;nextBtn.innerText="✅ 마지막 페이지"}else{done=false;nextBtn.disabled=false;nextBtn.innerText="➡️ 다음"}photoContainer.innerHTML="";data.forEach(media=>{const fileName=media.fileName.toLowerCase();const fileUrl=`${API_BASE_URL}${media.url}`;if(fileName.endsWith(".heic")){const link=document.createElement("a");link.href=fileUrl;link.innerText=`${media.fileName} (HEIC 파일 - 다운로드)`;link.download=media.fileName;link.style.display="block";link.style.margin="10px";photoContainer.appendChild(link)}else{const img=document.createElement("img");img.src=fileUrl;img.loading="lazy";img.style.width="200px";img.style.margin="10px";photoContainer.appendChild(img)}});loading=false;loadingText.style.display="none"}).catch(err=>{alert(err.message);loading=false;loadingText.style.display="none"})}
+    function updateGuide(id,newTip){fetch(`${API_BASE_URL}/guide/api/update`,{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({id:id,tip:newTip})}).then(()=>{alert("수정 완료");loadUserGuides()}).catch(err=>{alert("수정 실패");console.error(err)})}
+    function deleteGuide(id){fetch(`${API_BASE_URL}/guide/api/delete/${id}`,{method:"DELETE",headers:{"Authorization":"Bearer "+token}}).then(()=>{alert("삭제 완료");loadUserGuides()}).catch(err=>{alert("삭제 실패");console.error(err)})}
+    function loadMembers(){if(!token){alert("로그인이 필요합니다.");return}fetch(`${API_BASE_URL}/api/members`,{headers:{"Authorization":"Bearer "+token}}).then(res=>{if(!res.ok)throw new Error("멤버 불러오기 실패");return res.json()}).then(data=>{const list=document.getElementById("memberList");list.innerHTML="";data.forEach(member=>{const li=document.createElement("li");li.textContent=`${member.id}: ${member.email}`;list.appendChild(li)})}).catch(err=>alert(err.message))}
 </script>
 </body>
 </html>
-

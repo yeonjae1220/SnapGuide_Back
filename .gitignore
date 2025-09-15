@@ -42,3 +42,9 @@ SnapGuide_Back/dump.rdb
 ### local file ###
 SnapGuide_Back/uploads
 src/main/resources/data
+
+### setting & keys ###
+.env
+
+src/main/resources/application-docker.yml
+src/main/resources/application-local.yml

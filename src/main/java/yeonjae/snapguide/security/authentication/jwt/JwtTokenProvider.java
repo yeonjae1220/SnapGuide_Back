@@ -33,10 +33,10 @@ public class JwtTokenProvider {
     private final SecretKey key;
 
     // AccessToken 유효기간 설정 : 30분
-    @Value("${jwt.access_token_expiration}")
+    @Value("${jwt.access-token-expiration}")
     private long expAccess;
     // RefreshToken 유효기간 설정 : 1주
-    @Value("${jwt.refresh_token_expiration}")
+    @Value("${jwt.refresh-token-expiration}")
     private long expRefresh;
     // refresh 체크용
     private static final long THREE_DAYS = 1000 * 60 * 60 * 24 * 3;  // 3일

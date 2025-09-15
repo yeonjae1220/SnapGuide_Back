@@ -8,7 +8,9 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtra
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,8 +21,8 @@ public class LocationServiceGeoImpl implements LocationService {
     private final LocationRepository locationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
     // 좌표 값 추출 && 저장
-    public Location extractAndResolveLocation(File file) {
-        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(file);
+    public Location extractAndResolveLocation(byte[] imageBytes) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
         if (coordinate.isEmpty()) {
             return null;
         }
