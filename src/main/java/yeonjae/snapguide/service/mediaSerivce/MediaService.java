@@ -10,12 +10,16 @@ import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
+import yeonjae.snapguide.service.fileStorageService.LocalFileStorageService;
+import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,13 +36,12 @@ public class MediaService {
     public List<Long> saveAll(List<MultipartFile> files) throws IOException {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
-                File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
-                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
-                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile);
-//                String filePath = savedFile.getAbsolutePath();
-                String publicUrl = "/media/files/" + savedFile.getName(); // 전체 경로 대신 public URL TODO : 너무 로컬 저장 방식 하드 코딩이다. 고쳐야함
+                UploadFileDto savedFile = fileStorageService.uploadFile(file); // 로컬 파일에 저장
+                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getImageBytes());
+                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getImageBytes());
+                String publicUrl = "/media/files/" + Paths.get(savedFile.getOriginalDir()).getFileName().toString(); // NOTE : localStorage용 저장 방법
 
-                Media media = Media.builder()
+                        Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())
                         .mediaUrl(publicUrl)
                         .fileSize(file.getSize())

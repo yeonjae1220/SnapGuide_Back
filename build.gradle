@@ -23,6 +23,16 @@ repositories {
 	mavenCentral()
 }
 
+// 실행 가능한 JAR 생성 설정
+bootJar {
+	enabled = true
+}
+
+// 일반 JAR 파일 생성 비활성화
+jar {
+	enabled = false
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
  	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -92,6 +102,25 @@ dependencies {
 	implementation 'org.hibernate:hibernate-spatial:6.4.4.Final' // PostGIS 지원을 위해 필요
 	// implementation 'com.querydsl:querydsl-spatial'
 	implementation 'org.locationtech.jts:jts-core:1.19.0' // JTS Geometry 라이브러리 추가, Point 타입 사용하기 위해서. jts는 공간 관련 기능을 제공하는 Java의 라이브러리이다.
+
+	// 썸네일용
+	implementation 'net.coobird:thumbnailator:0.4.14'
+
+	// aws
+	// Spring Cloud AWS BOM (Bill of Materials)
+	implementation platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.1.1")
+
+	// AWS Parameter Store 사용을 위한 의존성
+	implementation "io.awspring.cloud:spring-cloud-aws-starter-parameter-store"
+
+	// aws amazonS3 객체는 이거?
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+
+	// (선택) Secrets Manager를 사용한다면 아래 의존성 추가
+	// implementation "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager"
+
+	implementation 'org.apache.tika:tika-core:2.9.2' // Apache Tika , 파일확장자 검사용 특히 heic
+
 }
 
 tasks.named('test') {
