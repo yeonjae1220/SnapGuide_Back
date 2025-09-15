@@ -1,6 +1,10 @@
 spring:
-  profiles:
-    active: local
+  # 이 파일은 local 프로필일 때 활성화된다고 명시
+  config:
+    activate:
+      on-profile: "local"
+#  profiles:
+#    active: local
   datasource:
     url: jdbc:postgresql://localhost:5432/snapguidedb
     username: postgres
@@ -53,8 +57,8 @@ logging.level:
   # org.hibernate.type: trace
 
 jwt:
-  access_token_expiration: 1800000 # 30min
-  refresh_token_expiration: 604800000 # 1week
+  access-token-expiration: 1800000 # 30min
+  refresh-token-expiration: 604800000 # 1week
   secret: f9f7ca2a630ed19e8c21f3d97b5afa3e890b497ea1526e4ca80809c365b9b3f76c1aa7c548b73e06a7cddb53629ec54068372ccaa34287769116c8bc29661904
 
 
