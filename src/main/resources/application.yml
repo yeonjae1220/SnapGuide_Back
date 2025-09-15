@@ -66,7 +66,7 @@ google:
 
 
 storage:
-  type: local
+  type: s3
   local:
     base-dir: /Users/kim-yeonjae/Desktop/Study/snapguide/uploads
   nas:
