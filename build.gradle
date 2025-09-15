@@ -23,6 +23,16 @@ repositories {
 	mavenCentral()
 }
 
+// 실행 가능한 JAR 생성 설정
+bootJar {
+	enabled = true
+}
+
+// 일반 JAR 파일 생성 비활성화
+jar {
+	enabled = false
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
  	implementation 'org.springframework.boot:spring-boot-starter-security'

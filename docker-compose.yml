@@ -1,0 +1,63 @@
+# version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: snapguide-api-server
+    ports:
+      - "8081:8080"
+    # .env 파일에 정의된 변수들을 컨테이너 환경 변수로 주입합니다.
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+      - ACCESS_TOKEN_EXPIRATION=${ACCESS_TOKEN_EXPIRATION}
+      - REFRESH_TOKEN_EXPIRATION=${REFRESH_TOKEN_EXPIRATION}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - CLOUD_AWS_CREDENTIALS_ACCESS-KEY=${AWS_ACCESS_KEY_ID}
+      - CLOUD_AWS_CREDENTIALS_SECRET-KEY=${AWS_SECRET_ACCESS_KEY}
+      - CLOUD_AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - CLOUD_AWS_REGION_STATIC=${AWS_REGION}
+    # 호스트-컨테이너 간 디렉토리 연결 (파일 경로 문제 해결)
+    # 내 Mac의 ./uploads 폴더와 컨테이너의 /app/uploads 폴더를 연결
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+      - redis
+    networks:
+      - my-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: snapguide-postgres-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432" # 기존 5432:5432는 5432번 포트를 사용하려고 해서 충돌 발생 내 컴퓨터의 5433번 포트와 컨테이너의 5432번 포트를 연결
+    networks:
+      - my-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: snapguide-redis-cache
+    ports:
+      - "6380:6379"
+    networks:
+      - my-network
+
+volumes:
+  postgres_data:
+
+networks:
+  my-network:
