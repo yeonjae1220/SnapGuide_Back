@@ -10,8 +10,8 @@ spring:
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-      host: docker
-      port: 6380
+      host: redis
+      port: 6379
   jpa:
     open-in-view: false
     hibernate:

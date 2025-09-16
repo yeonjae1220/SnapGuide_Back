@@ -4,10 +4,13 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
+import org.apache.tika.Tika;
+import org.im4java.core.ConvertCmd;
+import org.im4java.core.IMOperation;
+import org.im4java.process.Pipe;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
@@ -15,10 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Date;
 import java.util.UUID;
 
@@ -27,114 +31,159 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
-public class S3FileStorageService implements FileStorageService{
+public class S3FileStorageService implements FileStorageService {
 
     private final AmazonS3 amazonS3;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
-
     @Override
+    @Transactional
     public UploadFileDto uploadFile(MultipartFile file) throws IOException {
-        // 파일 기본 정보 설정
         String originalFileName = file.getOriginalFilename();
-        if (originalFileName == null || originalFileName.isEmpty()) throw new IOException("파일 이름이 없습니다.");
+        if (originalFileName == null || originalFileName.isEmpty()) {
+            throw new IOException("파일 이름이 없습니다.");
+        }
 
-        String extension = getExtension(originalFileName); // 예: "jpg", "heic"
-        String baseFileName = UUID.randomUUID().toString();
+        log.info("Starting file upload for: {}, Size: {} bytes, ContentType from client: {}",
+                originalFileName, file.getSize(), file.getContentType());
 
-        // 2. S3에 저장될 파일 경로 설정
-        String originalKey = "images/originals/" + baseFileName + "." + extension;
-        String webOriginalKey = "images/web/" + baseFileName + ".jpg";
-        String thumbnailKey = "images/thumbnails/" + baseFileName + ".jpg";
+        try {
+            // Tika로 실제 파일 타입 감지
+            Tika tika = new Tika();
+            String mimeType = tika.detect(file.getInputStream());
+            log.info("Detected MIME type by Tika: {}", mimeType);
 
-        // 3. 메타데이터 생성 (파일 타입 지정)
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(file.getContentType());
-        metadata.setContentLength(file.getSize());
+            byte[] fileBytes = file.getBytes();
+            String extension = getExtension(originalFileName);
 
-        // 4. 원본 파일 S3에 업로드
-        // multipartFile.getInputStream()을 그대로 사용하여 로컬 저장 없이 바로 S3로 전송
-        amazonS3.putObject(bucketName, originalKey, file.getInputStream(), metadata);
-        String originalFileUrl = amazonS3.getUrl(bucketName, originalKey).toString();
+            // HEIC/HEIF인 경우 ImageMagick으로 JPG 변환
+            if ("image/heic".equals(mimeType) || "image/heif".equals(mimeType)) {
+                log.info("HEIC/HEIF detected. Converting to JPG using ImageMagick...");
+                fileBytes = convertHeicToJpg(fileBytes);
+                log.info("Conversion successful. New size: {} bytes", fileBytes.length);
+                extension = "jpg"; // 확장자를 jpg로 변경
+            }
 
+            String baseFileName = UUID.randomUUID().toString();
 
-        // 5. 웹용 고화질 JPG 생성 및 업로드 (in-memory 처리)
-        ByteArrayOutputStream webOriginalOutputStream = new ByteArrayOutputStream();
-        Thumbnails.of(file.getInputStream())
-                .scale(1.0)
-                .outputFormat("jpg")
-                .toOutputStream(webOriginalOutputStream);
+            // S3 경로 설정
+            String originalKey = "images/originals/" + baseFileName + "." + getExtension(originalFileName); // 원본은 원래 확장자 유지
+            String webOriginalKey = "images/web/" + baseFileName + ".jpg";
+            String thumbnailKey = "images/thumbnails/" + baseFileName + ".jpg";
 
-        byte[] webOriginalImageBytes = webOriginalOutputStream.toByteArray();
-        ObjectMetadata webOriginalMetadata = createMetadata("image/jpeg", webOriginalImageBytes.length);
-        InputStream webOriginalInputStream = new ByteArrayInputStream(webOriginalImageBytes);
+            // 1. 원본 파일 업로드 (사용자의 원본 파일을 그대로 저장)
+            ObjectMetadata metadata = createMetadata(file.getContentType(), file.getSize());
+            log.info("Step 1/5: Uploading original file to S3. Key: {}", originalKey);
+            amazonS3.putObject(bucketName, originalKey, file.getInputStream(), metadata);
+            String originalFileUrl = amazonS3.getUrl(bucketName, originalKey).toString();
+            log.info(" -> Original file uploaded successfully.");
 
-        amazonS3.putObject(bucketName, webOriginalKey, webOriginalInputStream, webOriginalMetadata);
-        String webOriginalFileUrl = amazonS3.getUrl(bucketName, webOriginalKey).toString();
+            // 2. 웹용 고화질 JPG 생성 (변환되었거나 원래 이미지인 바이트 사용)
+            log.info("Step 2/5: Creating web-friendly JPG version...");
+            ByteArrayOutputStream webOriginalOutputStream = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(fileBytes))
+                    .scale(1.0)
+                    .outputFormat("jpg")
+                    .toOutputStream(webOriginalOutputStream);
+            byte[] webOriginalImageBytes = webOriginalOutputStream.toByteArray();
 
+            if (webOriginalImageBytes == null || webOriginalImageBytes.length == 0) {
+                log.error("Web-friendly JPG conversion resulted in an empty image.");
+                throw new IOException("웹용 이미지 변환에 실패했습니다.");
+            }
+            log.info(" -> Web JPG created. Size: {} bytes", webOriginalImageBytes.length);
 
-        // 6. 썸네일 생성 및 업로드 (in-memory 처리)
-        ByteArrayOutputStream thumbnailOutputStream = new ByteArrayOutputStream();
-        // 방금 만든 웹용 원본 이미지를 다시 읽어서 썸네일 생성
-        Thumbnails.of(new ByteArrayInputStream(webOriginalImageBytes))
-                .size(1080, 1080)
-                .outputQuality(0.7)
-                .toOutputStream(thumbnailOutputStream);
+            // 3. 웹용 JPG 업로드
+            ObjectMetadata webOriginalMetadata = createMetadata("image/jpeg", webOriginalImageBytes.length);
+            log.info("Step 3/5: Uploading web-friendly JPG to S3. Key: {}", webOriginalKey);
+            amazonS3.putObject(bucketName, webOriginalKey, new ByteArrayInputStream(webOriginalImageBytes), webOriginalMetadata);
+            String webOriginalFileUrl = amazonS3.getUrl(bucketName, webOriginalKey).toString();
+            log.info(" -> Web JPG uploaded successfully.");
 
-        byte[] thumbnailImageBytes = thumbnailOutputStream.toByteArray();
-        ObjectMetadata thumbnailMetadata = createMetadata("image/jpeg", thumbnailImageBytes.length);
-        InputStream thumbnailInputStream = new ByteArrayInputStream(thumbnailImageBytes);
+            // 4. 썸네일 생성
+            log.info("Step 4/5: Creating thumbnail version...");
+            ByteArrayOutputStream thumbnailOutputStream = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(webOriginalImageBytes))
+                    .size(1080, 1080)
+                    .outputQuality(0.7)
+                    .toOutputStream(thumbnailOutputStream);
+            byte[] thumbnailImageBytes = thumbnailOutputStream.toByteArray();
 
-        amazonS3.putObject(bucketName, thumbnailKey, thumbnailInputStream, thumbnailMetadata);
-        String thumbnailFileUrl = amazonS3.getUrl(bucketName, thumbnailKey).toString();
+            if (thumbnailImageBytes == null || thumbnailImageBytes.length == 0) {
+                log.error("Thumbnail creation resulted in an empty image.");
+                throw new IOException("썸네일 이미지 생성에 실패했습니다.");
+            }
+            log.info(" -> Thumbnail created. Size: {} bytes", thumbnailImageBytes.length);
 
+            // 5. 썸네일 업로드
+            ObjectMetadata thumbnailMetadata = createMetadata("image/jpeg", thumbnailImageBytes.length);
+            log.info("Step 5/5: Uploading thumbnail to S3. Key: {}", thumbnailKey);
+            amazonS3.putObject(bucketName, thumbnailKey, new ByteArrayInputStream(thumbnailImageBytes), thumbnailMetadata);
+            String thumbnailFileUrl = amazonS3.getUrl(bucketName, thumbnailKey).toString();
+            log.info(" -> Thumbnail uploaded successfully.");
 
-        // 7. 결과 반환 (필요에 따라 DTO 생성)
-        // return new UploadResult(originalFileUrl, webOriginalFileUrl, thumbnailFileUrl);
-        // return webOriginalFileUrl.
-        return UploadFileDto.builder()
-                .imageBytes(webOriginalImageBytes)
-                .originalDir(webOriginalFileUrl)
-                .thumbnailDir(thumbnailFileUrl)
-                .build();
+            log.info("File upload process completed successfully for: {}", originalFileName);
 
+            return UploadFileDto.builder()
+                    .imageBytes(webOriginalImageBytes)
+                    .originalDir(webOriginalFileUrl)
+                    .thumbnailDir(thumbnailFileUrl)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("File upload failed for: {}. Error: {}", originalFileName, e.getMessage(), e);
+            throw new IOException("파일 업로드 중 오류가 발생했습니다: " + originalFileName, e);
+        }
     }
 
-    /**
-     * Presigned URL을 생성하는 메서드
-     * @param filename 'images/web/' 경로를 제외한 순수 파일 이름 (예: uuid.jpg)
-     * @return 생성된 Presigned URL 문자열
-     */
-    public String generatePresignedUrl(String filename) {
-        // S3에 저장된 파일의 전체 경로 (Key)를 지정합니다.
-        // '/media/files/' 요청은 일반적으로 웹용 이미지를 의미하므로 'images/web/' 경로를 사용합니다.
-        String objectKey = "images/web/" + filename;
+    private byte[] convertHeicToJpg(byte[] heicBytes) {
+        try {
+            IMOperation op = new IMOperation();
+            op.addImage("-"); // 입력: 표준 입력 (stdin)
+            op.addImage("jpeg:-"); // 출력: 표준 출력 (stdout), 포맷: jpeg
 
-        // URL의 유효시간을 설정합니다. (예: 10분)
+            ConvertCmd convert = new ConvertCmd();
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(heicBytes);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            Pipe pipeIn = new Pipe(inputStream, null);
+            Pipe pipeOut = new Pipe(null, outputStream);
+
+            convert.setInputProvider(pipeIn);
+            convert.setOutputConsumer(pipeOut);
+
+            convert.run(op);
+
+            inputStream.close();
+            outputStream.close();
+
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            log.error("ImageMagick HEIC to JPG conversion failed", e);
+            throw new RuntimeException("이미지 변환에 실패했습니다.", e);
+        }
+    }
+
+    public String generatePresignedUrl(String filename) {
+        String objectKey = "images/web/" + filename;
         Date expiration = new Date();
         long expTimeMillis = expiration.getTime();
         expTimeMillis += 1000 * 60 * 10; // 10분
         expiration.setTime(expTimeMillis);
 
         try {
-            // S3 객체가 실제로 존재하는지 먼저 확인합니다.
             if (!amazonS3.doesObjectExist(bucketName, objectKey)) {
                 log.warn("S3에 존재하지 않는 파일에 대한 URL 생성 시도: {}", objectKey);
-                return null; // 파일이 없으면 null 반환
+                return null;
             }
-
-            // Presigned URL 생성 요청을 만듭니다.
             GeneratePresignedUrlRequest generatePresignedUrlRequest =
                     new GeneratePresignedUrlRequest(bucketName, objectKey)
                             .withMethod(HttpMethod.GET)
                             .withExpiration(expiration);
-
-            // URL 생성
             URL url = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
             return url.toString();
-
         } catch (Exception e) {
             log.error("Presigned URL 생성 중 오류 발생: {}", e.getMessage());
             return null;
@@ -143,36 +192,33 @@ public class S3FileStorageService implements FileStorageService{
 
     @Override
     public Resource downloadFile(String filePath) throws IOException {
+        // TODO: S3에서 파일 다운로드 로직 구현
         return null;
     }
 
     @Override
     public void deleteFile(String filePath) throws IOException {
-
+        // TODO: S3에서 파일 삭제 로직 구현
     }
 
     @Override
     public String generatePublicUrl(String filePath) {
+        // TODO: S3 파일의 public URL 생성 로직 구현
         return null;
     }
 
-
-
     private String getExtension(String fileName) {
-        int lastDot = fileName.lastIndexOf('.');
-        if (lastDot == -1 || lastDot == fileName.length() - 1) {
-            return "";
+        try {
+            return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        } catch (StringIndexOutOfBoundsException e) {
+            return ""; // 확장자가 없는 경우
         }
-        return fileName.substring(lastDot + 1).toLowerCase();
     }
 
-    // 메타데이터 생성을 위한 헬퍼 메서드
     private ObjectMetadata createMetadata(String contentType, long contentLength) {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(contentType);
         metadata.setContentLength(contentLength);
         return metadata;
     }
-
-
 }

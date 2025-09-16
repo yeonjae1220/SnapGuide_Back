@@ -5,7 +5,7 @@ services:
     build: .
     container_name: snapguide-api-server
     ports:
-      - "8081:8080"
+      - "8082:8080"
     # .env 파일에 정의된 변수들을 컨테이너 환경 변수로 주입합니다.
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
@@ -29,14 +29,21 @@ services:
     volumes:
       - ./uploads:/app/uploads
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy # 'db' 서비스가 'healthy' 상태가 될 때까지 기다림
+      redis:
+        condition: service_started # redis는 빠르게 시작되므로 기존 방식 유지
     networks:
       - my-network
 
   db:
-    image: postgres:15-alpine
+    image: postgis/postgis:15-3.4-alpine # 👈 PostGIS가 포함된 이미지로 변경
     container_name: snapguide-postgres-db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
