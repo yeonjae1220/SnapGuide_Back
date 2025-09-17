@@ -21,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.UUID;
@@ -127,7 +126,7 @@ public class S3FileStorageService implements FileStorageService {
             log.info("File upload process completed successfully for: {}", originalFileName);
 
             return UploadFileDto.builder()
-                    .imageBytes(webOriginalImageBytes)
+                    .originalFileBytes(fileBytes) // 👈 변환된 JPG가 아닌, 원본 파일 바이트를 담아 반환
                     .originalDir(webOriginalFileUrl)
                     .thumbnailDir(thumbnailFileUrl)
                     .build();
