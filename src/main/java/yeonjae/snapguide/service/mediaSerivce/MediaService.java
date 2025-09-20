@@ -42,6 +42,9 @@ public class MediaService {
                         Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())
                         .mediaUrl(publicUrl)
+                        .originalKey(savedFile.getOriginalDir())
+                        .webKey(savedFile.getWebDir())
+                        .thumbnailKey(savedFile.getThumbnailDir())
                         .fileSize(file.getSize())
                         .build();
 

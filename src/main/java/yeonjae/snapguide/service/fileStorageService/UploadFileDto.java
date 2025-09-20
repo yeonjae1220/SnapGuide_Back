@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class UploadFileDto {
     byte[] originalFileBytes;
     String originalDir;
+    String webDir;
     String thumbnailDir;
 
 }

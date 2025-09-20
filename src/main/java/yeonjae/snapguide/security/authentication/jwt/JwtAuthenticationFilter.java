@@ -74,7 +74,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             // 5. 다음 필터로 진행
             filterChain.doFilter(request, response);
-        } catch (ExpiredJwtException e) {
+        } catch (CustomException e) {
+            throw e;
+        }
+        catch (ExpiredJwtException e) {
             log.warn("JWT 토큰이 만료되었습니다.");
             throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         } catch (JwtException | IllegalArgumentException e) {
