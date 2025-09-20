@@ -10,13 +10,16 @@ import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.AuthService;
+import yeonjae.snapguide.service.memberSerivce.MemberService;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final MemberService memberService;
     private final RedisTemplate<String, String> redisTemplate;
+
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request) {
         // 회원가입 처리
@@ -35,10 +38,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody TokenRequestDto tokenRequestDto) {
+    public ResponseEntity<?> logout(@RequestBody @Valid TokenRequestDto tokenRequestDto) {
         authService.logout(tokenRequestDto);
+
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteMember(@RequestBody @Valid TokenRequestDto tokenRequestDto) {
+        String email = authService.logout(tokenRequestDto); // 여기서 토큰으로 검사
+        memberService.deleteMember(email);
+        return ResponseEntity.ok("탈퇴 처리 되었습니다.");
+    }
+
 
     @GetMapping("/test")
     public ResponseEntity<?> test(@AuthenticationPrincipal UserDetails userDetails) {

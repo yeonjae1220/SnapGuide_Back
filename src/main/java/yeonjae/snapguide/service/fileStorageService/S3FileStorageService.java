@@ -127,7 +127,8 @@ public class S3FileStorageService implements FileStorageService {
 
             return UploadFileDto.builder()
                     .originalFileBytes(fileBytes) // 👈 변환된 JPG가 아닌, 원본 파일 바이트를 담아 반환
-                    .originalDir(webOriginalFileUrl)
+                    .originalDir(originalFileUrl)
+                    .webDir(webOriginalFileUrl)
                     .thumbnailDir(thumbnailFileUrl)
                     .build();
 
@@ -197,7 +198,14 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public void deleteFile(String filePath) throws IOException {
-        // TODO: S3에서 파일 삭제 로직 구현
+        if (filePath == null || filePath.isEmpty()) return;
+        try {
+            amazonS3.deleteObject(bucketName, filePath);
+            log.info("S3 file deleted successfully. Key: {}", filePath);
+        } catch (Exception e) {
+            log.error("Failed to delete S3 file. Key: {}", filePath, e);
+            throw new IOException("S3 파일 삭제 중 오류가 발생했습니다.", e);
+        }
     }
 
     @Override

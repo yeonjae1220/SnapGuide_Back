@@ -2,6 +2,7 @@ package yeonjae.snapguide.domain.member;
 
 import jakarta.persistence.*;
 import lombok.*;
+import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.infrastructure.persistence.jpa.entity.BaseEntity;
 
 import java.util.ArrayList;
@@ -18,6 +19,9 @@ public class Member extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Guide> guides = new ArrayList<>();
 
     // private String loginId; // form 로그인용
 

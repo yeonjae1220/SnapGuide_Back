@@ -22,6 +22,10 @@ public class Media {
     @Column(nullable = false)
     private String mediaUrl;
 
+    private String originalKey;
+    private String webKey;
+    private String thumbnailKey;
+
 //    @Enumerated(value = EnumType.STRING)
 //    @Column(nullable = false)
 //    private MediaType mediaType;

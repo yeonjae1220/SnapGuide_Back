@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -14,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
@@ -27,6 +29,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
+import yeonjae.snapguide.service.memberSerivce.MemberService;
 
 // https://velog.io/@jjeongdong/JWT-JWT%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%9A%8C%EC%9B%90%EA%B0%80%EC%9E%85-%EA%B5%AC%ED%98%84
 @Slf4j
@@ -36,6 +39,7 @@ import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 public class AuthService {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final MemberRepository memberRepository;
+//    private final MemberService memberService; // NOTE : 나중에 멤버 서비스 쪽으로 다 옮겨야 하나? 역할이 좀 분산되네
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisRefreshTokenRepository redisRefreshTokenRepository;
@@ -127,7 +131,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(TokenRequestDto tokenRequestDto) {
+    public String logout(TokenRequestDto tokenRequestDto) {
         String accessToken = tokenRequestDto.getAccessToken();
 
         if (!jwtTokenProvider.validateToken(accessToken)) {
@@ -150,7 +154,6 @@ public class AuthService {
 
         // 3. Redis에서 RefreshToken 삭제
         redisRefreshTokenRepository.deleteById(email);
-
+        return email;
     }
-
 }
