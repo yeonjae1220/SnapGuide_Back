@@ -35,7 +35,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
     // ✅ 2. 웹 클라이언트를 위한 기본 Redirect URI를 설정 파일에서 주입받습니다.
-    @Value("${myapp.frontend-redirect-url}")
+    @Value("${spring.myapp.frontend-redirect-url}")
     private String webDefaultRedirectUri;
 
     @Override

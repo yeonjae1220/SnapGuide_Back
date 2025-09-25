@@ -1,6 +1,9 @@
 package yeonjae.snapguide.security.config;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.catalina.connector.Connector;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -165,6 +168,26 @@ public class SecurityConfig {
         // filter.setAuthenticationManager(new ProviderManager(authenticationProvider));
 
         return filter;
+    }
+
+    @Bean
+    public ServletWebServerFactory servletContainer() {
+        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
+
+        // 이 설정은 리버스 프록시(HTTP)로부터 온 요청도 HTTPS에서 온 것처럼 처리하도록 합니다.
+        tomcat.addAdditionalTomcatConnectors(createSslConnector());
+        return tomcat;
+    }
+
+    private Connector createSslConnector() {
+        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+        // 이 커넥터는 8080 포트로 들어오는 HTTP 요청을 처리합니다.
+        connector.setPort(8080);
+
+        // 하지만 Spring Boot에게 이 요청이 원래는 HTTPS였다고 알려줍니다.
+        connector.setScheme("https");
+        connector.setSecure(true);
+        return connector;
     }
 
 }
