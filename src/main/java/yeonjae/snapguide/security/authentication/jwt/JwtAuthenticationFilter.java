@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 1. Request Header 로부터 Access Token을 추출한다.
             String token = jwtTokenProvider.resolveToken(request);
             log.info("1️⃣ 들어온 요청 URI: {}", request.getRequestURI());
-            log.info("🔍 auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
+            log.info(" auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
             log.info("2️⃣ 추출된 토큰: {}", token);
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
