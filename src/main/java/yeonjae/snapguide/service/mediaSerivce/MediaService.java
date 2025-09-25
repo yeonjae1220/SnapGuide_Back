@@ -10,7 +10,6 @@ import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
-import yeonjae.snapguide.service.fileStorageService.LocalFileStorageService;
 import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
@@ -18,7 +17,6 @@ import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,13 +35,16 @@ public class MediaService {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
                 UploadFileDto savedFile = fileStorageService.uploadFile(file); // 로컬 파일에 저장
-                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getImageBytes());
-                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getImageBytes());
+                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
+                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
                 String publicUrl = "/media/files/" + Paths.get(savedFile.getOriginalDir()).getFileName().toString(); // NOTE : localStorage용 저장 방법
 
                         Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())
                         .mediaUrl(publicUrl)
+                        .originalKey(savedFile.getOriginalDir())
+                        .webKey(savedFile.getWebDir())
+                        .thumbnailKey(savedFile.getThumbnailDir())
                         .fileSize(file.getSize())
                         .build();
 

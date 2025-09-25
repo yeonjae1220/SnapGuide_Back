@@ -1,8 +1,11 @@
+## Nas setting ##
 spring:
   # 이 파일은 docker 프로필일 때 활성화된다고 명시
   config:
     activate:
       on-profile: "docker"
+  server:
+    forward-headers-strategy: framework # native 대신 framework로 변경
 
   # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
   # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
@@ -10,8 +13,9 @@ spring:
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-      host: docker
-      port: 6380
+      host: redis
+      port: 6379
+      #password: ${SPRING_DATA_REDIS_PASSWORD} #${REDIS_PASSWORD} # nas에서 이 설정 추가
   jpa:
     open-in-view: false
     hibernate:
@@ -63,3 +67,75 @@ cloud:
       static: ${AWS_REGION}
     stack:
       auto: false
+
+  myapp:
+    frontend-redurect-url: https://briankim.synology.me # 웹용 주소 (혹시 모르니 유지)
+    app-redirect-uri: snapguide://oauth/callback # ◀️ 앱을 위한 리디렉션 주소
+
+
+## 기존 로컬 세팅 ##
+#spring:
+#  # 이 파일은 docker 프로필일 때 활성화된다고 명시
+#  config:
+#    activate:
+#      on-profile: "docker"
+#
+#  # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
+#  # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
+#  datasource:
+#    driver-class-name: org.postgresql.Driver
+#  data:
+#    redis:
+#      host: redis
+#      port: 6379
+#  jpa:
+#    open-in-view: false
+#    hibernate:
+#      ddl-auto: update # 또는 validate 등 배포 환경에 맞는 옵션으로 변경 권장
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.PostgreSQLDialect
+#  servlet:
+#    multipart:
+#      max-file-size: 10MB
+#      max-request-size: 30MB
+#  security:
+#    oauth2:
+#      client:
+#        registration:
+#          google:
+#            client-id: ${GOOGLE_CLIENT_ID}
+#            client-secret: ${GOOGLE_CLIENT_SECRET}
+#            scope: profile, email
+#  web:
+#    resources:
+#      static-locations:
+#        - classpath:/static/
+#        - file:/app/uploads/ # 컨테이너 내부 파일 경로
+#
+## Docker 환경에서 사용할 설정들 (모두 환경 변수에서 값을 가져옴)
+#jwt:
+#  access-token-expiration: ${ACCESS_TOKEN_EXPIRATION} # 30min
+#  refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION} # 1week
+#  secret: ${JWT_SECRET}
+#
+#google:
+#  maps:
+#    api:
+#      key: ${GOOGLE_MAPS_API_KEY}
+#
+#storage:
+#  type: s3 # Docker 환경에서는 S3를 사용한다고 가정
+#  local:
+#    base-dir: /app/uploads/ # 컨테이너 내부 파일 경로
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: ${AWS_ACCESS_KEY_ID}
+#      secret-key: ${AWS_SECRET_ACCESS_KEY}
+#    s3:
+#      bucket: ${AWS_S3_BUCKET}
+#    region:
+#      static: ${AWS_REGION}
+#    stack:
+#      auto: false
