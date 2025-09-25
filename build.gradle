@@ -43,9 +43,10 @@ dependencies {
 
 	// 추가
 	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 
-	compileOnly 'org.projectlombok:lombok'
+    compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -120,6 +121,9 @@ dependencies {
 	// implementation "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager"
 
 	implementation 'org.apache.tika:tika-core:2.9.2' // Apache Tika , 파일확장자 검사용 특히 heic
+
+	// TwelveMonkeys ImageIO 플러그인 추가 (HEIC, WebP 등 다양한 포맷 지원)
+//	implementation('com.twelvemonkeys.imageio:imageio-heif:3.10.1')
 
 }
 

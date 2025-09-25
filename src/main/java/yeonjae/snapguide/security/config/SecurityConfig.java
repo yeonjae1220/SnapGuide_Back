@@ -21,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
+import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
 import yeonjae.snapguide.security.authentication.exception.JwtAccessDeniedHandler;
@@ -29,6 +30,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
+import yeonjae.snapguide.service.CustomOauth2UserService;
 import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
@@ -53,6 +55,8 @@ public class SecurityConfig {
 //    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
 
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    private final CustomOauth2UserService customOauth2UserService;
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -98,15 +102,30 @@ public class SecurityConfig {
                                 .authenticated()
                 )
                 // OAuth 2.0 로그인 방식 설정
-                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
-//                        .defaultSuccessUrl("/oauth-login")
-//                        .failureUrl("/oauth-login/login")
+//                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
+////                        .defaultSuccessUrl("/oauth-login")
+////                        .failureUrl("/oauth-login/login")
+//                        .successHandler(oAuth2SuccessHandler)
+//                        .failureHandler(oAuth2FailureHandler)
+//                        .permitAll())
+//                .logout((auth) -> auth
+//                        .logoutUrl("/oauth-login/logout")
+//                        .logoutSuccessUrl("/oauth-login/login"))
+                // OAuth2.0 세션에서 토큰 방식으로 변경
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(config -> config
+                                .baseUri("/oauth2/authorization")
+                                .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
+                        )
+                        .redirectionEndpoint(config -> config
+                                .baseUri("/login/oauth2/code/*")
+                        )
+                        .userInfoEndpoint(config -> config
+                                .userService(customOauth2UserService)
+                        )
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
-                        .permitAll())
-                .logout((auth) -> auth
-                        .logoutUrl("/oauth-login/logout")
-                        .logoutSuccessUrl("/oauth-login/login"))
+                )
                 // .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X

@@ -3,6 +3,8 @@ package yeonjae.snapguide.domain.guide;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import yeonjae.snapguide.domain.comment.Comment;
+import yeonjae.snapguide.domain.like.GuideLike;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
@@ -55,6 +57,10 @@ public class Guide extends BaseEntity {
     @Column(nullable = false)
     @ColumnDefault("0") // DDL 생성 시 'default 0' 옵션을 추가해줍니다.
     private int likeCount = 0;
+
+
+    @OneToMany(mappedBy = "guide", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GuideLike> likes = new ArrayList<>();
 
     public void assignGuide(Location location) {
         this.location = location;
