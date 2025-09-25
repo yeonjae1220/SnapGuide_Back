@@ -44,6 +44,12 @@ public class CookieUtil {
         cookie.setHttpOnly(true); // JavaScript를 통한 접근 방지 (XSS 보호)
         cookie.setMaxAge(maxAge); // 유효 시간 설정
         response.addCookie(cookie);
+
+        // SameSite=None 속성은 Secure=true 속성과 함께 사용되어야 합니다. (HTTPS 필수)
+        // 이렇게 설정해야 다른 도메인(구글)을 거쳐 돌아왔을 때도 브라우저가 쿠키를 전송해줍니다.
+        response.addHeader("Set-Cookie",
+                String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=None; Secure",
+                        name, value, maxAge));
     }
 
     /**
