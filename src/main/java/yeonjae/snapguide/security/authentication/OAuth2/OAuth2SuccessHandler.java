@@ -1,78 +1,74 @@
 package yeonjae.snapguide.security.authentication.OAuth2;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.infrastructure.cache.redis.RedisRefreshToken;
+import yeonjae.snapguide.infrastructure.cookie.CookieUtil;
 import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
-import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
-import yeonjae.snapguide.service.AuthService;
-import org.springframework.beans.factory.annotation.Value;
 
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
+
+import static yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
-    private final JwtTokenProvider jwtTokenProvider;
-    private final ObjectMapper objectMapper;
-    private final MemberRepository memberRepository;
-    private final RedisRefreshTokenRepository redisRefreshTokenRepository;
+public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Value("${myapp.app-redirect-uri}")
-    private String appRedirectUri;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RedisRefreshTokenRepository redisRefreshTokenRepository;
+    // ✅ 1. 쿠키 기반의 인증 요청 저장소를 주입받습니다.
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+
+    // ✅ 2. 웹 클라이언트를 위한 기본 Redirect URI를 설정 파일에서 주입받습니다.
+    @Value("${myapp.frontend-redirect-url}")
+    private String webDefaultRedirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         CustomOauth2UserDetails principal = (CustomOauth2UserDetails) authentication.getPrincipal();
         Member oauthMember = principal.getMember();
-        log.info("oauth login member info : {} ", oauthMember);
+        log.info("OAuth login successful for member: {}", oauthMember);
 
-        // 토큰 생성
-        JwtToken jwtToken = jwtTokenProvider.generateToken(oauthMember.getAuthority(), oauthMember.getEmail()); // HACK : 매개 변수 확인 필요
+        // JWT 토큰 생성
+        JwtToken jwtToken = jwtTokenProvider.generateToken(oauthMember.getAuthority(), oauthMember.getEmail());
         String accessToken = jwtToken.getAccessToken();
         String refreshToken = jwtToken.getRefreshToken();
 
-        // RefreshToken 저장
-        RedisRefreshToken redisRefreshToken = RedisRefreshToken.builder()
-                .key(authentication.getName())
-                .value(refreshToken)
-                .build();
-        redisRefreshTokenRepository.save(redisRefreshToken);
+        // RefreshToken을 Redis에 저장
+        redisRefreshTokenRepository.save(new RedisRefreshToken(authentication.getName(), refreshToken));
 
+        // ✅ 3. 쿠키에서 클라이언트가 요청했던 Redirect URI를 꺼냅니다.
+        Optional<String> redirectUri = CookieUtil.getCookie(request, REDIRECT_URI_PARAM_COOKIE_NAME)
+                .map(Cookie::getValue);
 
-        // 프론트에 리다이렉트로 토큰 전달 - 예시: URL 파라미터로 전달 (더 나은 방법은 헤더 or 쿠키) TODO : sendRedirect 말고 JSON 응답이나 쿠키로 변경 필요
-        String redirectUrl = UriComponentsBuilder
-                .fromUriString(appRedirectUri)
+        // 쿠키에 redirect_uri가 없으면, 웹을 위한 기본 URI를 사용합니다.
+        String targetUrl = redirectUri.orElse(webDefaultRedirectUri);
+
+        // ✅ 4. 동적으로 얻은 targetUrl에 토큰을 파라미터로 추가합니다.
+        String finalRedirectUrl = UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshToken)
                 .build()
                 .toUriString();
 
-        response.sendRedirect(redirectUrl);
+        // ✅ 5. 인증 과정에서 사용된 임시 쿠키들을 삭제합니다.
+        httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
 
-        // JSON 형태로 응답
-//        response.setContentType("application/json");
-//        response.setCharacterEncoding("UTF-8");
-//
-//        Map<String, String> tokenResponse = new HashMap<>();
-//        tokenResponse.put("accessToken", accessToken);
-//        tokenResponse.put("refreshToken", refreshToken);
-//
-//        response.getWriter().write(objectMapper.writeValueAsString(tokenResponse));
-
+        getRedirectStrategy().sendRedirect(request, response, finalRedirectUrl);
     }
 }
