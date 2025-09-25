@@ -17,6 +17,7 @@ import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.service.AuthService;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -30,6 +31,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final ObjectMapper objectMapper;
     private final MemberRepository memberRepository;
     private final RedisRefreshTokenRepository redisRefreshTokenRepository;
+
+    @Value("${myapp.app-redirect-uri}")
+    private String appRedirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -52,7 +56,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // 프론트에 리다이렉트로 토큰 전달 - 예시: URL 파라미터로 전달 (더 나은 방법은 헤더 or 쿠키) TODO : sendRedirect 말고 JSON 응답이나 쿠키로 변경 필요
         String redirectUrl = UriComponentsBuilder
-                .fromUriString("http://localhost:8080/index.html")
+                .fromUriString(appRedirectUri)
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshToken)
                 .build()

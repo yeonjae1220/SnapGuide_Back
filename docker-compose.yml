@@ -1,3 +1,4 @@
+### nas setting +++
 # version: '3.8'
 
 services:
@@ -14,6 +15,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
+      #- SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - ACCESS_TOKEN_EXPIRATION=${ACCESS_TOKEN_EXPIRATION}
       - REFRESH_TOKEN_EXPIRATION=${REFRESH_TOKEN_EXPIRATION}
@@ -37,7 +39,7 @@ services:
       - my-network
 
   db:
-    image: postgis/postgis:15-3.4-alpine # 👈 PostGIS가 포함된 이미지로 변경
+    image: postgis/postgis:15-3.4-alpine # ߑ蠐ostGIS가 포함된 이미지로 변경
     container_name: snapguide-postgres-db
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
@@ -50,16 +52,21 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5433:5432" # 기존 5432:5432는 5432번 포트를 사용하려고 해서 충돌 발생 내 컴퓨터의 5433번 포트와 컨테이너의 5432번 포트를 연결
+    # ❗️ 보안을 위해 외부 포트 노출을 제거할 수 있습니다.
+    # DB 관리 툴(DBeaver)로 접속하려면 남겨둔다. (예: "5433:5432")
+    # ports:
+    #   - "5433:5432"
     networks:
       - my-network
 
   redis:
     image: redis:7-alpine
     container_name: snapguide-redis-cache
-    ports:
-      - "6380:6379"
+    # ❗️ Redis 비밀번호를 설정하기 위해 command 추가
+    # command: redis-server --requirepass ${REDIS_PASSWORD}
+    # ❗️ 보안을 위해 외부 포트 노출을 제거
+    # ports:
+    #   - "6380:6379"
     networks:
       - my-network
 
@@ -68,3 +75,79 @@ volumes:
 
 networks:
   my-network:
+    driver: bridge
+
+
+
+
+## 기존 로컬 세팅
+## version: '3.8'
+#
+#services:
+#  backend:
+#    build: .
+#    container_name: snapguide-api-server
+#    ports:
+#      - "8082:8080"
+#    # .env 파일에 정의된 변수들을 컨테이너 환경 변수로 주입합니다.
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB}
+#      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+#      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+#      - SPRING_REDIS_HOST=redis
+#      - SPRING_REDIS_PORT=6379
+#      - JWT_SECRET=${JWT_SECRET}
+#      - ACCESS_TOKEN_EXPIRATION=${ACCESS_TOKEN_EXPIRATION}
+#      - REFRESH_TOKEN_EXPIRATION=${REFRESH_TOKEN_EXPIRATION}
+#      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+#      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+#      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+#      - CLOUD_AWS_CREDENTIALS_ACCESS-KEY=${AWS_ACCESS_KEY_ID}
+#      - CLOUD_AWS_CREDENTIALS_SECRET-KEY=${AWS_SECRET_ACCESS_KEY}
+#      - CLOUD_AWS_S3_BUCKET=${AWS_S3_BUCKET}
+#      - CLOUD_AWS_REGION_STATIC=${AWS_REGION}
+#    # 호스트-컨테이너 간 디렉토리 연결 (파일 경로 문제 해결)
+#    # 내 Mac의 ./uploads 폴더와 컨테이너의 /app/uploads 폴더를 연결
+#    volumes:
+#      - ./uploads:/app/uploads
+#    depends_on:
+#      db:
+#        condition: service_healthy # 'db' 서비스가 'healthy' 상태가 될 때까지 기다림
+#      redis:
+#        condition: service_started # redis는 빠르게 시작되므로 기존 방식 유지
+#    networks:
+#      - my-network
+#
+#  db:
+#    image: postgis/postgis:15-3.4-alpine # 👈 PostGIS가 포함된 이미지로 변경
+#    container_name: snapguide-postgres-db
+#    healthcheck:
+#      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 5
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    environment:
+#      - POSTGRES_DB=${POSTGRES_DB}
+#      - POSTGRES_USER=${POSTGRES_USER}
+#      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#    ports:
+#      - "5433:5432" # 기존 5432:5432는 5432번 포트를 사용하려고 해서 충돌 발생 내 컴퓨터의 5433번 포트와 컨테이너의 5432번 포트를 연결
+#    networks:
+#      - my-network
+#
+#  redis:
+#    image: redis:7-alpine
+#    container_name: snapguide-redis-cache
+#    ports:
+#      - "6380:6379"
+#    networks:
+#      - my-network
+#
+#volumes:
+#  postgres_data:
+#
+#networks:
+#  my-network:
