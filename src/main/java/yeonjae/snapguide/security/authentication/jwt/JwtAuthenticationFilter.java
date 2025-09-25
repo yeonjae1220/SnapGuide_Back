@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
+import yeonjae.snapguide.exception.ErrorResponse;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
 import java.io.IOException;
@@ -75,7 +76,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 5. 다음 필터로 진행
             filterChain.doFilter(request, response);
         } catch (CustomException e) {
-            throw e;
+//            throw e;
+            // 예외를 다시 던지는 대신, 직접 에러 응답을 생성하고 반환합니다.
+            setErrorResponse(response, e.getErrorCode());
         }
         catch (ExpiredJwtException e) {
             log.warn("JWT 토큰이 만료되었습니다.");
@@ -90,5 +93,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("인증 필터에서 예외 발생", e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // 응답을 처리하는 헬퍼 메서드 추가
+    private void setErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(errorCode.getStatus().value()); // ErrorCode enum에 정의된 HTTP 상태 코드 사용
+        log.info("[setErrorResponse] : response.setStatus = " + errorCode.getStatus().value());
+
+        // ObjectMapper를 사용하여 ErrorResponse 객체를 JSON 문자열로 변환
+        ObjectMapper objectMapper = new ObjectMapper();
+        // ErrorResponse는 직접 만드셔야 하는 DTO 클래스입니다. (예: status, code, message 필드 포함)
+        String jsonResponse = objectMapper.writeValueAsString(
+                new ErrorResponse(errorCode)
+        );
+
+        response.getWriter().write(jsonResponse);
     }
 }
