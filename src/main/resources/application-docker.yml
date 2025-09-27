@@ -5,16 +5,11 @@ spring:
     activate:
       on-profile: "docker"
   myapp:
-    frontend-redirect-url: https://briankim.synology.me # 웹용 주소 (혹시 모르니 유지)
-  #    app-redirect-uri: snapguide://oauth/callback # ◀️ 앱을 위한 리디렉션 주소
-#  server:
-#    forward-headers-strategy: framework # native 대신 framework로 변경
-  server:
-    # Spring Boot의 기본 내장 Tomcat 서버가 사용할 포트를 지정합니다.
-    # 8080 포트는 우리가 만든 servletContainer Bean이 사용하므로,
-    # 충돌을 피하기 위해 다른 포트 번호(예: 8083)로 변경합니다.
-    port: 8083
+    frontend-redurect-url: https://briankim.synology.me # 웹용 주소 (혹시 모르니 유지)
+    app-redirect-uri: snapguide://oauth/callback # ◀️ 앱을 위한 리디렉션 주소
 
+  server:
+    forward-headers-strategy: framework # native 대신 framework로 변경
 
   # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
   # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
@@ -76,7 +71,6 @@ cloud:
       static: ${AWS_REGION}
     stack:
       auto: false
-
 
 
 

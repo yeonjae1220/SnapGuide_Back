@@ -80,7 +80,7 @@ public class JwtTokenProvider {
     // JWT Access Token 생성
     // TODO : 매개변수 확인, 좀 된 코드에서는 Authentication authentication 으로 받아서 .getAuthorities().stream()으로 가져오네
     public JwtToken generateToken(Collection<? extends GrantedAuthority> authorityInfo,
-                                  String id) {
+                                   String id) {
         System.out.println("Authority info: " + authorityInfo); // 디버깅용
         // 사용자의 권한 정보들을 모아 문자열로 만든다.
         String authorities = authorityInfo.stream()
@@ -248,3 +248,9 @@ public class JwtTokenProvider {
     }
 
 }
+
+
+
+
+
+
