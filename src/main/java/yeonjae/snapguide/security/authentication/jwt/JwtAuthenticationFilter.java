@@ -1,7 +1,6 @@
 package yeonjae.snapguide.security.authentication.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -25,14 +22,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
 import yeonjae.snapguide.exception.ErrorResponse;
-import yeonjae.snapguide.infrastructure.cache.redis.RedisRefreshToken;
-import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -42,7 +34,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final RequestMatcher whiteListMatcher;
     private final TokenBlacklistService tokenBlacklistService;
-    private final RedisRefreshTokenRepository redisRefreshTokenRepository;
 
     private final String UTF_8 = "utf-8";
 
