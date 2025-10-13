@@ -30,6 +30,10 @@ import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
+import io.jsonwebtoken.Claims;
+import java.util.Collection;
+import org.springframework.security.core.GrantedAuthority;
+
 
 // https://velog.io/@jjeongdong/JWT-JWT%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%9A%8C%EC%9B%90%EA%B0%80%EC%9E%85-%EA%B5%AC%ED%98%84
 @Slf4j
@@ -92,11 +96,19 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 2. Access Token 에서 Member ID 가져오기
-        Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequestDTO.getAccessToken());
+        // 2. 만료된 Access Token에서 Member ID 가져오기 (만료된 토큰도 파싱 가능)
+        Claims claims = jwtTokenProvider.parseExpiredToken(tokenRequestDTO.getAccessToken());
+        String userId = claims.getSubject();
+
+        // 권한 정보 추출
+        Collection<? extends GrantedAuthority> authorities =
+            java.util.Arrays.stream(claims.get("Authorization").toString().split(","))
+                .map(String::trim)
+                .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
+                .collect(java.util.stream.Collectors.toList());
 
         // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
-        RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(authentication.getName())
+        RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
 
         // 4. Refresh Token 일치하는지 검사
@@ -104,26 +116,40 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 5. 새로운 토큰 생성
-        JwtToken jwtToken = null;
-        // ✅ 기존 토큰들을 블랙리스트에 등록
+        // 5. 기존 Access Token 블랙리스트 등록 (만료된 토큰도 처리)
         long accessTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getAccessToken());
-        long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
-        // 기존 accessToken 블랙 리스트에 추가
-        tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
-        if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
-            jwtToken = jwtTokenProvider
-                    .generateToken(authentication.getAuthorities(),  // 권한 정보
-                            authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
-            // 6. 저장소 정보 업데이트
-            redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
-            // 기존 refreshToken 블랙 리스트에 추가
-            tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
+        // 만료된 토큰의 경우 음수가 나오므로, 양수일 때만 블랙리스트 등록
+        if (accessTokenExpiry > 0) {
+            tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
+            log.info("기존 Access Token 블랙리스트 등록 완료 (TTL: {}ms)", accessTokenExpiry);
         } else {
-            // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
-            jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보
-                    authentication.getName());
-            // refreshToken은 보안상 재전달 x
+            log.info("Access Token 이미 만료됨 - 블랙리스트 등록 스킵");
+        }
+
+        // 6. 새로운 토큰 생성
+        JwtToken jwtToken;
+        if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
+            // Refresh Token 유효기간이 3일 미만일 경우 Access Token + Refresh Token 모두 재발급
+            log.info("Refresh Token 유효기간 3일 미만 - 모든 토큰 재발급");
+            jwtToken = jwtTokenProvider
+                    .generateToken(authorities,  // 권한 정보
+                            userId);        // 사용자 식별자
+
+            // 저장소 정보 업데이트
+            redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+
+            // 기존 refreshToken 블랙 리스트에 추가
+            long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
+            if (refreshTokenExpiry > 0) {
+                tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
+                log.info("기존 Refresh Token 블랙리스트 등록 완료 (TTL: {}ms)", refreshTokenExpiry);
+            }
+        } else {
+            // Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
+            log.info("Refresh Token 유효기간 3일 이상 - Access Token만 재발급");
+            jwtToken = jwtTokenProvider.createAccessToken(authorities,  // 권한 정보
+                    userId);
+            // 기존 refreshToken은 그대로 유지 (재전달 안함)
         }
 
         // 토큰 발급
