@@ -125,6 +125,9 @@ dependencies {
 	// TwelveMonkeys ImageIO 플러그인 추가 (HEIC, WebP 등 다양한 포맷 지원)
 //	implementation('com.twelvemonkeys.imageio:imageio-heif:3.10.1')
 
+	// Jackson - Java 8 날짜/시간 타입 지원 모듈
+//	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
 }
 
 tasks.named('test') {

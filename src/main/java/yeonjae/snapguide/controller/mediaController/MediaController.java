@@ -62,33 +62,49 @@ public class MediaController {
     }
 
     // 파일 다운로드: URL로 접근 (e.g. /media/files/uuid.jpg)
-    /* 로컬 파일용
+    // local과 S3 모두 지원
     @GetMapping("/files/{filename:.+}")
-    public ResponseEntity<Resource> serveFile(@PathVariable String filename) throws IOException {
+    public ResponseEntity<?> serveFile(@PathVariable String filename) throws IOException {
+        // S3 스토리지인 경우
+        if (fileStorageService instanceof S3FileStorageService) {
+            S3FileStorageService s3Service = (S3FileStorageService) fileStorageService;
+            String presignedUrl = s3Service.generatePresignedUrl(filename);
+
+            if (presignedUrl == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // 302 Found 상태 코드와 함께 Location 헤더에 Presigned URL을 담아 응답
+            HttpHeaders headers = new HttpHeaders();
+            headers.setLocation(URI.create(presignedUrl));
+            return new ResponseEntity<>(headers, HttpStatus.FOUND);
+        }
+
+        // 로컬 스토리지인 경우
         try {
             Path baseDir = Paths.get(uploadBasePath).toAbsolutePath().normalize();
             Path primaryDir = baseDir.resolve("originals");
 
-            // 2. 우선순위 1: 'uploads/originals' 디렉토리에서 파일을 찾습니다.
+            // 우선순위 1: 'uploads/originals' 디렉토리에서 파일을 찾습니다.
             Path filePath = primaryDir.resolve(filename).normalize();
 
-            // 3. 우선순위 1 경로에 파일이 없으면, 우선순위 2: 'uploads' 디렉토리에서 다시 찾습니다.
+            // 우선순위 2: 'uploads' 디렉토리에서 다시 찾습니다.
             if (!Files.exists(filePath)) {
                 filePath = baseDir.resolve(filename).normalize();
             }
 
-            // 4. 보안 체크: 최종 경로가 허용된 기본 디렉토리(uploads)를 벗어나는지 확인합니다.
+            // 보안 체크: 최종 경로가 허용된 기본 디렉토리(uploads)를 벗어나는지 확인합니다.
             if (!filePath.startsWith(baseDir)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
-            // 5. 최종적으로 결정된 경로에 파일이 존재하고 읽을 수 있는지 확인합니다.
+            // 최종적으로 결정된 경로에 파일이 존재하고 읽을 수 있는지 확인합니다.
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists() || !resource.isReadable()) {
                 return ResponseEntity.notFound().build();
             }
 
-            // 6. 파일의 Content-Type을 결정하고 클라이언트에게 파일을 전송합니다.
+            // 파일의 Content-Type을 결정하고 클라이언트에게 파일을 전송합니다.
             String contentType = Files.probeContentType(filePath);
             if (contentType == null) {
                 contentType = "application/octet-stream";
@@ -103,33 +119,6 @@ public class MediaController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
-    */
-    // s3용
-    @GetMapping("/files/{filename:.+}")
-    public ResponseEntity<?> serveFileFromS3(@PathVariable String filename) {
-        // fileStorageService가 S3 구현체인지 확인 (선택적)
-        if (!(fileStorageService instanceof S3FileStorageService)) {
-            // 로컬이나 다른 저장소일 경우의 처리 로직
-            // 여기서는 S3가 아니면 에러를 반환하도록 예시 작성
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("S3 storage is not configured.");
-        }
-
-        S3FileStorageService s3Service = (S3FileStorageService) fileStorageService;
-        String presignedUrl = s3Service.generatePresignedUrl(filename);
-
-        if (presignedUrl == null) {
-            // 서비스에서 파일을 찾지 못했거나 URL 생성에 실패한 경우
-            return ResponseEntity.notFound().build();
-        }
-
-        // 302 Found 상태 코드와 함께 Location 헤더에 Presigned URL을 담아 응답
-        // 클라이언트(브라우저)는 이 응답을 받고 Location 헤더의 URL로 자동 리다이렉트합니다.
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create(presignedUrl));
-
-        return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
     // 모든 업로드된 파일 목록 (MediaDto 리스트 반환)

@@ -2,10 +2,10 @@
 spring:
   config:
     activate:
-      on-profile: "docker"
+      on-profile: "docker4nas"
 
   myapp:
-    frontend-redirect-url: http://localhost:8082
+    frontend-redirect-url: https://briankim.synology.me
     app-redirect-uri: snapguide://oauth/callback
 
   server:
