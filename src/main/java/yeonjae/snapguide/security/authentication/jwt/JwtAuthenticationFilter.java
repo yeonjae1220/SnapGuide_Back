@@ -1,6 +1,7 @@
 package yeonjae.snapguide.security.authentication.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -22,9 +25,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
 import yeonjae.snapguide.exception.ErrorResponse;
+import yeonjae.snapguide.infrastructure.cache.redis.RedisRefreshToken;
+import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -34,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final RequestMatcher whiteListMatcher;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RedisRefreshTokenRepository redisRefreshTokenRepository;
 
     private final String UTF_8 = "utf-8";
 
@@ -103,6 +112,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ObjectMapper를 사용하여 ErrorResponse 객체를 JSON 문자열로 변환
         ObjectMapper objectMapper = new ObjectMapper();
+        // Java 8 날짜/시간 타입(LocalDateTime 등) 지원을 위한 모듈 등록
+        objectMapper.findAndRegisterModules();
+
         // ErrorResponse는 직접 만드셔야 하는 DTO 클래스입니다. (예: status, code, message 필드 포함)
         String jsonResponse = objectMapper.writeValueAsString(
                 new ErrorResponse(errorCode)
