@@ -250,18 +250,7 @@ public class JwtTokenProvider {
 
     public long getExpiration(String token) {
         Claims claims = parseExpiredToken(token); // 만료된 토큰도 처리 가능하도록 변경
-        long expiration = claims.getExpiration().getTime() - System.currentTimeMillis();
-        // 만료된 토큰의 경우 음수가 반환됨 (Redis TTL은 음수를 받으면 즉시 만료 처리)
-        return expiration;
-    }
-
-    // Refresh Token을 헤더에서 추출하는 메서드
-    public String resolveRefreshToken(HttpServletRequest request) {
-        String refreshToken = request.getHeader("X-Refresh-Token");
-        if (StringUtils.hasText(refreshToken)) {
-            return refreshToken;
-        }
-        return null;
+        return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 
 }

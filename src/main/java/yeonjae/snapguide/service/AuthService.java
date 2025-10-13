@@ -116,26 +116,40 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 5. 새로운 토큰 생성
-        JwtToken jwtToken = null;
-        // ✅ 기존 토큰들을 블랙리스트에 등록
+        // 5. 기존 Access Token 블랙리스트 등록 (만료된 토큰도 처리)
         long accessTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getAccessToken());
-        long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
-        // 기존 accessToken 블랙 리스트에 추가
-        tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
+        // 만료된 토큰의 경우 음수가 나오므로, 양수일 때만 블랙리스트 등록
+        if (accessTokenExpiry > 0) {
+            tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
+            log.info("기존 Access Token 블랙리스트 등록 완료 (TTL: {}ms)", accessTokenExpiry);
+        } else {
+            log.info("Access Token 이미 만료됨 - 블랙리스트 등록 스킵");
+        }
+
+        // 6. 새로운 토큰 생성
+        JwtToken jwtToken;
         if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
+            // Refresh Token 유효기간이 3일 미만일 경우 Access Token + Refresh Token 모두 재발급
+            log.info("Refresh Token 유효기간 3일 미만 - 모든 토큰 재발급");
             jwtToken = jwtTokenProvider
                     .generateToken(authorities,  // 권한 정보
                             userId);        // 사용자 식별자
-            // 6. 저장소 정보 업데이트
+
+            // 저장소 정보 업데이트
             redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+
             // 기존 refreshToken 블랙 리스트에 추가
-            tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
+            long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
+            if (refreshTokenExpiry > 0) {
+                tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
+                log.info("기존 Refresh Token 블랙리스트 등록 완료 (TTL: {}ms)", refreshTokenExpiry);
+            }
         } else {
-            // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
+            // Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
+            log.info("Refresh Token 유효기간 3일 이상 - Access Token만 재발급");
             jwtToken = jwtTokenProvider.createAccessToken(authorities,  // 권한 정보
                     userId);
-            // refreshToken은 보안상 재전달 x
+            // 기존 refreshToken은 그대로 유지 (재전달 안함)
         }
 
         // 토큰 발급
