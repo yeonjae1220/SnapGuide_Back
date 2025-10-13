@@ -30,6 +30,10 @@ import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
+import io.jsonwebtoken.Claims;
+import java.util.Collection;
+import org.springframework.security.core.GrantedAuthority;
+
 
 // https://velog.io/@jjeongdong/JWT-JWT%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%ED%9A%8C%EC%9B%90%EA%B0%80%EC%9E%85-%EA%B5%AC%ED%98%84
 @Slf4j
@@ -92,11 +96,19 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 2. Access Token 에서 Member ID 가져오기
-        Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequestDTO.getAccessToken());
+        // 2. 만료된 Access Token에서 Member ID 가져오기 (만료된 토큰도 파싱 가능)
+        Claims claims = jwtTokenProvider.parseExpiredToken(tokenRequestDTO.getAccessToken());
+        String userId = claims.getSubject();
+
+        // 권한 정보 추출
+        Collection<? extends GrantedAuthority> authorities =
+            java.util.Arrays.stream(claims.get("Authorization").toString().split(","))
+                .map(String::trim)
+                .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
+                .collect(java.util.stream.Collectors.toList());
 
         // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
-        RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(authentication.getName())
+        RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
 
         // 4. Refresh Token 일치하는지 검사
@@ -113,16 +125,16 @@ public class AuthService {
         tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
         if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
             jwtToken = jwtTokenProvider
-                    .generateToken(authentication.getAuthorities(),  // 권한 정보
-                            authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
+                    .generateToken(authorities,  // 권한 정보
+                            userId);        // 사용자 식별자
             // 6. 저장소 정보 업데이트
             redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
             // 기존 refreshToken 블랙 리스트에 추가
             tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
         } else {
             // 5-2. Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
-            jwtToken = jwtTokenProvider.createAccessToken(authentication.getAuthorities(),  // 권한 정보
-                    authentication.getName());
+            jwtToken = jwtTokenProvider.createAccessToken(authorities,  // 권한 정보
+                    userId);
             // refreshToken은 보안상 재전달 x
         }
 
