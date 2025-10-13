@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 1. Request Header 로부터 Access Token을 추출한다.
             String token = jwtTokenProvider.resolveToken(request);
             log.info("1️⃣ 들어온 요청 URI: {}", request.getRequestURI());
-            log.info(" auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
+            log.info("🔍 auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
             log.info("2️⃣ 추출된 토큰: {}", token);
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
@@ -103,6 +103,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ObjectMapper를 사용하여 ErrorResponse 객체를 JSON 문자열로 변환
         ObjectMapper objectMapper = new ObjectMapper();
+        // Java 8 날짜/시간 타입(LocalDateTime 등) 지원을 위한 모듈 등록
+        objectMapper.findAndRegisterModules();
+
         // ErrorResponse는 직접 만드셔야 하는 DTO 클래스입니다. (예: status, code, message 필드 포함)
         String jsonResponse = objectMapper.writeValueAsString(
                 new ErrorResponse(errorCode)
