@@ -32,7 +32,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final MemberRepository memberRepository;
     private final RedisRefreshTokenRepository redisRefreshTokenRepository;
 
-    @Value("${spring.myapp.frontend-redurect-url}")
+    @Value("${spring.myapp.frontend-redirect-url}")
     private String appRedirectUri;
 
     @Override
