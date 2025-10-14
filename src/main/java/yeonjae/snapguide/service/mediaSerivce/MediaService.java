@@ -34,10 +34,21 @@ public class MediaService {
     public List<Long> saveAll(List<MultipartFile> files) throws IOException {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
-                UploadFileDto savedFile = fileStorageService.uploadFile(file); // 로컬 파일에 저장
+                UploadFileDto savedFile = fileStorageService.uploadFile(file); // 파일 저장 (로컬 or S3)
                 MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
                 Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
-                String publicUrl = "/media/files/" + Paths.get(savedFile.getOriginalDir()).getFileName().toString(); // NOTE : localStorage용 저장 방법
+
+                // 웹용 파일명 추출 (S3는 web 디렉토리의 .jpg 파일, 로컬은 썸네일 파일 사용)
+                String webFileName;
+                if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {
+                    // S3의 경우: webDir에서 파일명 추출 (항상 .jpg)
+                    webFileName = Paths.get(savedFile.getWebDir()).getFileName().toString();
+                } else {
+                    // 로컬의 경우: thumbnailDir에서 파일명 추출
+                    webFileName = Paths.get(savedFile.getThumbnailDir()).getFileName().toString();
+                }
+
+                String publicUrl = "/media/files/" + webFileName;
 
                         Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())

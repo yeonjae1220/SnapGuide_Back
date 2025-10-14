@@ -47,4 +47,4 @@ src/main/resources/data
 .env
 
 src/main/resources/application-docker.yml
-src/main/resources/application-local.yml
+src/main/resources/application-local.ymlnode_modules/
