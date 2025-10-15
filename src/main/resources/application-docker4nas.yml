@@ -34,6 +34,7 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: profile, email
+            redirect-uri: https://briankim.synology.me/login/oauth2/code/google
 
   web:
     resources:
