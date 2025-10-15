@@ -37,11 +37,15 @@ public class GoogleOAuthService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    // Web Client ID와 Secret (백엔드에서 Google API 호출용)
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
-    private String googleClientId;
+    private String googleWebClientId;
 
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
-    private String googleClientSecret;
+    private String googleWebClientSecret;
+
+    // iOS Client ID (앱에서 사용)
+    private static final String GOOGLE_IOS_CLIENT_ID = "1054453650839-jae2hnasojd3b6lkrl2ki3au2vve6hut.apps.googleusercontent.com";
 
     // Google OAuth endpoints
     private static final String GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -90,18 +94,17 @@ public class GoogleOAuthService {
     private String getGoogleAccessToken(String code) {
         try {
             // 요청 파라미터 구성
-            // iOS 앱의 redirect_uri: com.googleusercontent.apps.{IOS_CLIENT_ID_PREFIX}:/oauth2redirect
-            String iosClientIdPrefix = "1054453650839-jae2hnasojd3b6lkrl2ki3au2vve6hut";
-            String redirectUri = "com.googleusercontent.apps." + iosClientIdPrefix + ":/oauth2redirect";
+            // Web Client ID와 Secret 사용 (앱에서 받은 code와 일치해야 함)
+            String redirectUri = "com.yeonjae.snapguide://oauth/callback";
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("code", code);
-            params.add("client_id", googleClientId);
-            params.add("client_secret", googleClientSecret);
+            params.add("client_id", googleWebClientId);  // Web Client ID
+            params.add("client_secret", googleWebClientSecret);  // Web Client Secret
             params.add("redirect_uri", redirectUri);
             params.add("grant_type", "authorization_code");
 
-            log.info("🔐 Google token 교환 요청 - redirect_uri: {}", redirectUri);
+            log.info("🔐 Google token 교환 요청 - client_id: {}, redirect_uri: {}", googleWebClientId, redirectUri);
 
             // HTTP 헤더 설정
             HttpHeaders headers = new HttpHeaders();

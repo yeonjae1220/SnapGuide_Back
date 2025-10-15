@@ -6,7 +6,7 @@ spring:
 
   myapp:
     frontend-redirect-url: http://localhost:8082
-    app-redirect-uri: snapguide://oauth/callback
+    app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
   server:
     forward-headers-strategy: framework # native 대신 framework로 변경
