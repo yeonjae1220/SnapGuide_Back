@@ -5,7 +5,7 @@ spring:
 
   myapp:
     frontend-redirect-url: http://localhost:8080
-    app-redirect-uri: snapguide://oauth/callback
+    app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
    # 기본 포트 8080 사용할꺼기에, 포트 정보 생략
   server:

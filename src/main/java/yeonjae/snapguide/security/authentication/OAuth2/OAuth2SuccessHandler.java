@@ -38,10 +38,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final OAuth2AuthorizationCodeRepository authCodeRepository;
 
     @Value("${spring.myapp.frontend-redirect-url}")
-    private String appRedirectUri;
+    private String frontendRedirectUrl;
 
-    @Value("${spring.myapp.mobile-redirect-scheme:snapguide}")
-    private String mobileRedirectScheme;
+    @Value("${spring.myapp.app-redirect-uri}")
+    private String appRedirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -52,7 +52,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // 쿠키에서 클라이언트가 보낸 redirect_uri 가져오기
         String targetUrl = CookieUtil.getCookie(request, HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME)
                 .map(cookie -> cookie.getValue())
-                .orElse(appRedirectUri); // 없으면 기본값 사용
+                .orElse(appRedirectUri); // 없으면 모바일 앱 URI를 기본값으로 사용
 
         log.info("🎯 Target redirect URL: {}", targetUrl);
 
