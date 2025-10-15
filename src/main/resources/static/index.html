@@ -165,8 +165,8 @@
       placeholder="비밀번호"
       type="password"
     /><button onclick="login()">로그인</button>
-    <h1>구글 로그인</h1>
-    <a id="googleLoginLink" href="#">구글 로그인</a>
+    <h1>구글 로그인</h1><button onclick="window.location.href=`${window.location.origin}/oauth2/authorization/google`">구글 로그인</button>
+
     <h1>토큰 재발급</h1>
     <button onclick="reissueToken()">토큰 재발급</button>
     <h1>로그아웃</h1>
@@ -237,7 +237,10 @@
       // ====================================================================================
       // 🔹 1. API 서버의 기본 주소를 변수로 선언합니다.
       // ====================================================================================
-      const API_BASE_URL = "http://localhost:8082"; // 👈 서버 주소가 바뀌면 여기만 수정
+      // const API_BASE_URL = "http://localhost:8082"; // 👈 서버 주소가 바뀌면 여기만 수정
+
+      // 현재 페이지의 origin을 자동으로 사용 (localhost 또는 NAS URL)
+      const API_BASE_URL = window.location.origin; // 👈 자동으로 현재 도메인 사용
 
       let token = localStorage.getItem("accessToken") || null;
 
@@ -246,10 +249,6 @@
         handleRedirectToken();
         token = localStorage.getItem("accessToken");
         loadGoogleMapsScript();
-
-        // 구글 로그인 링크 설정
-        document.getElementById("googleLoginLink").href =
-          `${API_BASE_URL}/oauth2/authorization/google`;
 
         const startBtn = document.getElementById("loadStartBtn");
         const nextBtn = document.getElementById("nextPageBtn");
@@ -467,11 +466,44 @@
       }
       function handleRedirectToken() {
         const urlParams = new URLSearchParams(window.location.search);
+
+        // Authorization Code Flow: code를 토큰으로 교환
+        const code = urlParams.get("code");
+        if (code) {
+          fetch(`${API_BASE_URL}/api/auth/google/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: code }),
+          })
+            .then((res) => {
+              if (!res.ok) throw new Error("토큰 교환 실패");
+              return res.json();
+            })
+            .then((data) => {
+              localStorage.setItem("accessToken", data.accessToken);
+              localStorage.setItem("refreshToken", data.refreshToken);
+              token = data.accessToken;
+              alert("구글 로그인 성공!");
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname,
+              );
+            })
+            .catch((err) => {
+              console.error("Google OAuth error:", err);
+              alert("구글 로그인 실패: " + err.message);
+            });
+          return;
+        }
+
+        // 기존 방식: accessToken과 refreshToken이 URL에 있는 경우
         const accessToken = urlParams.get("accessToken");
         const refreshToken = urlParams.get("refreshToken");
         if (accessToken && refreshToken) {
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", refreshToken);
+          token = accessToken;
           alert("구글 로그인 성공!");
           window.history.replaceState(
             {},
