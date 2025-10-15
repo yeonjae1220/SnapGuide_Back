@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.AuthService;
+import yeonjae.snapguide.service.GoogleOAuthService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
 import java.util.Map;
@@ -21,6 +22,7 @@ public class AuthController {
     private final AuthService authService;
     private final MemberService memberService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final GoogleOAuthService googleOAuthService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request) {
@@ -60,17 +62,18 @@ public class AuthController {
     }
 
     /**
-     * 모바일 앱에서 OAuth2 authorization code를 JWT 토큰으로 교환
-     * - Google 인증 후 받은 일회용 code를 accessToken, refreshToken으로 교환
-     * - code는 5분간 유효하며, 사용 후 즉시 삭제됨
+     * 모바일 앱에서 Google authorization code를 JWT 토큰으로 교환 (Option 1: 앱 중심 OAuth)
+     * - 앱이 Google로부터 직접 받은 authorization code를 처리
+     * - Google API와 직접 통신하여 사용자 정보 획득
+     * - JWT accessToken, refreshToken 발급
      */
     @PostMapping("/google/token")
     public ResponseEntity<?> exchangeGoogleAuthCode(@RequestBody Map<String, String> request) {
         String code = request.get("code");
         if (code == null || code.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Authorization code is required"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Authorization code is required"));
         }
 
-        return ResponseEntity.ok(authService.exchangeOAuth2Code(code));
+        return ResponseEntity.ok(googleOAuthService.exchangeCodeForToken(code));
     }
 }
