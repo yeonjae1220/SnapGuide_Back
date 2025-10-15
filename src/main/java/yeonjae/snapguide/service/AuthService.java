@@ -25,6 +25,8 @@ import yeonjae.snapguide.infrastructure.cache.redis.RedisRefreshToken;
 import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
 import yeonjae.snapguide.repository.RefreshTokenRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
+import yeonjae.snapguide.repository.OAuth2AuthorizationCodeRepository;
+import yeonjae.snapguide.security.authentication.OAuth2.OAuth2AuthorizationCode;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
@@ -49,6 +51,7 @@ public class AuthService {
     private final RedisRefreshTokenRepository redisRefreshTokenRepository;
     private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
+    private final OAuth2AuthorizationCodeRepository authCodeRepository;
 
 
 
@@ -181,5 +184,41 @@ public class AuthService {
         // 3. Redis에서 RefreshToken 삭제
         redisRefreshTokenRepository.deleteById(email);
         return email;
+    }
+
+    /**
+     * OAuth2 Authorization Code를 JWT 토큰으로 교환
+     * - 모바일 앱에서 받은 일회용 code를 검증하고 토큰 발급
+     * - code는 사용 후 즉시 삭제됨 (재사용 불가)
+     */
+    @Transactional
+    public JwtToken exchangeOAuth2Code(String code) {
+        // 1. Redis에서 code 조회
+        OAuth2AuthorizationCode authCode = authCodeRepository.findById(code)
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
+
+        String email = authCode.getEmail();
+
+        // 2. code 즉시 삭제 (일회용)
+        authCodeRepository.deleteById(code);
+        log.info("Authorization code 사용 및 삭제: {} for user: {}", code, email);
+
+        // 3. 사용자 정보 조회
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 4. JWT 토큰 생성
+        JwtToken jwtToken = jwtTokenProvider.generateToken(member.getAuthority(), member.getEmail());
+
+        // 5. RefreshToken Redis에 저장
+        RedisRefreshToken refreshToken = RedisRefreshToken.builder()
+                .key(email)
+                .value(jwtToken.getRefreshToken())
+                .build();
+        redisRefreshTokenRepository.save(refreshToken);
+
+        log.info("OAuth2 code 교환 성공 - 토큰 발급 for user: {}", email);
+
+        return jwtToken;
     }
 }
