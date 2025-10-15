@@ -18,10 +18,14 @@ import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
+import yeonjae.snapguide.repository.OAuth2AuthorizationCodeRepository;
+import yeonjae.snapguide.infrastructure.cookie.CookieUtil;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -31,9 +35,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final ObjectMapper objectMapper;
     private final MemberRepository memberRepository;
     private final RedisRefreshTokenRepository redisRefreshTokenRepository;
+    private final OAuth2AuthorizationCodeRepository authCodeRepository;
 
     @Value("${spring.myapp.frontend-redirect-url}")
     private String appRedirectUri;
+
+    @Value("${spring.myapp.mobile-redirect-scheme:snapguide}")
+    private String mobileRedirectScheme;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -41,38 +49,40 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         Member oauthMember = principal.getMember();
         log.info("oauth login member info : {} ", oauthMember);
 
-        // 토큰 생성
-        JwtToken jwtToken = jwtTokenProvider.generateToken(oauthMember.getAuthority(), oauthMember.getEmail()); // HACK : 매개 변수 확인 필요
-        String accessToken = jwtToken.getAccessToken();
-        String refreshToken = jwtToken.getRefreshToken();
+        // 쿠키에서 클라이언트가 보낸 redirect_uri 가져오기
+        String targetUrl = CookieUtil.getCookie(request, HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME)
+                .map(cookie -> cookie.getValue())
+                .orElse(appRedirectUri); // 없으면 기본값 사용
 
-        // RefreshToken 저장
-        RedisRefreshToken redisRefreshToken = RedisRefreshToken.builder()
-                .key(authentication.getName())
-                .value(refreshToken)
-                .build();
-        redisRefreshTokenRepository.save(redisRefreshToken);
+        log.info("🎯 Target redirect URL: {}", targetUrl);
 
+        // 🔒 모든 클라이언트에 대해 Authorization Code 방식 적용
+        handleAuthorizationCodeFlow(response, oauthMember, targetUrl);
+    }
 
-        // 프론트에 리다이렉트로 토큰 전달 - 예시: URL 파라미터로 전달 (더 나은 방법은 헤더 or 쿠키) TODO : sendRedirect 말고 JSON 응답이나 쿠키로 변경 필요
+    /**
+     * Authorization Code Flow 처리 (모바일 앱 + 웹 통합)
+     * - 일회용 코드를 생성하여 Redis에 저장
+     * - 클라이언트가 보낸 redirect_uri로 code만 리다이렉트
+     * - 보안 강화: 토큰은 URL에 노출하지 않음
+     */
+    private void handleAuthorizationCodeFlow(HttpServletResponse response, Member oauthMember, String targetUrl) throws IOException {
+        // 1. 일회용 authorization code 생성 (UUID)
+        String authCode = UUID.randomUUID().toString();
+
+        // 2. Redis에 code와 사용자 이메일 매핑 저장 (5분 TTL)
+        OAuth2AuthorizationCode codeEntity = OAuth2AuthorizationCode.of(authCode, oauthMember.getEmail());
+        authCodeRepository.save(codeEntity);
+
+        log.info("🔐 Authorization code 생성: {} for user: {}, redirect to: {}", authCode, oauthMember.getEmail(), targetUrl);
+
+        // 3. 클라이언트가 보낸 redirect_uri에 code 추가하여 리다이렉트
         String redirectUrl = UriComponentsBuilder
-                .fromUriString(appRedirectUri)
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
+                .fromUriString(targetUrl)
+                .queryParam("code", authCode)
                 .build()
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
-
-        // JSON 형태로 응답
-//        response.setContentType("application/json");
-//        response.setCharacterEncoding("UTF-8");
-//
-//        Map<String, String> tokenResponse = new HashMap<>();
-//        tokenResponse.put("accessToken", accessToken);
-//        tokenResponse.put("refreshToken", refreshToken);
-//
-//        response.getWriter().write(objectMapper.writeValueAsString(tokenResponse));
-
     }
 }
