@@ -56,4 +56,19 @@ public class AuthController {
     public ResponseEntity<?> test(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok("인증된 사용자: " + userDetails.getUsername());
     }
+
+    /**
+     * 모바일 앱에서 OAuth2 authorization code를 JWT 토큰으로 교환
+     * - Google 인증 후 받은 일회용 code를 accessToken, refreshToken으로 교환
+     * - code는 5분간 유효하며, 사용 후 즉시 삭제됨
+     */
+    @PostMapping("/google/token")
+    public ResponseEntity<?> exchangeGoogleAuthCode(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        if (code == null || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Authorization code is required"));
+        }
+
+        return ResponseEntity.ok(authService.exchangeOAuth2Code(code));
+    }
 }
