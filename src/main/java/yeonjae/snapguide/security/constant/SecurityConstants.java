@@ -21,7 +21,7 @@ public final class SecurityConstants {
 		public static final String[] AUTH_API = {"/api-docs", "/api-docs/**", "/graphiql", "/graphql"}; // "/api/**", "/api/auth/**",
 
 		public static final String[] USER_API = {"/api/user/members/check", "/api/user/members/register", "/api/user/members/login", "/login", "/index.html", "/", "/test-api.html", "/api/maps/key"}; // NOTE : api/maps/key" 이거 일단 여기 넣어둠
-		public static final String[] LOCAL_LOGIN_API = {"/api/auth/signup", "/api/auth/login", "/api/auth/reissue"};
+		public static final String[] LOCAL_LOGIN_API = {"/api/auth/signup", "/api/auth/login", "/api/auth/reissue", "/api/auth/google/token"};
 
 		public static final String[] OAUTH_API = {"/oauth-login/admin", "/oauth-login/info", "/oauth/**", "/oauth-login/**", "/login", "/signup", "/oauth2/**", "/oauth2/redirect", "/error"};
 		/**
