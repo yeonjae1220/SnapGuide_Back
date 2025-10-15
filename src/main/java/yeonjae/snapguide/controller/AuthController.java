@@ -21,7 +21,6 @@ public class AuthController {
     private final AuthService authService;
     private final MemberService memberService;
     private final RedisTemplate<String, String> redisTemplate;
-    private final yeonjae.snapguide.service.GoogleOAuthService googleOAuthService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request) {
@@ -61,27 +60,12 @@ public class AuthController {
     }
 
     /**
-     * 모바일 앱에서 Google Authorization Code를 JWT 토큰으로 교환 (옵션 1)
-     * - 앱이 Google에서 직접 받은 authorization code를 JWT로 교환
-     * - Google API를 통해 사용자 정보 조회 및 회원가입/로그인 처리
+     * 모바일 앱에서 OAuth2 authorization code를 JWT 토큰으로 교환
+     * - Google 인증 후 받은 일회용 code를 accessToken, refreshToken으로 교환
+     * - code는 5분간 유효하며, 사용 후 즉시 삭제됨
      */
     @PostMapping("/google/token")
     public ResponseEntity<?> exchangeGoogleAuthCode(@RequestBody Map<String, String> request) {
-        String code = request.get("code");
-        if (code == null || code.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Authorization code is required"));
-        }
-
-        return ResponseEntity.ok(googleOAuthService.exchangeGoogleAuthorizationCode(code));
-    }
-
-    /**
-     * 웹에서 OAuth2 authorization code를 JWT 토큰으로 교환 (옵션 2 - 기존 방식)
-     * - 백엔드가 생성한 일회용 code를 JWT로 교환
-     * - code는 Redis에 저장되며 5분간 유효
-     */
-    @PostMapping("/oauth2/token")
-    public ResponseEntity<?> exchangeOAuth2Code(@RequestBody Map<String, String> request) {
         String code = request.get("code");
         if (code == null || code.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Authorization code is required"));
