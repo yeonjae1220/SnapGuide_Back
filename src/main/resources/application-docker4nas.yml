@@ -1,0 +1,71 @@
+## Docker/Production Environment Settings ##
+spring:
+  config:
+    activate:
+      on-profile: "docker4nas"
+
+  myapp:
+    frontend-redirect-url: https://briankim.synology.me
+    app-redirect-uri: snapguide://oauth/callback
+
+  server:
+    forward-headers-strategy: framework # native 대신 framework로 변경
+
+  # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
+  # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile, email
+            redirect-uri: https://briankim.synology.me/login/oauth2/code/google
+
+  web:
+    resources:
+      static-locations:
+        - classpath:/static/
+        - file:/app/uploads/
+
+# Environment-specific configurations (values from environment variables)
+jwt:
+  access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
+  refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
+  secret: ${JWT_SECRET}
+
+google:
+  maps:
+    api:
+      key: ${GOOGLE_MAPS_API_KEY}
+
+storage:
+  type: s3
+  local:
+    base-dir: /app/uploads/
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false

@@ -1,0 +1,80 @@
+spring:
+  config:
+    activate:
+      on-profile: "local"
+
+  myapp:
+    frontend-redirect-url: ${FRONTEND_REDIRECT_URL:http://localhost:8080}
+    app-redirect-uri: ${APP_REDIRECT_URI:snapguide://oauth/callback}
+
+   # 기본 포트 8080 사용할꺼기에, 포트 정보 생략
+  server:
+    port: 8080
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/snapguidedb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        spring.jpa.properties.hibernate.use_sql_comments: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile, email
+
+  web:
+    resources:
+      static-locations:
+        - classpath:/static/
+        - file:${STORAGE_LOCAL_BASE_DIR:/Users/kim-yeonjae/Desktop/Study/snapguide/uploads}/
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+# Local development configurations
+jwt:
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000} # 30min
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 1week
+  secret: ${JWT_SECRET}
+
+google:
+  maps:
+    api:
+      key: ${GOOGLE_MAPS_API_KEY}
+
+storage:
+  type: ${STORAGE_TYPE:local}
+  local:
+    base-dir: ${STORAGE_LOCAL_BASE_DIR:/Users/kim-yeonjae/Desktop/Study/snapguide/uploads}
+  nas:
+    mount-dir: ${STORAGE_NAS_MOUNT_DIR:/mnt/nas/snapguide}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET:snapguide-bucket}
+    region:
+      static: ${AWS_REGION:us-east-2}
+    stack:
+      auto: false
