@@ -7,14 +7,14 @@ spring:
     frontend-redirect-url: http://localhost:8080
     app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
-   # 기본 포트 8080 사용할꺼기에, 포트 정보 생략
+
   server:
     port: 8080
 
   datasource:
     url: jdbc:postgresql://localhost:5432/snapguidedb
-    username: postgres
-    password: 5418
+    username: ${POSTGRES_USER_LOCAL}
+    password: ${POSTGRES_PASSWORD_LOCAL}
     driver-class-name: org.postgresql.Driver
 
   data:
@@ -36,8 +36,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 1054453650839-fcku1a78a83p0739eb3mcv76pidtqlm0.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: profile, email
 
   web:
@@ -53,12 +53,12 @@ logging:
 jwt:
   access-token-expiration: 1800000 # 30min
   refresh-token-expiration: 604800000 # 1week
-  secret: f9f7ca2a630ed19e8c21f3d97b5afa3e890b497ea1526e4ca80809c365b9b3f76c1aa7c548b73e06a7cddb53629ec54068372ccaa34287769116c8bc29661904
+  secret: ${JWT_SECRET}
 
 google:
   maps:
     api:
-      key: AIzaSyC4A8g9EEFIPxc0GT09-Ibw7G9DMxeEwqA
+      key: ${GOOGLE_MAPS_API_KEY}
 
 storage:
   type: local
@@ -70,11 +70,11 @@ storage:
 cloud:
   aws:
     credentials:
-      access-key: AKIASV6SZK4NLWRR27O3
-      secret-key: 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
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
     s3:
-      bucket: snapguide-bucket
+      bucket: ${AWS_S3_BUCKET}
     region:
-      static: us-east-2
+      static: ${AWS_REGION}
     stack:
       auto: false
