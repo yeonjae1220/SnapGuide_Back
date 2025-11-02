@@ -1,486 +1,924 @@
-<!-- index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SnapGuide Test</title>
-</head>
-<body>
-<h1>회원가입</h1>
-<input id="email" placeholder="이메일" />
-<input id="password" placeholder="비밀번호" type="password" />
-<button onclick="signup()">회원가입</button>
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SnapGuide Test with Server-Side Places API</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        padding-bottom: 100px;
+        line-height: 1.6;
+      }
+      h1,
+      h3 {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      div {
+        margin-bottom: 15px;
+      }
+      input,
+      textarea,
+      button,
+      select {
+        padding: 10px;
+        margin: 2px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 1em;
+      }
+      button,
+      a {
+        cursor: pointer;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        padding: 10px 15px;
+      }
+      a:hover,
+      button:hover {
+        background-color: #357ae8;
+      }
+      #guideWrap,
+      #guideNear {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .guide-card {
+        border: 1px solid #ddd;
+        margin: 10px;
+        padding: 10px;
+        width: 260px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+      }
+      .img-box {
+        width: 100%;
+        height: 260px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        background-color: #f0f0f0;
+        border-radius: 6px 6px 0 0;
+      }
+      .img-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .guide-card p {
+        margin: 10px 0;
+        flex-grow: 1;
+      }
+      .meta-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+        font-size: 0.9em;
+        color: #555;
+      }
+      .like-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0;
+        line-height: 1;
+        color: #ff4d4f;
+      }
+      .like-count {
+        font-weight: bold;
+      }
+      .button-group {
+        margin-top: auto;
+        display: flex;
+        gap: 5px;
+      }
+      .button-group button {
+        flex-grow: 1;
+      }
 
-<h1>로그인</h1>
-<input id="loginEmail" placeholder="이메일" />
-<input id="loginPassword" placeholder="비밀번호" type="password" />
-<button onclick="login()">로그인</button>
+      /* 위치 검색 UI 스타일 */
+      #locationSearchSection {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+      }
+      #map {
+        width: 100%;
+        height: 400px;
+        border: 1px solid #ddd;
+        margin-bottom: 15px;
+      }
+      #searchBox {
+        position: relative;
+      } /* 자동완성 결과를 위한 position 기준 */
+      #locationSearchInput {
+        width: calc(100% - 24px);
+      }
+      #searchStatus {
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.1em;
+        color: #333;
+      }
+      #autocompleteResults {
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        z-index: 1000;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      #autocompleteResults div {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+      }
+      #autocompleteResults div:hover {
+        background-color: #f0f0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>회원가입</h1>
+    <input id="email" placeholder="이메일" /><input
+      id="password"
+      placeholder="비밀번호"
+      type="password"
+    /><button onclick="signup()">회원가입</button>
+    <h1>로그인</h1>
+    <input id="loginEmail" placeholder="이메일" /><input
+      id="loginPassword"
+      placeholder="비밀번호"
+      type="password"
+    /><button onclick="login()">로그인</button>
+    <h1>구글 로그인</h1><button onclick="window.location.href=`${window.location.origin}/oauth2/authorization/google`">구글 로그인</button>
 
-<h1>구글 로그인</h1>
-<a href="/oauth2/authorization/google">구글 로그인</a>
+    <h1>토큰 재발급</h1>
+    <button onclick="reissueToken()">토큰 재발급</button>
+    <h1>로그아웃</h1>
+    <button onclick="logout()">로그아웃</button>
+    <h1>인증 테스트</h1>
+    <button onclick="authTest()">인증된 사용자 확인</button>
+    <div id="authResult"></div>
+    <h1>가이드 업로드</h1>
+    <input type="file" id="imageFile" name="file" multiple /><label
+      for="tip"
+    ></label
+    ><textarea id="tip" placeholder="팁을 입력하세요"></textarea
+    ><button onclick="upload()">업로드</button>
+    <h1>유저 가이드 작성 리스트</h1>
+    <button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
+    <div id="guideWrap"></div>
+    <div id="locationSearchSection">
+      <h1>📍 위치 기반 가이드 검색</h1>
+      <div id="map" style="background-color: #e0e0e0">
+        지도를 불러오는 중...
+      </div>
+      <p id="searchStatus">
+        지도를 움직여 검색 기준점을 설정하거나 장소를 검색하세요.
+      </p>
+      <div id="searchBox">
+        <input
+          id="locationSearchInput"
+          placeholder="장소, 주소 검색 (예: 창원 시청)"
+        />
+        <div id="autocompleteResults"></div>
+      </div>
+      <div>
+        <button id="currentLocationBtn">🛰️ 내 현재 위치로 검색</button>
+        <select id="radiusSelect">
+          <option value="5">반경 5km</option>
+          <option value="10" selected>반경 10km</option>
+          <option value="20">반경 20km</option>
+          <option value="50">반경 50km</option>
+          <option value="100">반경 100km</option>
+        </select>
+      </div>
+      <div id="guideNear"></div>
+    </div>
+    <h1>사진 목록 보기</h1>
+    <button onclick="loadPhotos()">사진 목록 불러오기</button>
+    <div id="photoList"></div>
+    <h1>모든 사진 보기</h1>
+    <h3 id="photoCountText">📷 전체 사진 수: 알 수 없음</h3>
+    <div
+      id="allPhotoContainer"
+      style="height: 500px; overflow-y: auto; border: 1px solid gray"
+    >
+      <div id="allPhoto"></div>
+    </div>
+    <div style="margin-top: 10px">
+      <button id="prevPageBtn" disabled>⬅️ 이전</button
+      ><button id="nextPageBtn" disabled>➡️ 다음</button
+      ><button id="loadStartBtn">📸 사진 불러오기 시작</button
+      ><span id="loadingText" style="margin-left: 10px; display: none"
+        >⌛ 불러오는 중...</span
+      >
+    </div>
+    <h1>멤버 리스트 보기</h1>
+    <button onclick="loadMembers()">멤버 리스트 불러오기</button>
+    <ul id="memberList"></ul>
 
-<h1>토큰 재발급</h1>
-<button onclick="reissueToken()">토큰 재발급</button>
+    <script>
+      // ====================================================================================
+      // 🔹 1. API 서버의 기본 주소를 변수로 선언합니다.
+      // ====================================================================================
+      // const API_BASE_URL = "http://localhost:8082"; // 👈 서버 주소가 바뀌면 여기만 수정
 
-<h1>로그아웃</h1>
-<button onclick="logout()">로그아웃</button>
+      // 현재 페이지의 origin을 자동으로 사용 (localhost 또는 NAS URL)
+      const API_BASE_URL = window.location.origin; // 👈 자동으로 현재 도메인 사용
 
-<h1>인증 테스트</h1>
-<button onclick="authTest()">인증된 사용자 확인</button>
-<div id="authResult"></div>
+      let token = localStorage.getItem("accessToken") || null;
 
-<h1>사진 업로드</h1>
-<input type="file" id="imageFile" name="file" multiple>
-<label for="tip"></label>
-<textarea id="tip" placeholder="팁을 입력하세요"></textarea>
-<button onclick="upload()">업로드</button>
+      // 페이지 로딩 시 실행
+      document.addEventListener("DOMContentLoaded", () => {
+        handleRedirectToken();
+        token = localStorage.getItem("accessToken");
+        loadGoogleMapsScript();
 
-<h1>유저 가이드 작성 리스트</h1>
-<button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
-<div id="guideWrap"></div>
+        const startBtn = document.getElementById("loadStartBtn");
+        const nextBtn = document.getElementById("nextPageBtn");
+        const prevBtn = document.getElementById("prevPageBtn");
 
-<h1>사진 목록 보기</h1>
-<button onclick="loadPhotos()">사진 목록 불러오기</button>
-<div id="photoList"></div>
+        startBtn.addEventListener("click", () => {
+          page = 0;
+          done = false;
+          document.getElementById("allPhoto").innerHTML = ""; // photoContainer -> allPhoto
+          nextBtn.style.display = "inline-block";
+          prevBtn.style.display = "inline-block";
+          nextBtn.disabled = false;
+          fetchPhotoCount();
+          allPhotos();
+        });
+        nextBtn.addEventListener("click", () => {
+          if (!done) {
+            page++;
+            allPhotos();
+          }
+        });
+        prevBtn.addEventListener("click", () => {
+          if (page > 0) {
+            page--;
+            allPhotos();
+          }
+        });
+      });
 
-<h1>모든 사진 보기</h1>
-<h3 id="photoCountText">📷 전체 사진 수: 알 수 없음</h3>
-<!-- 시작 및 페이지 버튼 -->
-<div id="allPhotoContainer" style="height: 500px; overflow-y: auto; border: 1px solid gray;">
-    <div id="allPhoto"></div>
-</div>
-<div style="margin-top: 10px;">
-    <button id="prevPageBtn" disabled>⬅️ 이전</button>
-    <button id="nextPageBtn" disabled>➡️ 다음</button>
-    <button id="loadStartBtn">📸 사진 불러오기 시작</button>
-    <span id="loadingText" style="margin-left: 10px; display: none;">⌛ 불러오는 중...</span>
-</div>
+      function loadGoogleMapsScript() {
+        fetch(`${API_BASE_URL}/api/maps/key`) // 👈 변수 사용
+          .then((res) =>
+            res.ok
+              ? res.json()
+              : Promise.reject("Could not fetch map API key."),
+          )
+          .then((data) => {
+            const apiKey = data.apiKey;
+            if (!apiKey) throw new Error("API key is missing.");
+            const script = document.createElement("script");
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+          })
+          .catch((err) => {
+            console.error("Failed to load Google Maps:", err);
+            document.getElementById("map").textContent =
+              "지도를 불러오는 데 실패했습니다. API 설정을 확인해주세요.";
+            alert("지도를 불러오는 데 실패했습니다.");
+          });
+      }
 
-<h1>멤버 리스트 보기</h1>
-<button onclick="loadMembers()">멤버 리스트 불러오기</button>
-<ul id="memberList"></ul>
+      // ====================================================================================
+      // 🔹 2. 모든 fetch 및 이미지 URL 호출에서 API_BASE_URL 변수를 사용하도록 수정합니다.
+      // ====================================================================================
 
-<script>
-    let token = localStorage.getItem("accessToken") || null;
+      // --- (이하 모든 함수에서 "http://localhost:8080" 을 `${API_BASE_URL}` 로 교체) ---
 
-    // 모든 사진 불러오기 할 때 필요한 변수 추가
-    let page = 0;
-    const size = 10;
-    let totalCount = 0;
+      let map, marker, searchCircle, currentSearchCoords;
+      window.initMap = function () {
+        const defaultLocation = { lat: 35.2283, lng: 128.6814 };
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: defaultLocation,
+          zoom: 13,
+        });
+        marker = new google.maps.Marker({
+          position: defaultLocation,
+          map: map,
+          draggable: true,
+        });
+        searchCircle = new google.maps.Circle({
+          strokeColor: "#4285F4",
+          strokeWeight: 2,
+          fillOpacity: 0.15,
+          map: map,
+          center: defaultLocation,
+          radius: 10000,
+        });
+        map.addListener("click", (e) =>
+          updateMapAndSearch(
+            { lat: e.latLng.lat(), lng: e.latLng.lng() },
+            "지도에서 선택한 위치",
+          ),
+        );
+        marker.addListener("dragend", (e) =>
+          updateMapAndSearch(
+            { lat: e.latLng.lat(), lng: e.latLng.lng() },
+            "마커 위치",
+          ),
+        );
+        document.getElementById("currentLocationBtn").onclick =
+          handleGetCurrentLocation;
+        document.getElementById("radiusSelect").onchange = handleRadiusChange;
+        document
+          .getElementById("locationSearchInput")
+          .addEventListener("input", debounce(handleLocationSearchInput, 300));
+        handleGetCurrentLocation();
+      };
+      let page = 0,
+        size = 10,
+        totalCount = 0,
+        loading = false,
+        done = false;
+      function debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+      async function fetchPlaceAutocomplete(input) {
+        if (!input || input.trim().length < 2 || !token) return [];
+        try {
+          const url = `${API_BASE_URL}/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok)
+            throw new Error(`Network response was not ok: ${response.status}`);
+          const data = await response.json();
+          return data?.predictions || [];
+        } catch (error) {
+          console.error("장소 자동완성 API 호출 오류:", error);
+          return [];
+        }
+      }
+      async function fetchPlaceDetails(placeId) {
+        if (!placeId || !token) return null;
+        try {
+          const url = `${API_BASE_URL}/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok)
+            throw new Error(`Network response was not ok: ${response.status}`);
+          const data = await response.json();
+          return data?.result || null;
+        } catch (error) {
+          console.error("장소 상세 정보 API 호출 오류:", error);
+          return null;
+        }
+      }
+      async function handleLocationSearchInput(event) {
+        const query = event.target.value;
+        const results = await fetchPlaceAutocomplete(query);
+        displayAutocompleteResults(results);
+      }
+      function displayAutocompleteResults(predictions) {
+        const resultsContainer = document.getElementById("autocompleteResults");
+        resultsContainer.innerHTML = "";
+        predictions.forEach((prediction) => {
+          const item = document.createElement("div");
+          item.textContent = prediction.description;
+          item.onclick = async () => {
+            document.getElementById("locationSearchInput").value =
+              prediction.description;
+            resultsContainer.innerHTML = "";
+            const details = await fetchPlaceDetails(prediction.place_id);
+            if (details && details.geometry && details.geometry.location) {
+              const coords = {
+                lat: details.geometry.location.lat,
+                lng: details.geometry.location.lng,
+              };
+              updateMapAndSearch(coords, prediction.description);
+            } else {
+              alert("장소의 좌표를 가져오는 데 실패했습니다.");
+            }
+          };
+          resultsContainer.appendChild(item);
+        });
+      }
+      function updateMapAndSearch(coords, locationName) {
+        currentSearchCoords = coords;
+        document.getElementById("searchStatus").textContent =
+          `기준 위치: ${locationName}`;
+        map.panTo(coords);
+        marker.setPosition(coords);
+        searchCircle.setCenter(coords);
+        const radius = document.getElementById("radiusSelect").value;
+        fetchGuides(coords.lat, coords.lng, radius);
+      }
+      function handleGetCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const coords = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+              updateMapAndSearch(coords, "내 현재 위치");
+            },
+            () => {
+              alert(
+                "위치 정보를 가져올 수 없습니다. 기본 위치에서 검색합니다.",
+              );
+              updateMapAndSearch(
+                { lat: 35.2283, lng: 128.6814 },
+                "창원 시청(기본값)",
+              );
+            },
+          );
+        } else {
+          alert("이 브라우저에서는 위치 서비스를 지원하지 않습니다.");
+        }
+      }
+      function handleRadiusChange() {
+        if (!currentSearchCoords) {
+          alert("먼저 검색 기준 위치를 설정해주세요.");
+          return;
+        }
+        const radiusKm = document.getElementById("radiusSelect").value;
+        searchCircle.setRadius(radiusKm * 1000);
+        fetchGuides(currentSearchCoords.lat, currentSearchCoords.lng, radiusKm);
+      }
+      function handleRedirectToken() {
+        const urlParams = new URLSearchParams(window.location.search);
 
-    let loading = false;
-    let done = false; // 더 이상 불러올 이미지가 없음을 표시
-
-    function signup() {
-        fetch("http://localhost:8080/api/auth/signup", {
+        // Authorization Code Flow: code를 토큰으로 교환
+        const code = urlParams.get("code");
+        if (code) {
+          fetch(`${API_BASE_URL}/api/auth/google/token`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: document.getElementById("email").value,
-                password: document.getElementById("password").value
+            body: JSON.stringify({ code: code }),
+          })
+            .then((res) => {
+              if (!res.ok) throw new Error("토큰 교환 실패");
+              return res.json();
             })
-        })
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-                alert("회원가입 성공! 로그인 해주세요.");
-                return res.json();
+            .then((data) => {
+              localStorage.setItem("accessToken", data.accessToken);
+              localStorage.setItem("refreshToken", data.refreshToken);
+              token = data.accessToken;
+              alert("구글 로그인 성공!");
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname,
+              );
             })
-            .catch(err => alert(err.message));
-    }
+            .catch((err) => {
+              console.error("Google OAuth error:", err);
+              alert("구글 로그인 실패: " + err.message);
+            });
+          return;
+        }
 
-    function login() {
+        // 기존 방식: accessToken과 refreshToken이 URL에 있는 경우
+        const accessToken = urlParams.get("accessToken");
+        const refreshToken = urlParams.get("refreshToken");
+        if (accessToken && refreshToken) {
+          localStorage.setItem("accessToken", accessToken);
+          localStorage.setItem("refreshToken", refreshToken);
+          token = accessToken;
+          alert("구글 로그인 성공!");
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname,
+          );
+        }
+      }
+      function signup() {
+        fetch(`${API_BASE_URL}/api/auth/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+          }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+            alert("회원가입 성공! 로그인 해주세요.");
+            return res.json();
+          })
+          .catch((err) => alert(err.message));
+      }
+      function login() {
         const email = document.getElementById("loginEmail").value;
         const password = document.getElementById("loginPassword").value;
-        fetch("http://localhost:8080/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+        fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
         })
-            .then(res => {
-                if (!res.ok) throw new Error("로그인 실패");
-                return res.json();
-            })
-            .then(data => {
-                localStorage.setItem("accessToken", data.accessToken);
-                localStorage.setItem("refreshToken", data.refreshToken);
-                token = data.accessToken;
-                alert("로그인 성공");
-            })
-            .catch(err => alert(err.message));
-    }
-
-    // 토큰 재발급 요청
-    function reissueToken() {
+          .then((res) => {
+            if (!res.ok) throw new Error("로그인 실패");
+            return res.json();
+          })
+          .then((data) => {
+            localStorage.setItem("accessToken", data.accessToken);
+            localStorage.setItem("refreshToken", data.refreshToken);
+            token = data.accessToken;
+            alert("로그인 성공");
+          })
+          .catch((err) => alert(err.message));
+      }
+      function reissueToken() {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
-
         if (!accessToken || !refreshToken) {
-            return alert("토큰이 없습니다. 로그인 해주세요.");
+          return alert("토큰이 없습니다. 로그인 해주세요.");
         }
-
-        fetch("http://localhost:8080/api/auth/reissue", {
-            method: "POST",
-            headers: { "Content-Type": "application/json",
-                        "Authorization": "Bearer " + accessToken
-            },
-            body: JSON.stringify({
-                accessToken: accessToken,
-                refreshToken: refreshToken
-            })
+        fetch(`${API_BASE_URL}/api/auth/reissue`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + accessToken,
+          },
+          body: JSON.stringify({
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          }),
         })
-            .then(res => {
-                if (!res.ok) throw new Error("토큰 재발급 실패");
-                return res.json();
-            })
-            .then(data => {
-                localStorage.setItem("accessToken", data.accessToken);
-                token = data.accessToken;
-                if(data.refreshToken) { // refreshToken도 재발급 되면 저장
-                    localStorage.setItem("refreshToken", data.refreshToken);
-                }
-                alert("토큰이 재발급 되었습니다.");
-            })
-            .catch(err => alert(err.message));
-    }
-
-    // 로그아웃 요청
-    function logout() {
+          .then((res) => {
+            if (!res.ok) throw new Error("토큰 재발급 실패");
+            return res.json();
+          })
+          .then((data) => {
+            localStorage.setItem("accessToken", data.accessToken);
+            token = data.accessToken;
+            if (data.refreshToken) {
+              localStorage.setItem("refreshToken", data.refreshToken);
+            }
+            alert("토큰이 재발급 되었습니다.");
+          })
+          .catch((err) => alert(err.message));
+      }
+      function logout() {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
-
         if (!accessToken) {
-            return alert("로그인이 필요합니다.");
+          return alert("로그인이 필요합니다.");
         }
-
-        fetch("http://localhost:8080/api/auth/logout", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + accessToken
-            },
-            body: JSON.stringify({
-                accessToken: accessToken,
-                refreshToken: refreshToken
-            })
+        fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + accessToken,
+          },
+          body: JSON.stringify({
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          }),
         })
-            .then(res => {
-                if (!res.ok) throw new Error("로그아웃 실패");
-                // 로그아웃 성공 시 로컬 토큰 제거
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("refreshToken");
-                alert("로그아웃 되었습니다.");
-            })
-            .catch(err => alert(err.message));
-    }
-
-    function authTest() {
+          .then((res) => {
+            if (!res.ok) throw new Error("로그아웃 실패");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            alert("로그아웃 되었습니다.");
+          })
+          .catch((err) => alert(err.message));
+      }
+      function authTest() {
         const token = localStorage.getItem("accessToken");
         if (!token) {
-            alert("로그인이 필요합니다.");
-            return;
+          alert("로그인이 필요합니다.");
+          return;
         }
-
-        fetch("http://localhost:8080/api/auth/test", {
-            method: "GET",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
+        fetch(`${API_BASE_URL}/api/auth/test`, {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
         })
-            .then(res => {
-                if (!res.ok) throw new Error("인증 실패");
-                return res.text(); // 문자열 반환
-            })
-            .then(data => {
-                document.getElementById("authResult").innerText = data;
-            })
-            .catch(err => alert(err.message));
-    }
-
-    function upload() {
+          .then((res) => {
+            if (!res.ok) throw new Error("인증 실패");
+            return res.text();
+          })
+          .then((data) => {
+            document.getElementById("authResult").innerText = data;
+          })
+          .catch((err) => alert(err.message));
+      }
+      function upload() {
         if (!token) return alert("로그인이 필요합니다.");
-
         const files = document.getElementById("imageFile").files;
         const tip = document.getElementById("tip").value;
         const formData = new FormData();
-
         for (const file of files) {
-            formData.append("files", file); // ← 이름은 반드시 서버에서 지정한 "files"와 같아야 함
+          formData.append("files", file);
         }
         formData.append("tip", tip);
-
-        fetch("http://localhost:8080/guide/api/upload", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + token
-            },
-            body: formData
+        fetch(`${API_BASE_URL}/guide/api/upload`, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: formData,
         })
-            .then(res => {
-                if (!res.ok) throw new Error("업로드 실패");
-                return res.json();
-            })
-            .then(data => {
-                alert("업로드 성공");
-            })
-            .catch(err => alert(err.message));
-    }
-
-    function loadUserGuides() {
-        if (!token) return alert("로그인이 필요합니다.");
-
-        fetch("http://localhost:8080/guide/api/my", {
-            headers: { "Authorization": "Bearer " + token }
+          .then((res) => {
+            if (!res.ok) throw new Error("업로드 실패");
+            return res.json();
+          })
+          .then((data) => {
+            alert("업로드 성공");
+          })
+          .catch((err) => alert(err.message));
+      }
+      function toggleLike(guideId, likeBtn, likeCountSpan) {
+        if (!token) return alert("좋아요를 누르려면 로그인이 필요합니다.");
+        fetch(`${API_BASE_URL}/guide/api/like/${guideId}`, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
         })
-            .then(r => r.json())
-            .then(list => {
-                const wrap = document.getElementById("guideWrap");
-                wrap.innerHTML = "";
-                list.forEach(g => {
-                    const card = document.createElement("div");
-                    card.className = "guide-card";
-
-                    /* 인스타 방식: 첫 번째 이미지를 썸네일, 나머지는 숨겨두고 클릭 시 슬라이드 */
-                    const imgBox = document.createElement("div");
-                    imgBox.className = "img-box";
-                    g.media.slice(0,10).forEach((m,i)=>{
-                        const img = document.createElement("img");
-                        img.src = "http://localhost:8080"+m.url;
-                        if(i!==0){ img.style.display="none"; }
-                        imgBox.appendChild(img);
-                    });
-                    // 클릭 시 다음 사진
-                    imgBox.onclick = () => {
-                        const imgs = imgBox.querySelectorAll("img");
-                        let idx = [...imgs].findIndex(el=>el.style.display!=="none");
-                        imgs[idx].style.display="none";
-                        imgs[(idx+1)%imgs.length].style.display="block";
-                    };
-
-                    const tip = document.createElement("p");
-                    tip.textContent = g.tip;
-
-                    const loc = document.createElement("span");
-                    loc.textContent = g.locationName;
-
-                    card.append(imgBox, tip, loc);
-                    wrap.appendChild(card);
-                });
-            });
-    }
-
-    function loadPhotos() {
-        if (!token) return alert("로그인이 필요합니다.");
-        fetch("http://localhost:8080/media/list", {
-            method: "GET",
-            headers: {
-                "Authorization": "Bearer " + token
+          .then((res) => {
+            if (!res.ok) throw new Error("좋아요 처리 실패");
+            return res.json();
+          })
+          .then((data) => {
+            likeBtn.textContent = data.liked ? "❤️" : "♡";
+            likeCountSpan.textContent = data.likeCount;
+          })
+          .catch((err) => alert(err.message));
+      }
+      function createGuideCard(g) {
+        const card = document.createElement("div");
+        card.className = "guide-card";
+        const imgBox = document.createElement("div");
+        imgBox.className = "img-box";
+        if (g.media && g.media.length > 0) {
+          g.media.slice(0, 10).forEach((m, i) => {
+            const img = document.createElement("img");
+            img.src = `${API_BASE_URL}${m.url}`;
+            if (i !== 0) {
+              img.style.display = "none";
             }
+            imgBox.appendChild(img);
+          });
+          imgBox.onclick = () => {
+            const imgs = imgBox.querySelectorAll("img");
+            let idx = [...imgs].findIndex((el) => el.style.display !== "none");
+            imgs[idx].style.display = "none";
+            imgs[(idx + 1) % imgs.length].style.display = "block";
+          };
+        }
+        const tip = document.createElement("p");
+        tip.textContent = g.tip;
+        const metaInfo = document.createElement("div");
+        metaInfo.className = "meta-info";
+        const viewSpan = document.createElement("span");
+        viewSpan.className = "view-count";
+        viewSpan.textContent = `조회수: ${g.viewCount || 0}`;
+        const likeContainer = document.createElement("span");
+        const likeBtn = document.createElement("button");
+        likeBtn.className = "like-btn";
+        likeBtn.textContent = g.userHasLiked ? "❤️" : "♡";
+        const likeCountSpan = document.createElement("span");
+        likeCountSpan.className = "like-count";
+        likeCountSpan.textContent = g.likeCount;
+        likeBtn.onclick = () => toggleLike(g.id, likeBtn, likeCountSpan);
+        likeContainer.append(likeBtn, likeCountSpan);
+        metaInfo.append(viewSpan, likeContainer);
+        const updateBtn = document.createElement("button");
+        updateBtn.textContent = "✏️ 수정";
+        updateBtn.onclick = () => {
+          const newTip = prompt("새 팁 내용을 입력하세요:", g.tip);
+          if (newTip) updateGuide(g.id, newTip);
+        };
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "🗑️ 삭제";
+        deleteBtn.onclick = () => {
+          if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id);
+        };
+        const btnGroup = document.createElement("div");
+        btnGroup.className = "button-group";
+        btnGroup.append(updateBtn, deleteBtn);
+        card.append(imgBox, tip, metaInfo, btnGroup);
+        return card;
+      }
+      function loadUserGuides() {
+        if (!token) return alert("로그인이 필요합니다.");
+        fetch(`${API_BASE_URL}/guide/api/my`, {
+          headers: { Authorization: "Bearer " + token },
         })
-            .then(res => {
-                if (!res.ok) throw new Error("불러오기 실패");
-                return res.json();
-            })
-            .then(data => {
-                const container = document.getElementById("photoList");
-                container.innerHTML = "";
-                data.forEach(media => {
-                    console.log("media 객체:", media);
-                    const img = document.createElement("img");
-                    img.src = "http://localhost:8080" + media.url;
-                    console.log("요청 URL : ", img.src)
-                    img.style.width = "200px";
-                    img.style.margin = "10px";
-                    container.appendChild(img);
-
-                    // const tip = document.createElement("p");
-                    // tip.innerText = media.tip || "";
-                    // container.appendChild(tip);
-                });
-            })
-            .catch(err => alert(err.message));
-    }
-
-
-    const photoContainer = document.getElementById("allPhoto");
-    const startBtn = document.getElementById("loadStartBtn");
-    const nextBtn = document.getElementById("nextPageBtn");
-    const prevBtn = document.getElementById("prevPageBtn");
-    const loadingText = document.getElementById("loadingText");
-    const countText = document.getElementById("photoCountText");
-
-    // 📌 전체 사진 수 미리 가져오기
-    function fetchPhotoCount() {
-        fetch("http://localhost:8080/media/allphoto/count", {
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        })
-            .then(res => res.json())
-            .then(count => {
-                totalCount = count;
-                countText.innerText = `📷 전체 사진 수: ${totalCount}개`;
-            })
-            .catch(err => {
-                console.warn("총 개수 불러오기 실패", err);
+          .then((r) => r.json())
+          .then((list) => {
+            const wrap = document.getElementById("guideWrap");
+            wrap.innerHTML = "";
+            list.forEach((g) => {
+              const card = createGuideCard(g);
+              wrap.appendChild(card);
             });
-    }
-
-    function allPhotos() {
+          });
+      }
+      function fetchGuides(lat, lng, radius) {
+        if (!token) return alert("로그인이 필요합니다.");
+        document.getElementById("guideNear").innerHTML =
+          "<p>가이드를 불러오는 중...</p>";
+        fetch(
+          `${API_BASE_URL}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,
+          { headers: { Authorization: "Bearer " + token } },
+        )
+          .then((res) => {
+            if (!res.ok) {
+              console.error("서버 응답 오류:", res.status);
+              throw new Error("가이드 로딩 실패: 서버 오류.");
+            }
+            return res.json();
+          })
+          .then((list) => {
+            console.log("📦 받아온 가이드 리스트:", list);
+            const wrap = document.getElementById("guideNear");
+            wrap.innerHTML = "";
+            if (list.length === 0) {
+              wrap.innerHTML = "<p>주변에 가이드가 없습니다.</p>";
+              return;
+            }
+            list.forEach((g) => {
+              const card = createGuideCard(g);
+              wrap.appendChild(card);
+            });
+          })
+          .catch((err) => {
+            console.error("가이드 로딩 실패:", err);
+            document.getElementById("guideNear").innerHTML =
+              "<p>가이드를 불러오는 중 오류가 발생했습니다.</p>";
+            alert("가이드를 불러오는 중 오류가 발생했습니다.");
+          });
+      }
+      function loadPhotos() {
+        if (!token) return alert("로그인이 필요합니다.");
+        fetch(`${API_BASE_URL}/media/list`, {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("불러오기 실패");
+            return res.json();
+          })
+          .then((data) => {
+            const container = document.getElementById("photoList");
+            container.innerHTML = "";
+            data.forEach((media) => {
+              const img = document.createElement("img");
+              img.src = `${API_BASE_URL}${media.url}`;
+              img.style.width = "200px";
+              img.style.margin = "10px";
+              container.appendChild(img);
+            });
+          })
+          .catch((err) => alert(err.message));
+      }
+      function fetchPhotoCount() {
+        const countText = document.getElementById("photoCountText");
+        fetch(`${API_BASE_URL}/media/allphoto/count`, {
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then((res) => res.json())
+          .then((count) => {
+            totalCount = count;
+            countText.innerText = `📷 전체 사진 수: ${totalCount}개`;
+          })
+          .catch((err) => {
+            console.warn("총 개수 불러오기 실패", err);
+          });
+      }
+      function allPhotos() {
         if (loading) return;
+        const photoContainer = document.getElementById("allPhoto");
+        const loadingText = document.getElementById("loadingText");
+        const prevBtn = document.getElementById("prevPageBtn");
+        const nextBtn = document.getElementById("nextPageBtn");
         loading = true;
         loadingText.style.display = "inline";
-
-        fetch(`http://localhost:8080/media/allphoto?page=${page}&size=${size}`, {
-            headers: {
-                "Authorization": "Bearer " + token
-            }
+        fetch(`${API_BASE_URL}/media/allphoto?page=${page}&size=${size}`, {
+          headers: { Authorization: "Bearer " + token },
         })
-            .then(res => {
-                if (!res.ok) throw new Error("불러오기 실패");
-                return res.json();
-            })
-            .then(data => {
-                if (page === 0) {
-                    prevBtn.disabled = true;
-                } else {
-                    prevBtn.disabled = false;
-                }
-
-                if ((page + 1) * size >= totalCount) {
-                    done = true;
-                    nextBtn.disabled = true;
-                    nextBtn.innerText = "✅ 마지막 페이지";
-                } else {
-                    done = false;
-                    nextBtn.disabled = false;
-                    nextBtn.innerText = "➡️ 다음";
-                }
-
-                photoContainer.innerHTML = ""; // 기존 사진 지우기
-                data.forEach(media => {
-                    const fileName = media.fileName.toLowerCase();
-                    const fileUrl = "http://localhost:8080" + media.url;
-
-                    if (fileName.endsWith(".heic")) {
-                        // HEIC 파일이면 이미지 대신 다운로드 링크 표시
-                        const link = document.createElement("a");
-                        link.href = fileUrl;
-                        link.innerText = `${media.fileName} (HEIC 파일 - 다운로드)`;
-                        link.download = media.fileName;
-                        link.style.display = "block";
-                        link.style.margin = "10px";
-                        photoContainer.appendChild(link);
-                    } else {
-                        // 일반 이미지 파일이면 <img>로 표시
-                        const img = document.createElement("img");
-                        img.src = fileUrl;
-                        img.loading = "lazy";
-                        img.style.width = "200px";
-                        img.style.margin = "10px";
-                        photoContainer.appendChild(img);
-                    }
-                });
-
-                loading = false;
-                loadingText.style.display = "none";
-            })
-            .catch(err => {
-                alert(err.message);
-                loading = false;
-                loadingText.style.display = "none";
+          .then((res) => {
+            if (!res.ok) throw new Error("불러오기 실패");
+            return res.json();
+          })
+          .then((data) => {
+            if (page === 0) {
+              prevBtn.disabled = true;
+            } else {
+              prevBtn.disabled = false;
+            }
+            if ((page + 1) * size >= totalCount) {
+              done = true;
+              nextBtn.disabled = true;
+              nextBtn.innerText = "✅ 마지막 페이지";
+            } else {
+              done = false;
+              nextBtn.disabled = false;
+              nextBtn.innerText = "➡️ 다음";
+            }
+            photoContainer.innerHTML = "";
+            data.forEach((media) => {
+              const fileName = media.fileName.toLowerCase();
+              const fileUrl = `${API_BASE_URL}${media.url}`;
+              if (fileName.endsWith(".heic")) {
+                const link = document.createElement("a");
+                link.href = fileUrl;
+                link.innerText = `${media.fileName} (HEIC 파일 - 다운로드)`;
+                link.download = media.fileName;
+                link.style.display = "block";
+                link.style.margin = "10px";
+                photoContainer.appendChild(link);
+              } else {
+                const img = document.createElement("img");
+                img.src = fileUrl;
+                img.loading = "lazy";
+                img.style.width = "200px";
+                img.style.margin = "10px";
+                photoContainer.appendChild(img);
+              }
             });
-    }
-    // 📌 시작 버튼
-    startBtn.addEventListener("click", () => {
-        page = 0;
-        done = false;
-        photoContainer.innerHTML = "";
-        nextBtn.style.display = "inline-block";
-        prevBtn.style.display = "inline-block";
-        nextBtn.disabled = false;
-        fetchPhotoCount();
-        allPhotos();
-    });
-
-    // 📌 다음 페이지
-    nextBtn.addEventListener("click", () => {
-        if (!done) {
-            page++;
-            allPhotos();
-        }
-    });
-
-    // 📌 이전 페이지
-    prevBtn.addEventListener("click", () => {
-        if (page > 0) {
-            page--;
-            allPhotos();
-        }
-    });
-
-    function loadMembers() {
-        if (!token) {
-            alert("로그인이 필요합니다.");
-            return;
-        }
-
-        fetch("http://localhost:8080/api/members", {
-            headers: {
-                "Authorization": "Bearer " + token
-            }
+            loading = false;
+            loadingText.style.display = "none";
+          })
+          .catch((err) => {
+            alert(err.message);
+            loading = false;
+            loadingText.style.display = "none";
+          });
+      }
+      function updateGuide(id, newTip) {
+        fetch(`${API_BASE_URL}/guide/api/update`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ id: id, tip: newTip }),
         })
-            .then(res => {
-                if (!res.ok) throw new Error("멤버 불러오기 실패");
-                return res.json();
-            })
-            .then(data => {
-                const list = document.getElementById("memberList");
-                list.innerHTML = "";
-                data.forEach(member => {
-                    const li = document.createElement("li");
-                    li.textContent = `${member.id}: ${member.email}`;
-                    list.appendChild(li);
-                });
-            })
-            .catch(err => alert(err.message));
-    }
-// google 로그인 리다이렉트 용
-    function getTokenFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get("accessToken");
-        const refreshToken = urlParams.get("refreshToken");
-
-        if (accessToken && refreshToken) {
-            localStorage.setItem("accessToken", accessToken);
-            localStorage.setItem("refreshToken", refreshToken);
-            alert("구글 로그인 성공!");
-            // URL 깔끔하게 정리 (토큰 쿼리 제거)
-            window.history.replaceState({}, document.title, window.location.pathname);
+          .then(() => {
+            alert("수정 완료");
+            loadUserGuides();
+          })
+          .catch((err) => {
+            alert("수정 실패");
+            console.error(err);
+          });
+      }
+      function deleteGuide(id) {
+        fetch(`${API_BASE_URL}/guide/api/delete/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then(() => {
+            alert("삭제 완료");
+            loadUserGuides();
+          })
+          .catch((err) => {
+            alert("삭제 실패");
+            console.error(err);
+          });
+      }
+      function loadMembers() {
+        if (!token) {
+          alert("로그인이 필요합니다.");
+          return;
         }
-    }
-    // 웹 브라우저에서 문서 전체(HTML, CSS, 이미지 등 모든 리소스) 가 로드된 후 실행되는 이벤트 핸들러
-    // window.onload는 브라우저가 HTML 페이지의 모든 요소를 다 불러온 다음 실행할 JavaScript 코드를 정의하는 방식
-    // 작동 방식
-    // 1.	HTML 페이지가 파싱되고,
-    // 2.	외부 CSS, 이미지, iframe 등 모든 리소스가 다 로드된 뒤,
-    // 3.	window.onload에 등록된 함수가 실행됩니다.
-    window.onload = function() {
-        getTokenFromURL();
-        token = localStorage.getItem("accessToken");
-
-        if (token) {
-            console.log("JWT 토큰 감지됨");
-        } else {
-            console.log("토큰 없음");
-        }
-    };
-</script>
-</body>
+        fetch(`${API_BASE_URL}/api/members`, {
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("멤버 불러오기 실패");
+            return res.json();
+          })
+          .then((data) => {
+            const list = document.getElementById("memberList");
+            list.innerHTML = "";
+            data.forEach((member) => {
+              const li = document.createElement("li");
+              li.textContent = `${member.id}: ${member.email}`;
+              list.appendChild(li);
+            });
+          })
+          .catch((err) => alert(err.message));
+      }
+    </script>
+  </body>
 </html>
-
-<style>
-    .guide-card{border:1px solid #ddd;margin:10px;padding:10px;width:240px}
-    .img-box{width:100%;height:240px;overflow:hidden;position:relative;cursor:pointer}
-    .img-box img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
-</style>
-

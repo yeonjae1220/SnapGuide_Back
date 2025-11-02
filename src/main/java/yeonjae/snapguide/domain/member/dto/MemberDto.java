@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import yeonjae.snapguide.domain.member.Member;
 
 @Data
 @AllArgsConstructor
@@ -12,4 +13,9 @@ import lombok.NoArgsConstructor;
 public class MemberDto {
     private Long id;
     private String email;
+
+    // Member 엔티티를 받아서 DTO를 생성하는 정적 팩토리 메서드
+    public static MemberDto fromEntity(Member member) {
+        return new MemberDto(member.getId(), member.getEmail());
+    }
 }

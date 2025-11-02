@@ -10,12 +10,14 @@ import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
+import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,15 +34,28 @@ public class MediaService {
     public List<Long> saveAll(List<MultipartFile> files) throws IOException {
             List<Long> ids = new ArrayList<>();
             for (MultipartFile file : files) {
-                File savedFile = fileStorageService.saveFile(file); // 로컬 파일에 저장
-                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile);
-                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile);
-//                String filePath = savedFile.getAbsolutePath();
-                String publicUrl = "/media/files/" + savedFile.getName(); // 전체 경로 대신 public URL TODO : 너무 로컬 저장 방식 하드 코딩이다. 고쳐야함
+                UploadFileDto savedFile = fileStorageService.uploadFile(file); // 파일 저장 (로컬 or S3)
+                MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
+                Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
 
-                Media media = Media.builder()
+                // 웹용 파일명 추출 (S3는 web 디렉토리의 .jpg 파일, 로컬은 썸네일 파일 사용)
+                String webFileName;
+                if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {
+                    // S3의 경우: webDir에서 파일명 추출 (항상 .jpg)
+                    webFileName = Paths.get(savedFile.getWebDir()).getFileName().toString();
+                } else {
+                    // 로컬의 경우: thumbnailDir에서 파일명 추출
+                    webFileName = Paths.get(savedFile.getThumbnailDir()).getFileName().toString();
+                }
+
+                String publicUrl = "/media/files/" + webFileName;
+
+                        Media media = Media.builder()
                         .mediaName(file.getOriginalFilename())
                         .mediaUrl(publicUrl)
+                        .originalKey(savedFile.getOriginalDir())
+                        .webKey(savedFile.getWebDir())
+                        .thumbnailKey(savedFile.getThumbnailDir())
                         .fileSize(file.getSize())
                         .build();
 

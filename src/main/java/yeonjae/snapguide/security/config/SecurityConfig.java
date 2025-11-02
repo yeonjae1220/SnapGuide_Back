@@ -1,14 +1,20 @@
 package yeonjae.snapguide.security.config;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.catalina.connector.Connector;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,7 +25,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
+import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
 import yeonjae.snapguide.security.authentication.exception.JwtAccessDeniedHandler;
@@ -28,6 +36,7 @@ import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
+import yeonjae.snapguide.service.CustomOauth2UserService;
 import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
@@ -47,10 +56,13 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
 
+    private final CorsConfigurationSource corsConfigurationSource;
 
 //    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
 
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    private final CustomOauth2UserService customOauth2UserService;
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -96,16 +108,32 @@ public class SecurityConfig {
                                 .authenticated()
                 )
                 // OAuth 2.0 로그인 방식 설정
-                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
-//                        .defaultSuccessUrl("/oauth-login")
-//                        .failureUrl("/oauth-login/login")
+//                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
+////                        .defaultSuccessUrl("/oauth-login")
+////                        .failureUrl("/oauth-login/login")
+//                        .successHandler(oAuth2SuccessHandler)
+//                        .failureHandler(oAuth2FailureHandler)
+//                        .permitAll())
+//                .logout((auth) -> auth
+//                        .logoutUrl("/oauth-login/logout")
+//                        .logoutSuccessUrl("/oauth-login/login"))
+                // OAuth2.0 세션에서 토큰 방식으로 변경
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(config -> config
+                                .baseUri("/oauth2/authorization")
+                                .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
+                        )
+                        .redirectionEndpoint(config -> config
+                                .baseUri("/login/oauth2/code/*")
+                        )
+                        .userInfoEndpoint(config -> config
+                                .userService(customOauth2UserService)
+                        )
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
-                        .permitAll())
-                .logout((auth) -> auth
-                        .logoutUrl("/oauth-login/logout")
-                        .logoutSuccessUrl("/oauth-login/login"))
-                .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
+                )
+                // .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화 // ID, password 문자열을 Base64로 인코딩하여 전달하는 구조
                 .formLogin(AbstractHttpConfigurer::disable) // Form Login 비활성화
@@ -144,6 +172,41 @@ public class SecurityConfig {
 
         return filter;
     }
+
+    // HTTPS 커넥터 설정 - 로컬 개발 환경에서는 비활성화
+    // 프로덕션 환경에서 리버스 프록시 뒤에서 실행할 때만 필요
+//    @Profile("docker")
+//    @Bean
+//    public ServletWebServerFactory servletContainer() {
+//        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
+//
+//        // 이 설정은 리버스 프록시(HTTP)로부터 온 요청도 HTTPS에서 온 것처럼 처리하도록 합니다.
+//        tomcat.addAdditionalTomcatConnectors(createSslConnector());
+//        return tomcat;
+//    }
+//
+//    private Connector createSslConnector() {
+//        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+//        // 이 커넥터는 8080 포트로 들어오는 HTTP 요청을 처리합니다.
+//        connector.setPort(8080);
+//
+//        // 하지만 Spring Boot에게 이 요청이 원래는 HTTPS였다고 알려줍니다.
+//        connector.setScheme("https");
+//        connector.setSecure(true);
+//        return connector;
+//    }
+
+    // 서버 로그가 지저분해지는 것을 막기 위해 아래 경로에 대한 요청 무시
+//    @Bean
+//    public WebSecurityCustomizer webSecurityCustomizer() {
+//        // 정적 리소스들을 Security 필터에서 제외
+//        return (web) -> web.ignoring()
+//                .requestMatchers(PathRequest.toStaticResources().atCommonLocations())
+//                .requestMatchers(
+//                        "/favicon.ico",
+//                        "/.well-known/**"
+//                );
+//    }
 
 }
 

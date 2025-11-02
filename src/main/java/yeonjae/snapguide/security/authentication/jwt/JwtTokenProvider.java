@@ -33,10 +33,10 @@ public class JwtTokenProvider {
     private final SecretKey key;
 
     // AccessToken 유효기간 설정 : 30분
-    @Value("${jwt.access_token_expiration}")
+    @Value("${jwt.access-token-expiration}")
     private long expAccess;
     // RefreshToken 유효기간 설정 : 1주
-    @Value("${jwt.refresh_token_expiration}")
+    @Value("${jwt.refresh-token-expiration}")
     private long expRefresh;
     // refresh 체크용
     private static final long THREE_DAYS = 1000 * 60 * 60 * 24 * 3;  // 3일
@@ -150,18 +150,6 @@ public class JwtTokenProvider {
 
     private Claims parseClaims(String token) {
         try {
-            /*
-            // https://github.com/jwtk/jjwt#quickstart 이거 참고해서 넣음.
-            // SecretKey key = Jwts.SIG.HS256.key().build();
-            return Jwts.parser() // parserBuilder 이거 없어졌나?
-                    .verifyWith(key)
-                    // .setSigningKey(key)
-                    .build()
-                    .parseSignedClaims(token)
-//                    .parseClaimsJws(token)
-                    .getPayload();
-                    // .getBody();
-            */
             Claims claims = Jwts.parser()
                     .verifyWith(key)
                     .build()
@@ -178,6 +166,24 @@ public class JwtTokenProvider {
             log.info("만료된 토큰 (parseClaims) - 생성일자: {}, 만료시간: {}",
                     e.getClaims().getIssuedAt(), e.getClaims().getExpiration());
             throw new CustomException(ErrorCode.EXPIRED_TOKEN);
+        }
+    }
+
+    /**
+     * 만료된 토큰도 파싱할 수 있는 메서드 (재발급 시 사용)
+     * ExpiredJwtException에서 Claims를 추출하여 반환
+     */
+    public Claims parseExpiredToken(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            log.info("만료된 토큰에서 Claims 추출 - 생성일자: {}, 만료시간: {}",
+                    e.getClaims().getIssuedAt(), e.getClaims().getExpiration());
+            return e.getClaims(); // 만료된 토큰의 Claims 반환
         }
     }
 
@@ -243,8 +249,8 @@ public class JwtTokenProvider {
     }
 
     public long getExpiration(String token) {
-        Claims claims = parseClaims(token);
-        return claims.getExpiration().getTime() - System.currentTimeMillis(); // 위에 시간 뽑는 코드랑, 시스템 시간과 로컬 시간?
+        Claims claims = parseExpiredToken(token); // 만료된 토큰도 처리 가능하도록 변경
+        return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 
 }
