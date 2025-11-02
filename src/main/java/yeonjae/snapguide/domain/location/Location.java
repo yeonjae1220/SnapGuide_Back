@@ -8,24 +8,40 @@ import lombok.*;
 @Builder(toBuilder = true)
 @AllArgsConstructor // (access = AccessLevel.PROTECTED)
 @NoArgsConstructor
-@Table(uniqueConstraints = {
-        @UniqueConstraint(columnNames = {
-                "country", "region", "subRegion", "locality", "route", "streetNumber", "premise", "subPremise"
-        })
-})
-@ToString
 public class Location {
+    /*
+    공용
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String locationName;
     private Double latitude;
     private Double longitude;
-    /**
-     * 우편 번호
+
+    private String provider;            // 어떤 map api? TODO : enum으로 뺼까?
+
+    /*
+    // nearby용
+     private String placeId;             // Google Place ID
+    private String name;                // 장소 이름
+
+    private String address;             // 전체 주소 formattedAddress
+    private String countryCode;         // KR, JP 등
+    private String region;              // 시/도 단위
+    private String district;            // 행정 동
      */
-    // private String postalCode;
+
+
+
+    /*
+    geocode용
+     */
+
+    // 국가 코드 (예: "KR", "JP", "US")
+    private String countryCode;
+    // 전체 포맷 주소 (Google Maps의 formatted_address)
+    private String formattedAddress;
 
     private String country;
     /**ㅈ
@@ -34,24 +50,31 @@ public class Location {
      */
     private String region;
     /**
-     * 시/군/구
-     * Shibuya-ku
+     * 시
      * Suwon-si
-     * Los Angeles Country
+     * Hamamatsu-si
+     */
+    private String city;
+
+    /**
+     * 군/구
+     * Shibuya-ku
+     * Los Angeles Country ?
      */
     private String subRegion;
+
     /**
      * 동/면/읍 등 소지역
      * Ebisu
      * Yeongtong-dong
      * Downtown LA
      */
-    private String locality;
+    private String district;
 
     /**
      * 거리 이름
      */
-    private String route;
+    private String street;
     /**
      * 번지/건물번호
      */
@@ -60,15 +83,18 @@ public class Location {
      * 건물 이름
      * googleplex, 롯데타워
      */
-    private String premise;
+    private String buildingName;
     /**
-     * 건물 안 가게 이름 같은 경우
+     * 건물 안 가게 이름 같은 경우, 방 번호 등
      */
     private String subPremise;
 
-//    public void assignGpsCoordinate(String locationName, Double latitude, Double longitude) {
-//        this.locationName = locationName;
-//        this.latitude = latitude;
-//        this.longitude = longitude;
-//    }
+    /**
+     * 우편번호
+     */
+    private String postalCode;
+
+    // 사용자의 언어 또는 출력용 주소 언어
+//    private String locale;        // "ko", "en", "ja", ...
+
 }
