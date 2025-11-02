@@ -16,6 +16,9 @@
 <input id="loginPassword" placeholder="비밀번호" type="password" />
 <button onclick="login()">로그인</button>
 
+<h1>구글 로그인</h1>
+<a href="/oauth2/authorization/google">구글 로그인</a>
+
 <h1>토큰 재발급</h1>
 <button onclick="reissueToken()">토큰 재발급</button>
 
@@ -27,7 +30,8 @@
 <div id="authResult"></div>
 
 <h1>사진 업로드</h1>
-<input type="file" id="imageFile" />
+<input type="file" id="imageFile" name="file" multiple>
+<label for="tip"></label>
 <textarea id="tip" placeholder="팁을 입력하세요"></textarea>
 <button onclick="upload()">업로드</button>
 
@@ -35,12 +39,33 @@
 <button onclick="loadPhotos()">사진 목록 불러오기</button>
 <div id="photoList"></div>
 
+<h1>모든 사진 보기</h1>
+<h3 id="photoCountText">📷 전체 사진 수: 알 수 없음</h3>
+<!-- 시작 및 페이지 버튼 -->
+<div id="allPhotoContainer" style="height: 500px; overflow-y: auto; border: 1px solid gray;">
+    <div id="allPhoto"></div>
+</div>
+<div style="margin-top: 10px;">
+    <button id="prevPageBtn" disabled>⬅️ 이전</button>
+    <button id="nextPageBtn" disabled>➡️ 다음</button>
+    <button id="loadStartBtn">📸 사진 불러오기 시작</button>
+    <span id="loadingText" style="margin-left: 10px; display: none;">⌛ 불러오는 중...</span>
+</div>
+
 <h1>멤버 리스트 보기</h1>
 <button onclick="loadMembers()">멤버 리스트 불러오기</button>
 <ul id="memberList"></ul>
 
 <script>
     let token = localStorage.getItem("accessToken") || null;
+
+    // 모든 사진 불러오기 할 때 필요한 변수 추가
+    let page = 0;
+    const size = 10;
+    let totalCount = 0;
+
+    let loading = false;
+    let done = false; // 더 이상 불러올 이미지가 없음을 표시
 
     function signup() {
         fetch("http://localhost:8080/api/auth/signup", {
@@ -74,6 +99,7 @@
             .then(data => {
                 localStorage.setItem("accessToken", data.accessToken);
                 localStorage.setItem("refreshToken", data.refreshToken);
+                token = data.accessToken;
                 alert("로그인 성공");
             })
             .catch(err => alert(err.message));
@@ -104,6 +130,7 @@
             })
             .then(data => {
                 localStorage.setItem("accessToken", data.accessToken);
+                token = data.accessToken;
                 if(data.refreshToken) { // refreshToken도 재발급 되면 저장
                     localStorage.setItem("refreshToken", data.refreshToken);
                 }
@@ -168,13 +195,16 @@
     function upload() {
         if (!token) return alert("로그인이 필요합니다.");
 
-        const file = document.getElementById("imageFile").files[0];
-        const tip = document.getElementById("tip").value;
+        const files = document.getElementById("imageFile").files;
+        // const tip = document.getElementById("tip").value;
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("tip", tip);
 
-        fetch("http://localhost:8080/api/media/upload", {
+        for (const file of files) {
+            formData.append("files", file); // ← 이름은 반드시 서버에서 지정한 "files"와 같아야 함
+        }
+        // formData.append("tip", tip); // 백엔드가 아직 tip을 받진 않지만, 필요시 대비
+
+        fetch("http://localhost:8080/media/upload", {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + token
@@ -187,15 +217,14 @@
             })
             .then(data => {
                 alert("업로드 성공");
-                loadPhotos();
             })
             .catch(err => alert(err.message));
     }
 
     function loadPhotos() {
         if (!token) return alert("로그인이 필요합니다.");
-
-        fetch("http://localhost:8080/api/media/list", {
+        fetch("http://localhost:8080/media/list", {
+            method: "GET",
             headers: {
                 "Authorization": "Bearer " + token
             }
@@ -208,19 +237,139 @@
                 const container = document.getElementById("photoList");
                 container.innerHTML = "";
                 data.forEach(media => {
+                    console.log("media 객체:", media);
                     const img = document.createElement("img");
-                    img.src = media.url;
+                    img.src = "http://localhost:8080" + media.url;
+                    console.log("요청 URL : ", img.src)
                     img.style.width = "200px";
                     img.style.margin = "10px";
                     container.appendChild(img);
 
-                    const tip = document.createElement("p");
-                    tip.innerText = media.tip || "";
-                    container.appendChild(tip);
+                    // const tip = document.createElement("p");
+                    // tip.innerText = media.tip || "";
+                    // container.appendChild(tip);
                 });
             })
             .catch(err => alert(err.message));
     }
+
+
+    const photoContainer = document.getElementById("allPhoto");
+    const startBtn = document.getElementById("loadStartBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    const prevBtn = document.getElementById("prevPageBtn");
+    const loadingText = document.getElementById("loadingText");
+    const countText = document.getElementById("photoCountText");
+
+    // 📌 전체 사진 수 미리 가져오기
+    function fetchPhotoCount() {
+        fetch("http://localhost:8080/media/allphoto/count", {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(count => {
+                totalCount = count;
+                countText.innerText = `📷 전체 사진 수: ${totalCount}개`;
+            })
+            .catch(err => {
+                console.warn("총 개수 불러오기 실패", err);
+            });
+    }
+
+    function allPhotos() {
+        if (loading) return;
+        loading = true;
+        loadingText.style.display = "inline";
+
+        fetch(`http://localhost:8080/media/allphoto?page=${page}&size=${size}`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("불러오기 실패");
+                return res.json();
+            })
+            .then(data => {
+                if (page === 0) {
+                    prevBtn.disabled = true;
+                } else {
+                    prevBtn.disabled = false;
+                }
+
+                if ((page + 1) * size >= totalCount) {
+                    done = true;
+                    nextBtn.disabled = true;
+                    nextBtn.innerText = "✅ 마지막 페이지";
+                } else {
+                    done = false;
+                    nextBtn.disabled = false;
+                    nextBtn.innerText = "➡️ 다음";
+                }
+
+                photoContainer.innerHTML = ""; // 기존 사진 지우기
+                data.forEach(media => {
+                    const fileName = media.fileName.toLowerCase();
+                    const fileUrl = "http://localhost:8080" + media.url;
+
+                    if (fileName.endsWith(".heic")) {
+                        // HEIC 파일이면 이미지 대신 다운로드 링크 표시
+                        const link = document.createElement("a");
+                        link.href = fileUrl;
+                        link.innerText = `${media.fileName} (HEIC 파일 - 다운로드)`;
+                        link.download = media.fileName;
+                        link.style.display = "block";
+                        link.style.margin = "10px";
+                        photoContainer.appendChild(link);
+                    } else {
+                        // 일반 이미지 파일이면 <img>로 표시
+                        const img = document.createElement("img");
+                        img.src = fileUrl;
+                        img.loading = "lazy";
+                        img.style.width = "200px";
+                        img.style.margin = "10px";
+                        photoContainer.appendChild(img);
+                    }
+                });
+
+                loading = false;
+                loadingText.style.display = "none";
+            })
+            .catch(err => {
+                alert(err.message);
+                loading = false;
+                loadingText.style.display = "none";
+            });
+    }
+    // 📌 시작 버튼
+    startBtn.addEventListener("click", () => {
+        page = 0;
+        done = false;
+        photoContainer.innerHTML = "";
+        nextBtn.style.display = "inline-block";
+        prevBtn.style.display = "inline-block";
+        nextBtn.disabled = false;
+        fetchPhotoCount();
+        allPhotos();
+    });
+
+    // 📌 다음 페이지
+    nextBtn.addEventListener("click", () => {
+        if (!done) {
+            page++;
+            allPhotos();
+        }
+    });
+
+    // 📌 이전 페이지
+    prevBtn.addEventListener("click", () => {
+        if (page > 0) {
+            page--;
+            allPhotos();
+        }
+    });
 
     function loadMembers() {
         if (!token) {
@@ -248,12 +397,37 @@
             })
             .catch(err => alert(err.message));
     }
+// google 로그인 리다이렉트 용
+    function getTokenFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get("accessToken");
+        const refreshToken = urlParams.get("refreshToken");
 
+        if (accessToken && refreshToken) {
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            alert("구글 로그인 성공!");
+            // URL 깔끔하게 정리 (토큰 쿼리 제거)
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    // 웹 브라우저에서 문서 전체(HTML, CSS, 이미지 등 모든 리소스) 가 로드된 후 실행되는 이벤트 핸들러
+    // window.onload는 브라우저가 HTML 페이지의 모든 요소를 다 불러온 다음 실행할 JavaScript 코드를 정의하는 방식
+    // 작동 방식
+    // 1.	HTML 페이지가 파싱되고,
+    // 2.	외부 CSS, 이미지, iframe 등 모든 리소스가 다 로드된 뒤,
+    // 3.	window.onload에 등록된 함수가 실행됩니다.
     window.onload = function() {
+        getTokenFromURL();
+        token = localStorage.getItem("accessToken");
+
         if (token) {
             console.log("JWT 토큰 감지됨");
+        } else {
+            console.log("토큰 없음");
         }
     };
 </script>
 </body>
 </html>
+

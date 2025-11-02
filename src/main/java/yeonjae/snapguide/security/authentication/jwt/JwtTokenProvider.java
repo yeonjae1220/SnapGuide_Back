@@ -150,6 +150,7 @@ public class JwtTokenProvider {
 
     private Claims parseClaims(String token) {
         try {
+            /*
             // https://github.com/jwtk/jjwt#quickstart 이거 참고해서 넣음.
             // SecretKey key = Jwts.SIG.HS256.key().build();
             return Jwts.parser() // parserBuilder 이거 없어졌나?
@@ -160,8 +161,22 @@ public class JwtTokenProvider {
 //                    .parseClaimsJws(token)
                     .getPayload();
                     // .getBody();
+            */
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            // ✅ 토큰 생성일자와 만료시간 로그 출력
+            log.info("[parseClaims] 토큰 생성일자 (issuedAt): {}", claims.getIssuedAt());
+            log.info("[parseClaims] 토큰 만료시간 (expiration): {}", claims.getExpiration());
+
+            return claims;
+
         } catch (ExpiredJwtException e) {
-            log.info("만료된 토큰");
+            log.info("만료된 토큰 (parseClaims) - 생성일자: {}, 만료시간: {}",
+                    e.getClaims().getIssuedAt(), e.getClaims().getExpiration());
             throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         }
     }
@@ -179,6 +194,9 @@ public class JwtTokenProvider {
             log.info("잘못된 JWT 서명입니다.");
             throw new CustomException(ErrorCode.INVALID_SIGNATURE);
         } catch (ExpiredJwtException e) {
+            log.info("JWT 토큰이 만료되었습니다.");
+            log.info("토큰 생성일자 : {}", parseClaims(token).getIssuedAt());
+            log.info("토큰 만료시간 : {}", parseClaims(token).getExpiration());
             throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         } catch (UnsupportedJwtException e) {
             log.info("지원되지 않는 JWT 토큰입니다.");
