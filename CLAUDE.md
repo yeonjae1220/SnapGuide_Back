@@ -74,7 +74,7 @@ File paths are abstracted through storage service interfaces.
 
 ### Local Development (`application-local.yml`)
 - Local PostgreSQL and Redis connections
-- Hardcoded credentials for development
+- **Environment variables for sensitive data (see ENV_SETUP.md)**
 - SQL logging enabled for debugging
 - File storage to local filesystem
 
@@ -92,3 +92,25 @@ File paths are abstracted through storage service interfaces.
 - Spatial queries for location-based features
 - Thumbnail generation for uploaded media
 - P6Spy for SQL logging in development
+
+## Environment Setup
+
+⚠️ **IMPORTANT: Security Configuration Required**
+
+Before running the application locally, you must set up environment variables:
+
+1. Create `.env` file from template:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in actual values for:
+   - Database password
+   - JWT secret key (generate with `openssl rand -hex 64`)
+   - Google OAuth2 credentials
+   - Google Maps API key
+   - AWS credentials
+
+3. See `ENV_SETUP.md` for detailed setup instructions
+
+**Never commit `.env` files or hardcoded secrets to Git!**

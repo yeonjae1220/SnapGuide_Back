@@ -41,7 +41,6 @@ spring:
         - classpath:/static/
         - file:/app/uploads/
 
-# Environment-specific configurations (values from environment variables)
 jwt:
   access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
   refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
