@@ -9,18 +9,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import yeonjae.snapguide.controller.locationController.locationDto.LocationRequestDto;
 import yeonjae.snapguide.domain.location.Location;
-import yeonjae.snapguide.service.locationSerivce.LocationService;
+import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/location")
 @Slf4j
 public class LocationController {
-    private final LocationService locationService;
+    private final LocationServiceGeoImpl locationServiceGeoImpl;
 
     @PostMapping("/api/upload")
     public ResponseEntity<String> saveLocation(@RequestBody LocationRequestDto requestDto) {
-        Location location = locationService.saveLocation(requestDto.getLatitude(), requestDto.getLongitude());
+        Location location = locationServiceGeoImpl.saveLocation(requestDto.getLatitude(), requestDto.getLongitude());
 
         return ResponseEntity.ok("위치 저장 완료");
     }
