@@ -53,9 +53,10 @@ public class MediaController {
 
     @GetMapping("/list")
     public ResponseEntity<List<MediaResponseDto>> list() {
-        List<Media> mediaList = mediaService.getAllMedia();
-        List<MediaResponseDto> response = mediaList.stream()
-                .map(media -> new MediaResponseDto(media.getMediaUrl()))
+        // Service에서 DTO로 변환된 데이터를 받아옴 (Lazy Loading 이슈 방지)
+        List<MediaDto> mediaDtoList = mediaService.getAllMedia();
+        List<MediaResponseDto> response = mediaDtoList.stream()
+                .map(dto -> new MediaResponseDto(dto.getUrl()))
                 .collect(Collectors.toList());
         log.info("media/list response : " + response);
         return ResponseEntity.ok(response);
