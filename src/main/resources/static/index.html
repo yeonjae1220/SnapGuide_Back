@@ -165,7 +165,7 @@
       placeholder="비밀번호"
       type="password"
     /><button onclick="login()">로그인</button>
-    <h1>구글 로그인</h1><button onclick="window.location.href=`${window.location.origin}/oauth2/authorization/google`">구글 로그인</button>
+    <h1>구글 로그인</h1><button onclick="window.location.href=`${window.location.origin}/oauth2/authorization/google?redirect_uri=${encodeURIComponent(window.location.origin)}`">구글 로그인</button>
 
     <h1>토큰 재발급</h1>
     <button onclick="reissueToken()">토큰 재발급</button>
@@ -245,8 +245,9 @@
       let token = localStorage.getItem("accessToken") || null;
 
       // 페이지 로딩 시 실행
-      document.addEventListener("DOMContentLoaded", () => {
-        handleRedirectToken();
+      document.addEventListener("DOMContentLoaded", async () => {
+        // OAuth 리다이렉트 토큰 처리 완료까지 대기
+        await handleRedirectToken();
         token = localStorage.getItem("accessToken");
         loadGoogleMapsScript();
 
@@ -464,36 +465,35 @@
         searchCircle.setRadius(radiusKm * 1000);
         fetchGuides(currentSearchCoords.lat, currentSearchCoords.lng, radiusKm);
       }
-      function handleRedirectToken() {
+      async function handleRedirectToken() {
         const urlParams = new URLSearchParams(window.location.search);
 
         // Authorization Code Flow: code를 토큰으로 교환
         const code = urlParams.get("code");
         if (code) {
-          fetch(`${API_BASE_URL}/api/auth/google/token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: code }),
-          })
-            .then((res) => {
-              if (!res.ok) throw new Error("토큰 교환 실패");
-              return res.json();
-            })
-            .then((data) => {
-              localStorage.setItem("accessToken", data.accessToken);
-              localStorage.setItem("refreshToken", data.refreshToken);
-              token = data.accessToken;
-              alert("구글 로그인 성공!");
-              window.history.replaceState(
-                {},
-                document.title,
-                window.location.pathname,
-              );
-            })
-            .catch((err) => {
-              console.error("Google OAuth error:", err);
-              alert("구글 로그인 실패: " + err.message);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/auth/oauth/token`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: code }),
             });
+
+            if (!res.ok) throw new Error("토큰 교환 실패");
+
+            const data = await res.json();
+            localStorage.setItem("accessToken", data.accessToken);
+            localStorage.setItem("refreshToken", data.refreshToken);
+            token = data.accessToken;
+            alert("구글 로그인 성공!");
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
+          } catch (err) {
+            console.error("Google OAuth error:", err);
+            alert("구글 로그인 실패: " + err.message);
+          }
           return;
         }
 

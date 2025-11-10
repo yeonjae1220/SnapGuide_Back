@@ -5,7 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import yeonjae.snapguide.domain.member.Member;
+import yeonjae.snapguide.domain.member.MemberMapper;
 
+/**
+ * Member Entity를 표현하는 DTO
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,8 +18,12 @@ public class MemberDto {
     private Long id;
     private String email;
 
-    // Member 엔티티를 받아서 DTO를 생성하는 정적 팩토리 메서드
+    /**
+     * @deprecated MemberMapper.toDto()를 사용하세요
+     * 하위 호환성을 위해 유지되지만 내부적으로 MemberMapper 위임
+     */
+    @Deprecated
     public static MemberDto fromEntity(Member member) {
-        return new MemberDto(member.getId(), member.getEmail());
+        return MemberMapper.toDto(member);
     }
 }

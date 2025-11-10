@@ -1,6 +1,5 @@
 package yeonjae.snapguide.exception;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -15,16 +14,30 @@ import java.time.LocalDateTime;
  * 	컨트롤러 또는 예외 처리기에서 이 객체를 ResponseEntity로 감싸 반환합니다.
  */
 @Getter
-@AllArgsConstructor
 public class ErrorResponse {
-    private final LocalDateTime timestamp = LocalDateTime.now();
+    private final LocalDateTime timestamp;
     private final int status;
     private final String error;
     private final String message;
 
+    /**
+     * ErrorCode로부터 ErrorResponse 생성
+     */
     public ErrorResponse(ErrorCode errorCode) {
+        this.timestamp = LocalDateTime.now();
         this.status = errorCode.getStatus().value();
         this.error = errorCode.getStatus().name();
         this.message = errorCode.getMessage();
+    }
+
+    /**
+     * 커스텀 메시지로 ErrorResponse 생성
+     * Spring 기본 예외들의 상세 메시지를 전달할 때 사용
+     */
+    public ErrorResponse(int status, String error, String message) {
+        this.timestamp = LocalDateTime.now();
+        this.status = status;
+        this.error = error;
+        this.message = message;
     }
 }

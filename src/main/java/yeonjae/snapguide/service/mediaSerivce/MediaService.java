@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
+import yeonjae.snapguide.domain.media.MediaDto;
+import yeonjae.snapguide.domain.media.MediaMapper;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
@@ -20,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -66,8 +69,16 @@ public class MediaService {
             return ids;
         }
 
-    public List<Media> getAllMedia() {
-        return mediaRepository.findAll();
+    /**
+     * 모든 Media를 DTO로 반환
+     * Entity를 직접 반환하지 않고 DTO로 변환하여 Lazy Loading 이슈 방지
+     * @return MediaDto 리스트
+     */
+    public List<MediaDto> getAllMedia() {
+        return mediaRepository.findAll()
+                .stream()
+                .map(MediaMapper::toDto)
+                .collect(Collectors.toList());
     }
 
 //    public List<Media> getUserMedias() {

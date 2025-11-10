@@ -1,5 +1,5 @@
 # 1. 빌드를 위한 베이스 이미지 (JDK 포함)
-FROM openjdk:17-jdk-slim AS builder
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 #RUN apt-get update && apt-get install -y imagemagick
 
@@ -21,8 +21,7 @@ RUN ./gradlew build -x test
 
 
 # 2. 최종 실행을 위한 베이스 이미지 (JRE 만으로 경량화)
-#FROM openjdk:17-jre-slim
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jre-jammy
 
 # ▼▼▼▼▼▼▼▼▼▼ ImageMagick 설치 구문을 여기에 추가/이동 ▼▼▼▼▼▼▼▼▼▼
 # 루트 사용자로 전환하여 패키지 설치
