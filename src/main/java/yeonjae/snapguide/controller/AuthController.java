@@ -76,4 +76,19 @@ public class AuthController {
 
         return ResponseEntity.ok(googleOAuthService.exchangeCodeForToken(code));
     }
+
+    /**
+     * 웹 브라우저에서 서버가 생성한 OAuth2 authorization code를 JWT 토큰으로 교환
+     * - OAuth2SuccessHandler가 생성한 일회용 코드를 처리
+     * - Redis에서 코드 검증 후 JWT 토큰 발급
+     */
+    @PostMapping("/oauth/token")
+    public ResponseEntity<?> exchangeOAuth2Code(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        if (code == null || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Authorization code is required"));
+        }
+
+        return ResponseEntity.ok(authService.exchangeOAuth2Code(code));
+    }
 }
