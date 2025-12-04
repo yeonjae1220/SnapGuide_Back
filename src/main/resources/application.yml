@@ -16,6 +16,29 @@ spring:
       static-locations:
         - classpath:/static/
 
+  application:
+    name: snapguide-backend
+
+# Spring Boot Actuator & Observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 10s
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+
 # Swagger/OpenAPI Documentation
 springdoc:
   swagger-ui:

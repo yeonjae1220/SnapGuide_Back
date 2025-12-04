@@ -11,9 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./gradlew test --tests "ClassName"` - Run specific test class
 
 ### Docker Development
-- `docker-compose up -d` - Start PostgreSQL (with PostGIS) and Redis containers
+- `docker-compose up -d` - Start all services (PostgreSQL, Redis, Observability Stack)
 - `docker-compose down` - Stop containers
 - Application runs on port 8080 locally, 8082 in Docker
+
+### Observability Stack
+- **Grafana**: http://localhost:3000 (admin/admin) - Unified observability dashboard
+- **Prometheus**: http://localhost:9090 - Metrics storage and queries
+- **Tempo**: http://localhost:3200 - Distributed tracing
+- **Loki**: http://localhost:3100 - Log aggregation
+- See `OBSERVABILITY.md` for detailed setup and usage
 
 ### Database
 - Local PostgreSQL: `jdbc:postgresql://localhost:5432/snapguidedb`
@@ -45,6 +52,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AWS S3** for file storage (with local fallback)
 - **EXIF metadata extraction** for photo analysis
 - **Google Maps API** for geocoding
+- **OpenTelemetry** for observability (traces, metrics, logs)
+- **Grafana Stack** for monitoring and visualization (Prometheus, Loki, Tempo)
 
 ### Storage Abstraction
 The application supports multiple storage backends configured via `storage.type`:
@@ -92,6 +101,14 @@ File paths are abstracted through storage service interfaces.
 - Spatial queries for location-based features
 - Thumbnail generation for uploaded media
 - P6Spy for SQL logging in development
+
+### Observability & Monitoring
+- **OpenTelemetry Java Agent** for automatic instrumentation (no code changes needed)
+- **Traces**: Auto-traces HTTP requests, database queries, Redis operations, external API calls
+- **Metrics**: JVM metrics, HTTP metrics, custom metrics via Micrometer
+- **Logs**: JSON structured logging with trace correlation (trace_id, span_id)
+- **Grafana**: Unified dashboard for metrics, logs, and traces with correlation
+- See `OBSERVABILITY.md` for setup and usage details
 
 ## Environment Setup
 

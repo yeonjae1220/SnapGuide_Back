@@ -46,6 +46,9 @@ src/main/resources/data
 ### setting & keys ###
 .env
 
+### OpenTelemetry ###
+opentelemetry-javaagent.jar
+
 ### node_modules ###
 node_modules/
 
@@ -53,4 +56,5 @@ node_modules/
 ENV_SETUP.md
 DB_PASSWORD_CHANGE_GUIDE.md
 BLOG_POST.md
+OBSERVABILITY.md
 # CLAUDE.md  # 프로젝트 가이드로 필요하면 이 줄 주석 해제
