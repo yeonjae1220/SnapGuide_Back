@@ -57,4 +57,5 @@ ENV_SETUP.md
 DB_PASSWORD_CHANGE_GUIDE.md
 BLOG_POST.md
 OBSERVABILITY.md
+*.md
 # CLAUDE.md  # 프로젝트 가이드로 필요하면 이 줄 주석 해제

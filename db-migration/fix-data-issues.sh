@@ -5,6 +5,25 @@
 
 set -e
 
+# PostgreSQL 경로 설정
+if [ -d "/Library/PostgreSQL/17/bin" ]; then
+    export PATH="/Library/PostgreSQL/17/bin:$PATH"
+elif [ -d "/Library/PostgreSQL/16/bin" ]; then
+    export PATH="/Library/PostgreSQL/16/bin:$PATH"
+elif [ -d "/Library/PostgreSQL/15/bin" ]; then
+    export PATH="/Library/PostgreSQL/15/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql@14/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql@14/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql@15/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql/bin:$PATH"
+elif [ -d "/usr/local/opt/postgresql@14/bin" ]; then
+    export PATH="/usr/local/opt/postgresql@14/bin:$PATH"
+elif [ -d "/usr/local/opt/postgresql/bin" ]; then
+    export PATH="/usr/local/opt/postgresql/bin:$PATH"
+fi
+
 # 색상 정의
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,7 +33,14 @@ NC='\033[0m' # No Color
 
 # .env 파일 로드
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    # 주석 제거 및 공백 정리
+    while IFS= read -r line; do
+        # 빈 줄과 주석 무시
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        # 공백 제거 및 export
+        line=$(echo "$line" | sed 's/[[:space:]]*=[[:space:]]*/=/g')
+        export "$line"
+    done < .env
 else
     echo -e "${RED}❌ .env 파일을 찾을 수 없습니다${NC}"
     exit 1

@@ -14,6 +14,25 @@
 
 set -e
 
+# PostgreSQL 경로 설정
+if [ -d "/Library/PostgreSQL/17/bin" ]; then
+    export PATH="/Library/PostgreSQL/17/bin:$PATH"
+elif [ -d "/Library/PostgreSQL/16/bin" ]; then
+    export PATH="/Library/PostgreSQL/16/bin:$PATH"
+elif [ -d "/Library/PostgreSQL/15/bin" ]; then
+    export PATH="/Library/PostgreSQL/15/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql@14/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql@14/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql@15/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql/bin:$PATH"
+elif [ -d "/usr/local/opt/postgresql@14/bin" ]; then
+    export PATH="/usr/local/opt/postgresql@14/bin:$PATH"
+elif [ -d "/usr/local/opt/postgresql/bin" ]; then
+    export PATH="/usr/local/opt/postgresql/bin:$PATH"
+fi
+
 # 색상 정의
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -98,7 +117,16 @@ sleep 2
 print_warning "Step 3/3: 마이그레이션 검증 중..."
 
 # .env 로드
-source .env
+if [ -f .env ]; then
+    # 주석 제거 및 공백 정리
+    while IFS= read -r line; do
+        # 빈 줄과 주석 무시
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        # 공백 제거 및 export
+        line=$(echo "$line" | sed 's/[[:space:]]*=[[:space:]]*/=/g')
+        export "$line"
+    done < .env
+fi
 
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 
