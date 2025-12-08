@@ -17,6 +17,7 @@ import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.AuthService;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
+import yeonjae.snapguide.service.guideSerivce.GuideService;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,7 +37,7 @@ public class MemberService {
     private final FileStorageService fileStorageService;
     private final GuideRepository guideRepository;
     private final MediaRepository mediaRepository;
-//    private final AuthService authService;
+    private final GuideService guideService;
 
     public List<MemberDto> getAllMembers() {
         return memberRepository.findAll().stream()
@@ -47,26 +48,15 @@ public class MemberService {
 
     public void deleteMember(String email) {
         // 1. 사용자 조회 (JPA가 연관된 guides도 함께 불러옵니다)
-
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         log.info("Starting deletion for member: {}", email);
 
-        // 2. S3 파일 삭제 로직에만 집중
-        // DB 삭제는 JPA가 알아서 해주므로, S3 파일 삭제에 필요한 정보만 미리 수집합니다.
+        // 2. GuideService를 활용하여 각 Guide의 S3 파일 삭제
+        // DB 삭제는 JPA cascade가 처리하므로, S3 파일 삭제에만 집중합니다.
         for (Guide guide : member.getGuides()) {
-            for (Media media : guide.getMediaList()) { // Guide가 Media 리스트를 가지고 있다고 가정
-                try {
-                    // S3 파일 삭제 로직 호출
-                    fileStorageService.deleteFile(media.getOriginalKey());
-                    fileStorageService.deleteFile(media.getWebKey());
-                    fileStorageService.deleteFile(media.getThumbnailKey());
-                } catch (IOException e) {
-                    log.error("S3 파일 삭제 실패: {}", media.getMediaUrl(), e);
-                    throw new RuntimeException("S3 파일 삭제 중 오류가 발생했습니다.");
-                }
-            }
+            guideService.deleteGuideMediaFiles(guide); // GuideService의 삭제 로직 재사용
         }
 
         // 3. Member만 삭제

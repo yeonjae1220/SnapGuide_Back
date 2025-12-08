@@ -25,7 +25,9 @@ import yeonjae.snapguide.repository.locationRepository.GeoUtil;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
+import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +43,8 @@ public class GuideService {
     private final LocationRepository locationRepository;
     private final MediaRepository mediaRepository;
     private final GuideLikeRepository guideLikeRepository;
+
+    private final FileStorageService fileStorageService;
 
     /*
     가이드 생성하고
@@ -121,6 +125,34 @@ public class GuideService {
                 .build();
     }
 
+    /**
+     * Guide의 S3 미디어 파일들을 삭제합니다. (MemberService에서도 재사용)
+     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
+     */
+    public void deleteGuideMediaFiles(Guide guide) {
+        deleteMediaFilesFromStorage(guide);
+    }
+
+    /**
+     * S3에서 Guide의 모든 미디어 파일 삭제 (private 헬퍼 메서드)
+     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
+     */
+    private void deleteMediaFilesFromStorage(Guide guide) {
+        log.info("Starting S3 file deletion for guide: {}", guide.getId());
+
+        for (Media media : guide.getMediaList()) {
+            try {
+                fileStorageService.deleteFile(media.getOriginalKey());
+                fileStorageService.deleteFile(media.getWebKey());
+                fileStorageService.deleteFile(media.getThumbnailKey());
+                log.info("S3 파일 삭제 성공: {}", media.getMediaName());
+            } catch (IOException e) {
+                log.error("S3 파일 삭제 실패: {}", media.getMediaUrl(), e);
+                throw new RuntimeException("S3 파일 삭제 중 오류가 발생했습니다.");
+            }
+        }
+    }
+
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
@@ -131,7 +163,15 @@ public class GuideService {
         if (!guide.getAuthor().getId().equals(member.getId())) {
             throw new AccessDeniedException("본인의 가이드만 삭제할 수 있습니다.");
         }
+
+        log.info("Starting deletion for guide: {}", guideId);
+
+        // S3 파일 삭제 (추출한 메서드 호출)
+        deleteMediaFilesFromStorage(guide);
+
+        // DB에서 Guide 삭제
         guideRepository.delete(guide);
+        log.info("Guide deletion successful for: {}", guideId);
     }
 
     public List<GuideResponseDto> findGuidesNear(double lat, double lng, double radius) { // km
