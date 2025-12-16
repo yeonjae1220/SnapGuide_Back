@@ -51,6 +51,23 @@ tasks.named('bootRun') {
 	systemProperties = System.properties
 }
 
+// k6 부하테스트용 데이터 생성 Task
+task runDataGenerator(type: JavaExec) {
+	group = 'load-test'
+	description = 'k6 부하테스트용 CSV 데이터 생성'
+	mainClass = 'yeonjae.snapguide.controller.initData.LoadTestDataGenerator'
+	classpath = sourceSets.main.runtimeClasspath
+
+	doFirst {
+		println '🚀 부하테스트용 CSV 데이터 생성 시작...'
+	}
+
+	doLast {
+		println '✅ CSV 생성 완료!'
+		println '📁 파일 위치: src/main/resources/load-test-data/'
+	}
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
  	implementation 'org.springframework.boot:spring-boot-starter-security'

@@ -171,6 +171,8 @@
     <button onclick="reissueToken()">토큰 재발급</button>
     <h1>로그아웃</h1>
     <button onclick="logout()">로그아웃</button>
+    <h1>회원 탈퇴</h1>
+    <button onclick="deleteMember()" style="background-color: #dc3545;">회원 탈퇴 (복구 불가)</button>
     <h1>인증 테스트</h1>
     <button onclick="authTest()">인증된 사용자 확인</button>
     <div id="authResult"></div>
@@ -603,6 +605,48 @@
             alert("로그아웃 되었습니다.");
           })
           .catch((err) => alert(err.message));
+      }
+      function deleteMember() {
+        const accessToken = localStorage.getItem("accessToken");
+        if (!accessToken) {
+          return alert("로그인이 필요합니다.");
+        }
+
+        const confirmMessage = "정말로 회원 탈퇴하시겠습니까?\n\n⚠️ 주의사항:\n- 모든 가이드와 사진이 삭제됩니다\n- S3에 저장된 파일도 모두 삭제됩니다\n- 이 작업은 복구할 수 없습니다\n\n계속하시겠습니까?";
+
+        if (!confirm(confirmMessage)) {
+          return;
+        }
+
+        // 한 번 더 확인
+        if (!confirm("마지막 확인: 정말로 탈퇴하시겠습니까?")) {
+          return;
+        }
+
+        fetch(`${API_BASE_URL}/api/members/delete/me`, {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+          },
+        })
+          .then((res) => {
+            if (!res.ok) {
+              return res.text().then(text => {
+                throw new Error(`회원 탈퇴 실패: ${text || res.status}`);
+              });
+            }
+            // 성공 시 토큰 제거 및 알림
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            token = null;
+            alert("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
+            // 페이지 새로고침
+            location.reload();
+          })
+          .catch((err) => {
+            console.error("회원 탈퇴 오류:", err);
+            alert(err.message);
+          });
       }
       function authTest() {
         const token = localStorage.getItem("accessToken");

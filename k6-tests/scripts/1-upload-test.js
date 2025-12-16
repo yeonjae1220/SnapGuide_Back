@@ -37,27 +37,21 @@ export const options = {
   },
 };
 
-// 테스트용 더미 이미지 데이터 (1KB 정도의 작은 JPG)
-const dummyImageBase64 =
-  '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB' +
-  'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEB' +
-  'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/wAARCAABAAEDASIAAhEB' +
-  'AxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAA' +
-  'AAAAAAAAAAAAAAAAAAL/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8AP//Z';
+// 테스트용 더미 이미지 파일 로드 (k6는 open()으로 바이너리 파일 읽기)
+const testImageData = open('../data/test-image.jpg', 'b'); // 'b' = binary mode
 
 export default function () {
-  const url = `${config.baseUrl}/api/media/upload`;
+  const url = `${config.baseUrl}/media/upload`;
 
   // Multipart form data 구성
-  const boundary = '----WebKitFormBoundary' + Math.random().toString(36);
-
   const formData = {
-    file: http.file(Buffer.from(dummyImageBase64, 'base64'), 'test-image.jpg', 'image/jpeg'),
+    files: http.file(testImageData, 'test-image.jpg', 'image/jpeg'),
   };
 
   const params = {
+    // multipart/form-data의 경우 k6가 자동으로 Content-Type과 boundary를 설정하므로
+    // headers에서 Content-Type을 명시하지 않아야 함
     headers: {
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
       // 인증이 필요하면 추가
       // 'Authorization': `Bearer ${config.auth.token}`,
     },

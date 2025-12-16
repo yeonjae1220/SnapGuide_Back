@@ -59,3 +59,9 @@ BLOG_POST.md
 OBSERVABILITY.md
 *.md
 # CLAUDE.md  # 프로젝트 가이드로 필요하면 이 줄 주석 해제
+
+### Load Test Data ###
+src/main/resources/load-test-data/*.csv
+k6/data/*.csv
+*.csv
+
