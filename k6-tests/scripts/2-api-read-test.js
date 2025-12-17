@@ -21,12 +21,13 @@ const apiSuccessRate = new Rate('api_success_rate');
 const queryDuration = new Trend('query_duration', true);
 const queriesCount = new Counter('total_queries');
 
+// 부하 테스트의 시나리오(강도) 설정
 export const options = {
   stages: [
-    { duration: '30s', target: 10 },   // 워밍업
-    { duration: '1m', target: 50 },    // 일반 부하
-    { duration: '2m', target: 100 },   // 피크 부하
-    { duration: '1m', target: 200 },   // 스트레스 테스트
+    { duration: '30s', target: 20 },   // 워밍업
+    { duration: '1m', target: 100 },    // 일반 부하
+    { duration: '2m', target: 200 },   // 피크 부하
+    { duration: '1m', target: 500 },   // 스트레스 테스트
     { duration: '30s', target: 0 },    // 종료
   ],
   thresholds: {
@@ -41,17 +42,21 @@ export const options = {
   },
 };
 
+// 안에 있는 코드가 가상 사용자(VUser) 1명이 수행하는 행동입니다. 여기서는 실제 사용자처럼 보이기 위해 확률(Random)을 사용해서 행동을 나눔
 export default function () {
   const baseUrl = config.baseUrl;
   const headers = getHeaders(false);
 
-  // 시나리오 1: 전체 가이드 목록 조회 (30%)
+  // 시나리오 1: 주변 가이드 검색 (30%)
   if (Math.random() < 0.3) {
-    group('Get All Guides', () => {
+    group('Get Nearby Guides', () => {
       const startTime = new Date().getTime();
-      const res = http.get(`${baseUrl}/api/guides`, {
+      // 서울 중심 좌표
+      const lat = 37.5665 + (Math.random() - 0.5) * 0.1;
+      const lng = 126.9780 + (Math.random() - 0.5) * 0.1;
+      const res = http.get(`${baseUrl}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=5000`, {
         headers,
-        tags: { api_type: 'read', endpoint: 'all_guides' },
+        tags: { api_type: 'read', endpoint: 'nearby_guides' },
       });
 
       queryDuration.add(new Date().getTime() - startTime);
@@ -81,14 +86,14 @@ export default function () {
     });
   }
 
-  // 시나리오 2: 특정 가이드 상세 조회 (40%)
-  else if (Math.random() < 0.7) {
+  // 시나리오 2: 특정 가이드 상세 조회 (70%)
+  else {
     group('Get Guide Detail', () => {
       // 1~100 사이의 랜덤 ID (실제 데이터에 맞게 수정)
       const guideId = Math.floor(Math.random() * 100) + 1;
       const startTime = new Date().getTime();
 
-      const res = http.get(`${baseUrl}/api/guides/${guideId}`, {
+      const res = http.get(`${baseUrl}/guide/api/${guideId}`, {
         headers,
         tags: { api_type: 'read', endpoint: 'guide_detail' },
       });
@@ -111,41 +116,13 @@ export default function () {
     });
   }
 
-  // 시나리오 3: 사용자별 가이드 조회 (30%)
-  else {
-    group('Get Guides By Member', () => {
-      const memberId = randomItem(config.testData.memberIds);
-      const startTime = new Date().getTime();
-
-      const res = http.get(`${baseUrl}/api/guides/member/${memberId}`, {
-        headers,
-        tags: { api_type: 'read', endpoint: 'member_guides' },
-      });
-
-      queryDuration.add(new Date().getTime() - startTime);
-      queriesCount.add(1);
-
-      const success = check(res, {
-        'status is 200': (r) => r.status === 200,
-        'response time < 500ms': (r) => r.timings.duration < 500,
-      });
-
-      apiSuccessRate.add(success);
-
-      if (res.headers['X-Cache-Hit'] === 'true') {
-        cacheHitRate.add(1);
-      } else {
-        cacheHitRate.add(0);
-      }
-    });
-  }
-
   // 사용자는 페이지를 읽는 데 시간이 필요
   sleep(Math.random() * 3 + 1); // 1~4초 대기
 }
 
+// 테스트가 끝나고 나면 실행
 export function handleSummary(data) {
-  const cacheEnabled = __ENV.CACHE_ENABLED === 'true';
+  const cacheEnabled = __ENV.CACHE_ENABLED === 'true'; // 테스트가 캐시 사용하는지 안하는지 구분
 
   return {
     stdout: JSON.stringify(

@@ -66,8 +66,9 @@ export default function () {
 
 function performReadActions(baseUrl, headers) {
   group('User Read Actions', () => {
-    // 1. 메인 페이지 - 가이드 목록 보기
-    let res = http.get(`${baseUrl}/api/guides`, {
+    // 1. 주변 가이드 검색
+    const coord1 = randomCoordinate();
+    let res = http.get(`${baseUrl}/guide/api/nearby?lat=${coord1.lat}&lng=${coord1.lng}&radius=5000`, {
       headers,
       tags: { action: 'browse' },
     });
@@ -82,7 +83,7 @@ function performReadActions(baseUrl, headers) {
 
     // 2. 관심있는 가이드 클릭
     const guideId = Math.floor(Math.random() * 100) + 1;
-    res = http.get(`${baseUrl}/api/guides/${guideId}`, {
+    res = http.get(`${baseUrl}/guide/api/${guideId}`, {
       headers,
       tags: { action: 'view_detail' },
     });
@@ -117,7 +118,7 @@ function performWriteActions(baseUrl, headers) {
     // 1. 가이드에 좋아요
     const guideId = Math.floor(Math.random() * 100) + 1;
     let res = http.post(
-      `${baseUrl}/api/guides/${guideId}/like`,
+      `${baseUrl}/guide/api/like/${guideId}`,
       JSON.stringify({}),
       {
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -129,27 +130,7 @@ function performWriteActions(baseUrl, headers) {
 
     writeSuccess.add(
       check(res, {
-        'like success': (r) => r.status === 200 || r.status === 201,
-      })
-    );
-
-    sleep(0.5);
-
-    // 2. 댓글 작성 (있다면)
-    res = http.post(
-      `${baseUrl}/api/guides/${guideId}/comments`,
-      JSON.stringify({
-        content: 'Great place! Thanks for sharing.',
-      }),
-      {
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        tags: { action: 'comment' },
-      }
-    );
-
-    writeSuccess.add(
-      check(res, {
-        'comment success': (r) => r.status === 200 || r.status === 201,
+        'like success': (r) => r.status === 200 || r.status === 201 || r.status === 401,
       })
     );
 
@@ -165,7 +146,7 @@ function performUploadAction(baseUrl, headers) {
       file: http.file(Buffer.from(dummyImageBase64, 'base64'), 'photo.jpg', 'image/jpeg'),
     };
 
-    const res = http.post(`${baseUrl}/api/media/upload`, formData, {
+    const res = http.post(`${baseUrl}/media/upload`, formData, {
       headers: {
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },

@@ -89,7 +89,7 @@ public class Location {
 
 
     // json 전체 저장
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String rawJson;
 
 }

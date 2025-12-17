@@ -28,9 +28,9 @@ export const options = {
   ],
   thresholds: {
     // 공간 쿼리는 복잡하므로 95%가 1초 이내
-    'spatial_query_duration': ['p(95)<1000'],
+    'spatial_query_duration_p95': ['p(95)<1000'],
     // 99%가 2초 이내
-    'spatial_query_duration': ['p(99)<2000'],
+    'spatial_query_duration_p99': ['p(99)<2000'],
     // 성공률 99% 이상
     'spatial_query_success': ['rate>0.99'],
     // 느린 쿼리(2초 이상)가 전체의 5% 미만
@@ -60,7 +60,7 @@ export default function () {
       const startTime = new Date().getTime();
 
       const res = http.get(
-        `${baseUrl}/api/locations/nearby?lat=${location.lat}&lng=${location.lng}&radius=${radius}`,
+        `${baseUrl}/guide/api/nearby?lat=${location.lat}&lng=${location.lng}&radius=${radius}`,
         {
           headers,
           tags: { query_type: 'spatial', location: location.name, radius: radius },
@@ -102,7 +102,7 @@ export default function () {
       const startTime = new Date().getTime();
 
       const res = http.get(
-        `${baseUrl}/api/locations/nearby?lat=${coord.lat}&lng=${coord.lng}&radius=${radius}`,
+        `${baseUrl}/guide/api/nearby?lat=${coord.lat}&lng=${coord.lng}&radius=${radius}`,
         {
           headers,
           tags: { query_type: 'spatial', location: 'random', radius: radius },
@@ -134,7 +134,7 @@ export default function () {
       const startTime = new Date().getTime();
 
       const res = http.get(
-        `${baseUrl}/api/guides/nearby?lat=${location.lat}&lng=${location.lng}&radius=${radius}`,
+        `${baseUrl}/guide/api/nearby?lat=${location.lat}&lng=${location.lng}&radius=${radius}`,
         {
           headers,
           tags: { query_type: 'spatial', endpoint: 'guides', radius: radius },
@@ -162,9 +162,9 @@ export default function () {
 }
 
 export function handleSummary(data) {
-  const avgDuration = data.metrics.spatial_query_duration.values.avg;
-  const p95Duration = data.metrics.spatial_query_duration.values['p(95)'];
-  const p99Duration = data.metrics.spatial_query_duration.values['p(99)'];
+  const avgDuration = ((data.metrics.spatial_query_duration_p99.values.avg) + (data.metrics.spatial_query_duration_p95.values.avg))/2;
+  const p95Duration = data.metrics.spatial_query_duration_p95.values['p(95)'];
+  const p99Duration = data.metrics.spatial_query_duration_p99.values['p(99)'];
   const slowQueries = data.metrics.slow_queries_count.values.count;
   const totalRequests = data.metrics.http_reqs.values.count;
 

@@ -238,17 +238,23 @@ public class GuideService {
 
     // 게시글 상세 조회 (사용자 좋아요 정보 포함)
     @Transactional(readOnly = true)
-    public GuideResponseDto findGuideById(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
+    public GuideResponseDto findGuideById(Long guideId, UserDetails userDetails) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
-        Member member = memberRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
+        boolean userHasLiked = false;
 
-        boolean userHasLiked = guideLikeRepository.findByMemberAndGuide(member, guide).isPresent();
+        // 인증된 사용자인 경우에만 좋아요 정보 조회
+        if (userDetails != null) {
+            Member member = memberRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
+            userHasLiked = guideLikeRepository.findByMemberAndGuide(member, guide).isPresent();
+        }
+
         return GuideResponseDto.of(guide, userHasLiked);
-
     }
+
+
 
     @Transactional
     public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
