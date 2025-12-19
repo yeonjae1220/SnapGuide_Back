@@ -177,10 +177,16 @@ public class GuideService {
     public List<GuideResponseDto> findGuidesNear(double lat, double lng, double radius) { // km
         log.info("📍 [findGuidesNear] 요청 위치: lat = {}, lng = {}, radius = {} km", lat, lng, radius);
 
+        // Bounding Box 계산 (km → degree)
         double[] box = GeoUtil.getBoundingBox(lat, lng, radius);
         double minLat = box[0], maxLat = box[1];
         double minLng = box[2], maxLng = box[3];
-        List<Location> locations = locationRepository.findNearbyOptimized(lat, lng, radius,
+
+        // ST_DWithin용 radius를 degree로 변환 (geometry 타입이므로)
+        double radiusInDegrees = GeoUtil.kmToDegrees(lat, radius);
+        log.info("🔄 [findGuidesNear] radius 변환: {} km → {} degrees", radius, radiusInDegrees);
+
+        List<Location> locations = locationRepository.findNearbyOptimized(lat, lng, radiusInDegrees,
                 minLat, minLng, maxLat, maxLng);
 
         log.info("📌 [findNearbyOptimized] 반환된 Location 수: {}", locations.size());
@@ -198,8 +204,8 @@ public class GuideService {
 
         log.info("🧭 조회할 Location ID 목록: {}", locationIds);
 
-        List<Guide> guides = guideRepository.findByLocationIdIn(locationIds);
-        log.info("📘 Guide 수: {}", guides.size());
+        List<Guide> guides = guideRepository.findByLocationIdInWithFetch(locationIds);
+        log.info("📘 Guide 수: {} (Fetch Join 적용)", guides.size());
         guides.forEach(g ->
                 log.info("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
                         g.getId(),
@@ -239,7 +245,7 @@ public class GuideService {
     // 게시글 상세 조회 (사용자 좋아요 정보 포함)
     @Transactional(readOnly = true)
     public GuideResponseDto findGuideById(Long guideId, UserDetails userDetails) {
-        Guide guide = guideRepository.findById(guideId)
+        Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         boolean userHasLiked = false;

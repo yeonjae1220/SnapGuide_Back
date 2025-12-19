@@ -28,9 +28,7 @@ export const options = {
   ],
   thresholds: {
     // 공간 쿼리는 복잡하므로 95%가 1초 이내
-    'spatial_query_duration_p95': ['p(95)<1000'],
-    // 99%가 2초 이내
-    'spatial_query_duration_p99': ['p(99)<2000'],
+    'spatial_query_duration': ['p(95)<1000', 'p(99)<2000'],
     // 성공률 99% 이상
     'spatial_query_success': ['rate>0.99'],
     // 느린 쿼리(2초 이상)가 전체의 5% 미만
@@ -55,7 +53,7 @@ export default function () {
   if (Math.random() < 0.5) {
     group('Spatial Query - Fixed Location', () => {
       const location = testLocations[Math.floor(Math.random() * testLocations.length)];
-      const radius = [1000, 3000, 5000, 10000][Math.floor(Math.random() * 4)]; // 1km, 3km, 5km, 10km
+      const radius = [5, 10, 20, 50][Math.floor(Math.random() * 4)]; // 5km, 10km, 20km, 50km (단위: km)
 
       const startTime = new Date().getTime();
 
@@ -72,7 +70,7 @@ export default function () {
 
       if (duration > 2000) {
         slowQueriesCount.add(1);
-        console.warn(`Slow query detected: ${duration}ms at ${location.name} with radius ${radius}m`);
+        console.warn(`Slow query detected: ${duration}ms at ${location.name} with radius ${radius}km`);
       }
 
       const success = check(res, {
@@ -97,7 +95,7 @@ export default function () {
   else if (Math.random() < 0.6) {
     group('Spatial Query - Random Location', () => {
       const coord = randomCoordinate();
-      const radius = 5000; // 5km 고정
+      const radius = 5; // 5km 고정
 
       const startTime = new Date().getTime();
 
@@ -129,7 +127,7 @@ export default function () {
   else {
     group('Spatial Query - Guides Nearby', () => {
       const location = testLocations[Math.floor(Math.random() * testLocations.length)];
-      const radius = 5000;
+      const radius = 5; // 5km 고정
 
       const startTime = new Date().getTime();
 
@@ -162,33 +160,56 @@ export default function () {
 }
 
 export function handleSummary(data) {
-  const avgDuration = ((data.metrics.spatial_query_duration_p99.values.avg) + (data.metrics.spatial_query_duration_p95.values.avg))/2;
-  const p95Duration = data.metrics.spatial_query_duration_p95.values['p(95)'];
-  const p99Duration = data.metrics.spatial_query_duration_p99.values['p(99)'];
-  const slowQueries = data.metrics.slow_queries_count.values.count;
-  const totalRequests = data.metrics.http_reqs.values.count;
+  const metrics = {};
+  const recommendations = [];
+
+  // 안전하게 메트릭 접근
+  if (data.metrics.spatial_query_duration?.values) {
+    const avgDuration = data.metrics.spatial_query_duration.values.avg || 0;
+    const p95Duration = data.metrics.spatial_query_duration.values['p(95)'] || 0;
+    const p99Duration = data.metrics.spatial_query_duration.values['p(99)'] || 0;
+
+    metrics.avg_duration_ms = Math.round(avgDuration);
+    metrics.p95_duration_ms = Math.round(p95Duration);
+    metrics.p99_duration_ms = Math.round(p99Duration);
+
+    // 인덱스 추천
+    recommendations.push(
+      p95Duration > 1000
+        ? '⚠️  GIST 인덱스 확인 필요: CREATE INDEX idx_location_coordinate ON location USING GIST(coordinate);'
+        : '✅ 공간 인덱스가 잘 작동하고 있습니다'
+    );
+  }
+
+  if (data.metrics.spatial_query_success?.values) {
+    metrics.success_rate = data.metrics.spatial_query_success.values.rate;
+  }
+
+  if (data.metrics.slow_queries_count?.values && data.metrics.http_reqs?.values) {
+    const slowQueries = data.metrics.slow_queries_count.values.count;
+    const totalRequests = data.metrics.http_reqs.values.count;
+
+    metrics.slow_queries_count = slowQueries;
+    metrics.slow_queries_percentage = ((slowQueries / totalRequests) * 100).toFixed(2) + '%';
+
+    // 느린 쿼리 추천
+    recommendations.push(
+      slowQueries > totalRequests * 0.05
+        ? '⚠️  느린 쿼리가 많습니다. 반경 크기를 줄이거나 결과를 제한하세요'
+        : '✅ 쿼리 성능이 양호합니다'
+    );
+  }
+
+  if (data.metrics.http_reqs?.values) {
+    metrics.requests_per_second = data.metrics.http_reqs.values.rate.toFixed(2);
+  }
 
   return {
     stdout: JSON.stringify(
       {
         test: 'Spatial Query Test (PostGIS)',
-        metrics: {
-          avg_duration_ms: Math.round(avgDuration),
-          p95_duration_ms: Math.round(p95Duration),
-          p99_duration_ms: Math.round(p99Duration),
-          success_rate: data.metrics.spatial_query_success.values.rate,
-          slow_queries_count: slowQueries,
-          slow_queries_percentage: ((slowQueries / totalRequests) * 100).toFixed(2) + '%',
-          requests_per_second: data.metrics.http_reqs.values.rate.toFixed(2),
-        },
-        recommendations: [
-          p95Duration > 1000
-            ? '⚠️  GIST 인덱스 확인 필요: CREATE INDEX idx_location_coordinate ON location USING GIST(coordinate);'
-            : '✅ 공간 인덱스가 잘 작동하고 있습니다',
-          slowQueries > totalRequests * 0.05
-            ? '⚠️  느린 쿼리가 많습니다. 반경 크기를 줄이거나 결과를 제한하세요'
-            : '✅ 쿼리 성능이 양호합니다',
-        ],
+        metrics: metrics,
+        recommendations: recommendations,
       },
       null,
       2

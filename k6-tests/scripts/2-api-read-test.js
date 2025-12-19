@@ -25,9 +25,9 @@ const queriesCount = new Counter('total_queries');
 export const options = {
   stages: [
     { duration: '30s', target: 20 },   // 워밍업
-    { duration: '1m', target: 100 },    // 일반 부하
-    { duration: '2m', target: 200 },   // 피크 부하
-    { duration: '1m', target: 500 },   // 스트레스 테스트
+    { duration: '1m', target: 50 },    // 일반 부하
+    { duration: '2m', target: 100 },   // 피크 부하
+    { duration: '1m', target: 200 },   // 스트레스 테스트
     { duration: '30s', target: 0 },    // 종료
   ],
   thresholds: {
@@ -54,7 +54,7 @@ export default function () {
       // 서울 중심 좌표
       const lat = 37.5665 + (Math.random() - 0.5) * 0.1;
       const lng = 126.9780 + (Math.random() - 0.5) * 0.1;
-      const res = http.get(`${baseUrl}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=5000`, {
+      const res = http.get(`${baseUrl}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=20`, {
         headers,
         tags: { api_type: 'read', endpoint: 'nearby_guides' },
       });

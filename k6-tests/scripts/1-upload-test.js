@@ -89,16 +89,31 @@ export default function () {
 
 // 테스트 종료 시 요약 출력
 export function handleSummary(data) {
+  const metrics = {};
+
+  // 안전하게 메트릭 접근
+  if (data.metrics.upload_duration?.values) {
+    metrics.upload_duration_avg = data.metrics.upload_duration.values.avg;
+    metrics.upload_duration_p95 = data.metrics.upload_duration.values['p(95)'];
+    metrics.upload_duration_p99 = data.metrics.upload_duration.values['p(99)'];
+  }
+
+  if (data.metrics.upload_success_rate?.values) {
+    metrics.upload_success_rate = data.metrics.upload_success_rate.values.rate;
+  }
+
+  if (data.metrics.http_req_failed?.values) {
+    metrics.http_req_failed = data.metrics.http_req_failed.values.rate;
+  }
+
+  if (data.metrics.http_req_duration?.values) {
+    metrics.http_req_duration_p95 = data.metrics.http_req_duration.values['p(95)'];
+  }
+
   return {
     'stdout': JSON.stringify({
       test: 'File Upload Test',
-      metrics: {
-        upload_duration_avg: data.metrics.upload_duration.values.avg,
-        upload_duration_p95: data.metrics.upload_duration.values['p(95)'],
-        upload_duration_p99: data.metrics.upload_duration.values['p(99)'],
-        upload_success_rate: data.metrics.upload_success_rate.values.rate,
-        http_req_failed: data.metrics.http_req_failed.values.rate,
-      },
+      metrics: metrics,
     }, null, 2),
   };
 }

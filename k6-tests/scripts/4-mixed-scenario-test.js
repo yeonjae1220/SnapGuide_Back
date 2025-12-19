@@ -68,7 +68,7 @@ function performReadActions(baseUrl, headers) {
   group('User Read Actions', () => {
     // 1. 주변 가이드 검색
     const coord1 = randomCoordinate();
-    let res = http.get(`${baseUrl}/guide/api/nearby?lat=${coord1.lat}&lng=${coord1.lng}&radius=5000`, {
+    let res = http.get(`${baseUrl}/guide/api/nearby?lat=${coord1.lat}&lng=${coord1.lng}&radius=20`, {
       headers,
       tags: { action: 'browse' },
     });
