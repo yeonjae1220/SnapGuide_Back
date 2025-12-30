@@ -190,12 +190,13 @@ public class GuideService {
                 minLat, minLng, maxLat, maxLng);
 
         log.info("📌 [findNearbyOptimized] 반환된 Location 수: {}", locations.size());
-        locations.forEach(loc ->
-                log.info("    ▸ Location ID = {}, 이름 = {}, 좌표 = {}",
-                        loc.getId(),
-                        loc.getLocationName(),
-                        loc.getCoordinate())
-        );
+        // NOTE : 과도한 로깅으로 오버헤드 발생하여 주석 처리 함
+//        locations.forEach(loc ->
+//                log.info("    ▸ Location ID = {}, 이름 = {}, 좌표 = {}",
+//                        loc.getId(),
+//                        loc.getLocationName(),
+//                        loc.getCoordinate())
+//        );
 
         // 위치 ID를 기준으로 가이드 찾기
         List<Long> locationIds = locations.stream()
@@ -264,6 +265,11 @@ public class GuideService {
 
     @Transactional
     public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
+        // 인증되지 않은 사용자 체크
+        if (userDetails == null) {
+            throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");
+        }
+
         Guide guide = findGuide(guideId);
         Member member = memberRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
