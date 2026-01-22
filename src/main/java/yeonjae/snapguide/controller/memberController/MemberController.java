@@ -4,10 +4,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
@@ -34,6 +33,14 @@ public class MemberController {
         }
         // 토큰 검증은 Spring Security 필터에서 진행됨
         return ResponseEntity.ok(memberService.getAllMembers());
+    }
+
+    @DeleteMapping("delete/me")
+    public ResponseEntity<Void> deleteMember(@AuthenticationPrincipal UserDetails userDetails) {
+        // UserDetails.getUsername()은 실제로 email을 반환합니다 (CustomOauth2UserDetails 참고)
+        String email = userDetails.getUsername();
+        memberService.deleteMember(email);
+        return ResponseEntity.noContent().build();
     }
 
 }

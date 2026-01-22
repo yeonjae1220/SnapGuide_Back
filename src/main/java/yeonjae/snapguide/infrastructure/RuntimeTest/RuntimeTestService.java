@@ -135,7 +135,8 @@ public class RuntimeTestService {
                 double[] box = GeoUtil.getBoundingBox(location.lat(), location.lng(), radius);
                 double minLat = box[0], maxLat = box[1];
                 double minLng = box[2], maxLng = box[3];
-                List<Location> result =  locationRepository.findNearbyOptimized(location.lat(), location.lng(), radius * 1000,
+                double radiusInDegrees = GeoUtil.kmToDegrees(location.lat(), radius);
+                List<Location> result =  locationRepository.findNearbyOptimized(location.lat(), location.lng(), radiusInDegrees,
                         minLat, minLng, maxLat, maxLng);
                 logLocations(location.name(), result);
                 watch.stop();

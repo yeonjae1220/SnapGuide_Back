@@ -45,7 +45,7 @@ public class Member extends BaseEntity {
 //    @Column(nullable = false, insertable = false, updatable = false)
 //    private String hashcode;
 //
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)  // ✅ N+1 문제 해결: LAZY로 변경
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
     private List<Authority> authority = new ArrayList<>();

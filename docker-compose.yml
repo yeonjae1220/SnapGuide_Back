@@ -24,15 +24,26 @@ services:
       - CLOUD_AWS_CREDENTIALS_SECRET-KEY=${AWS_SECRET_ACCESS_KEY}
       - CLOUD_AWS_S3_BUCKET=${AWS_S3_BUCKET}
       - CLOUD_AWS_REGION_STATIC=${AWS_REGION}
+      # OpenTelemetry 설정
+      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     # 호스트-컨테이너 간 디렉토리 연결 (파일 경로 문제 해결)
     # 내 Mac의 ./uploads 폴더와 컨테이너의 /app/uploads 폴더를 연결
     volumes:
       - ./uploads:/app/uploads
+      - ./opentelemetry-javaagent.jar:/app/opentelemetry-javaagent.jar
     depends_on:
       db:
         condition: service_healthy # 'db' 서비스가 'healthy' 상태가 될 때까지 기다림
       redis:
         condition: service_started # redis는 빠르게 시작되므로 기존 방식 유지
+      otel-collector:
+        condition: service_started
     networks:
       - my-network
 
@@ -62,9 +73,108 @@ services:
       - "6380:6379"
     networks:
       - my-network
+    # maxmemory: 최대 512MB까지만 사용
+    # allkeys-lru: 메모리 가득 차면 오래된 키 자동 삭제
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+
+  # OpenTelemetry Collector - 텔레메트리 데이터 수집 및 라우팅
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: snapguide-otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./observability/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4318:4318"   # OTLP HTTP receiver
+      - "4317:4317"   # OTLP gRPC receiver
+      - "8889:8889"   # Prometheus metrics exporter
+    networks:
+      - my-network
+
+  # Tempo - 분산 추적(Traces) 저장소
+  tempo:
+    image: grafana/tempo:2.4.0
+    container_name: snapguide-tempo
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./observability/tempo.yml:/etc/tempo.yml
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo query frontend
+      - "4319:4317"   # OTLP gRPC
+    networks:
+      - my-network
+
+  # Loki - 로그 집계 시스템
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: snapguide-loki
+    command: -config.file=/etc/loki/local-config.yml
+    volumes:
+      - ./observability/loki.yml:/etc/loki/local-config.yml
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - my-network
+
+  # Promtail - 로그 수집기 (컨테이너 로그를 Loki로 전송)
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: snapguide-promtail
+    volumes:
+      - ./observability/promtail.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - my-network
+
+  # Prometheus - 메트릭 저장소
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: snapguide-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-remote-write-receiver'
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - my-network
+
+  # Grafana - 통합 관측 대시보드
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: snapguide-grafana
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - my-network
 
 volumes:
   postgres_data:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   my-network:

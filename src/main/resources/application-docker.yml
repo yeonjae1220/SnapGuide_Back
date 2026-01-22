@@ -13,6 +13,19 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Connection Pool 설정
+      maximum-pool-size: 15          # CPU 78%에서 안전한 증가 (10 → 30)
+      minimum-idle: 10               # 최소 유지 커넥션
+      connection-timeout: 20000      # 커넥션 대기 시간 (20초)
+      idle-timeout: 600000           # 유휴 커넥션 유지 시간 (10분)
+      max-lifetime: 1800000          # 커넥션 최대 생명 주기 (30분)
+      pool-name: SnapguideHikariPool
+      # PreparedStatement 캐싱 (Native Query에는 영향 적지만, JPQL 쿼리를 위해 유지)
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
 
   data:
     redis:
@@ -53,6 +66,16 @@ storage:
   local:
     base-dir: /app/uploads/
 
+# 성능 최적화: 로깅 최소화
+logging:
+  level:
+    root: INFO
+    yeonjae.snapguide.service: WARN           # Service 계층 로깅 최소화
+    yeonjae.snapguide.repository: ERROR       # Repository 로깅 최소화
+    yeonjae.snapguide.controller: INFO
+    org.hibernate.SQL: ERROR                  # SQL 로깅 끄기
+    org.springframework.web: WARN
+
 cloud:
   aws:
     credentials:
@@ -68,4 +91,10 @@ cloud:
 # Server configuration (최상위 레벨)
 server:
   forward-headers-strategy: framework # 리버스 프록시 헤더 처리
+  tomcat:
+    threads:
+      max: 150                       # 최대 워커 스레드 (150 VUs 대응)
+      min-spare: 30                  # 최소 유지 스레드 (HikariCP와 비율 맞춤)
+    accept-count: 100                # 대기 큐 크기 (순간 폭증 대응)
+    connection-timeout: 20000        # 연결 타임아웃 (20초)
 

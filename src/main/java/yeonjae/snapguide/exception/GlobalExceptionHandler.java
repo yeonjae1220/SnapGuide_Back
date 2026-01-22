@@ -186,6 +186,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * IllegalArgumentException 처리
+     * 리소스를 찾을 수 없는 경우 (Guide not found 등)
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Resource not found: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.name(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(errorResponse);
+    }
+
+    /**
      * 처리되지 않은 모든 예외 처리
      * 예상하지 못한 서버 오류
      */

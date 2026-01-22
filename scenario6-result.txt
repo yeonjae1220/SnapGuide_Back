@@ -1,0 +1,91 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: k6-tests/scripts/6-mixed-scenario-paged-test.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 300 max VUs, 10m30s max duration (incl. graceful stop):
+              * default: Up to 300 looping VUs for 10m0s over 5 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+
+running (00m01.0s), 001/300 VUs, 0 complete and 0 interrupted iterations
+default   [   0% ] 001/300 VUs  00m01.0s/10m00.0s
+
+running (00m02.0s), 001/300 VUs, 0 complete and 0 interrupted iterations
+default   [   0% ] 001/300 VUs  00m02.0s/10m00.0s
+
+running (00m03.0s), 001/300 VUs, 1 complete and 0 interrupted iterations
+default   [   0% ] 001/300 VUs  00m03.0s/10m00.0s
+
+running (00m04.0s), 002/300 VUs, 2 complete and 0 interrupted iterations
+default   [   1% ] 002/300 VUs  00m04.0s/10m00.0s
+
+running (00m05.0s), 002/300 VUs, 4 complete and 0 interrupted iterations
+default   [   1% ] 002/300 VUs  00m05.0s/10m00.0s
+
+running (00m06.0s), 002/300 VUs, 6 complete and 0 interrupted iterations
+default   [   1% ] 002/300 VUs  00m06.0s/10m00.0s
+
+running (00m07.0s), 003/300 VUs, 7 complete and 0 interrupted iterations
+default   [   1% ] 003/300 VUs  00m07.0s/10m00.0s
+
+running (00m08.0s), 003/300 VUs, 9 complete and 0 interrupted iterations
+default   [   1% ] 003/300 VUs  00m08.0s/10m00.0s
+
+running (00m09.0s), 003/300 VUs, 10 complete and 0 interrupted iterations
+default   [   1% ] 003/300 VUs  00m09.0s/10m00.0s
+
+running (00m10.0s), 004/300 VUs, 12 complete and 0 interrupted iterations
+default   [   2% ] 004/300 VUs  00m10.0s/10m00.0s
+
+running (00m11.0s), 004/300 VUs, 12 complete and 0 interrupted iterations
+default   [   2% ] 004/300 VUs  00m11.0s/10m00.0s
+
+running (00m12.0s), 004/300 VUs, 16 complete and 0 interrupted iterations
+default   [   2% ] 004/300 VUs  00m12.0s/10m00.0s
+
+running (00m13.0s), 005/300 VUs, 17 complete and 0 interrupted iterations
+default   [   2% ] 005/300 VUs  00m13.0s/10m00.0s
+
+running (00m14.0s), 005/300 VUs, 19 complete and 0 interrupted iterations
+default   [   2% ] 005/300 VUs  00m14.0s/10m00.0s
+
+running (00m15.0s), 005/300 VUs, 23 complete and 0 interrupted iterations
+default   [   2% ] 005/300 VUs  00m15.0s/10m00.0s
+
+running (00m16.0s), 006/300 VUs, 27 complete and 0 interrupted iterations
+default   [   3% ] 006/300 VUs  00m16.0s/10m00.0s
+{
+  "test": "Mixed Scenario Test with Pagination (Real User Simulation)",
+  "duration": "0.28 minutes",
+  "metrics": {
+    "total_requests": 54,
+    "failed_requests": 0,
+    "requests_per_second": "3.22",
+    "avg_response_time_ms": 165,
+    "p95_response_time_ms": 1338,
+    "p99_response_time_ms": 0,
+    "read_success_rate": "100.00%",
+    "write_success_rate": "100.00%",
+    "upload_success_rate": "100.00%",
+    "concurrent_likes": 9,
+    "pagination_avg_ms": 24,
+    "pagination_p95_ms": 35,
+    "pagination_p99_ms": null,
+    "total_items": 309,
+    "total_pages": 25,
+    "avg_items_per_page": "12.4"
+  },
+  "bottlenecks_detected": [
+    "🟡 경고: 95% 응답시간이 1초 초과 - 최적화 권장",
+    "✅ 페이징 성능 우수 (p95 < 300ms)",
+    "🔴 심각: 에러율 5% 초과 - 안정성 문제"
+  ]
+}
+running (00m16.8s), 000/300 VUs, 30 complete and 6 interrupted iterations
+default ✗ [   3% ] 006/300 VUs  00m16.8s/10m00.0s
