@@ -1,6 +1,5 @@
 package yeonjae.snapguide.repository.guideRepository;
 
-import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 //import com.querydsl.core.group.GroupBy;
 import com.querydsl.core.group.GroupBy;
@@ -12,9 +11,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
@@ -36,9 +32,6 @@ import java.util.stream.Collectors;
 public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
 
     private final JPAQueryFactory queryFactory;
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
 //    @Override
 //    public List<GuideResponseDto> findAllByMemberId(Long memberId) {
@@ -169,234 +162,6 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
                 )).toList();
     }
 
-    @Override
-    public Slice<GuideResponseDto> findNearbyGuidesPaged(
-            List<Long> locationIds,
-            Long lastGuideId,
-            int size,
-            Long currentMemberId
-    ) {
-        QGuide g = QGuide.guide;
-        QMedia m = QMedia.media;
-        QLocation l = QLocation.location;
-        QGuideLike gl = QGuideLike.guideLike;
 
-        log.info("🔍 [findNearbyGuidesPaged] locationIds: {}, lastGuideId: {}, size: {}",
-                locationIds != null ? locationIds.size() : 0, lastGuideId, size);
-
-        // 1. WHERE 조건 빌더 (locationIds + 커서)
-        BooleanBuilder whereClause = new BooleanBuilder();
-
-        if (locationIds != null && !locationIds.isEmpty()) {
-            whereClause.and(g.location.id.in(locationIds));
-        }
-
-        // 커서 조건: lastGuideId보다 큰 ID만 조회
-        if (lastGuideId != null) {
-            whereClause.and(g.id.gt(lastGuideId));
-        }
-
-        // 2. Guide 조회 (size + 1개 조회하여 hasNext 판단)
-        List<Guide> guides = queryFactory
-                .select(g)
-                .from(g)
-                .leftJoin(g.author).fetchJoin()  // N+1 방지
-                .leftJoin(g.location, l).fetchJoin()  // N+1 방지
-                .where(whereClause)
-                .orderBy(g.id.asc())  // ✅ 커서 페이징은 ID 정렬 필수
-                .limit(size + 1)  // hasNext 확인용 +1
-                .fetch();
-
-        log.info("📘 조회된 Guide 수: {} (limit: {})", guides.size(), size + 1);
-
-        // 3. hasNext 판단 및 실제 데이터 자르기
-        boolean hasNext = guides.size() > size;
-        if (hasNext) {
-            guides = guides.subList(0, size);
-        }
-
-        if (guides.isEmpty()) {
-            log.info("✅ 조회된 가이드 없음 - 빈 Slice 반환");
-            return new SliceImpl<>(List.of(), PageRequest.of(0, size), false);
-        }
-
-        // 4. 좋아요 정보 조회 (현재 사용자가 좋아요한 가이드 ID 목록)
-        Set<Long> likedGuideIds = Set.of();
-        if (currentMemberId != null) {
-            List<Long> guideIds = guides.stream()
-                    .map(Guide::getId)
-                    .toList();
-
-            likedGuideIds = queryFactory
-                    .select(gl.guide.id)
-                    .from(gl)
-                    .where(
-                            gl.member.id.eq(currentMemberId),
-                            gl.guide.id.in(guideIds)
-                    )
-                    .fetch()
-                    .stream()
-                    .collect(Collectors.toSet());
-
-            log.info("❤️ 사용자 {}가 좋아요한 가이드 수: {}", currentMemberId, likedGuideIds.size());
-        }
-
-        // 5. Media 조회 (N+1 방지)
-        List<Long> guideIds = guides.stream()
-                .map(Guide::getId)
-                .toList();
-
-        Map<Long, List<MediaDto>> mediaMap = queryFactory
-                .select(m.guide.id, m.mediaUrl)
-                .from(m)
-                .where(m.guide.id.in(guideIds))
-                .orderBy(m.id.asc())
-                .transform(GroupBy.groupBy(m.guide.id).as(
-                        GroupBy.list(Projections.constructor(MediaDto.class, m.mediaName, m.mediaUrl))
-                ));
-
-        log.info("📷 Media 조회 완료 - {} 개 가이드에 미디어 매핑", mediaMap.size());
-
-        // 6. DTO 변환
-        Set<Long> finalLikedGuideIds = likedGuideIds;
-        List<GuideResponseDto> content = guides.stream()
-                .map(guide -> new GuideResponseDto(
-                        guide.getId(),
-                        guide.getTip(),
-                        MemberDto.fromEntity(guide.getAuthor()),
-                        guide.getLocation() != null ? guide.getLocation().getLocationName() : "no name",
-                        mediaMap.getOrDefault(guide.getId(), List.of()),
-                        guide.getLikeCount(),
-                        finalLikedGuideIds.contains(guide.getId())
-                ))
-                .toList();
-
-        log.info("✅ [findNearbyGuidesPaged] 반환 DTO 수: {}, hasNext: {}", content.size(), hasNext);
-
-        return new SliceImpl<>(content, PageRequest.of(0, size), hasNext);
-    }
-
-    @Override
-    public Slice<GuideResponseDto> findNearbyGuidesPagedOptimized(
-            double lat,
-            double lng,
-            double radiusInDegrees,
-            double minLat,
-            double minLng,
-            double maxLat,
-            double maxLng,
-            Long lastGuideId,
-            int size,
-            Long currentMemberId
-    ) {
-        log.info("🚀 [findNearbyGuidesPagedOptimized] lat: {}, lng: {}, radius: {}, cursor: {}, size: {}",
-                lat, lng, radiusInDegrees, lastGuideId, size);
-
-        // 🔹 통합 쿼리: PostGIS 공간 검색 + Guide JOIN을 단일 쿼리로 처리
-        // - 기존: Location 조회(120개) → IN 절로 Guide 조회 (느림)
-        // - 개선: 공간 조건으로 Guide를 직접 조회 (빠름)
-        String sql = """
-            SELECT g.id
-            FROM guide g
-            INNER JOIN location l ON g.location_id = l.id
-            WHERE l.coordinate && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
-              AND ST_DWithin(l.coordinate, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radiusInDegrees)
-              AND (:cursor IS NULL OR g.id > :cursor)
-            ORDER BY g.id ASC
-            LIMIT :limit
-            """;
-
-        // Native Query 실행 (Guide ID만 조회)
-        @SuppressWarnings("unchecked")
-        List<Long> guideIds = entityManager.createNativeQuery(sql)
-                .setParameter("lat", lat)
-                .setParameter("lng", lng)
-                .setParameter("radiusInDegrees", radiusInDegrees)
-                .setParameter("minLat", minLat)
-                .setParameter("minLng", minLng)
-                .setParameter("maxLat", maxLat)
-                .setParameter("maxLng", maxLng)
-                .setParameter("cursor", lastGuideId)
-                .setParameter("limit", size + 1)  // hasNext 확인용 +1
-                .getResultList()
-                .stream()
-                .map(id -> ((Number) id).longValue())
-                .toList();
-
-        log.info("📍 공간 쿼리 결과 - Guide ID 수: {} (limit: {})", guideIds.size(), size + 1);
-
-        // hasNext 판단
-        boolean hasNext = guideIds.size() > size;
-        List<Long> actualGuideIds = hasNext ? guideIds.subList(0, size) : guideIds;
-
-        if (actualGuideIds.isEmpty()) {
-            log.info("✅ 조회된 가이드 없음 - 빈 Slice 반환");
-            return new SliceImpl<>(List.of(), PageRequest.of(0, size), false);
-        }
-
-        // 🔹 조회된 Guide ID로 엔티티 Fetch (Fetch Join 사용)
-        QGuide g = QGuide.guide;
-        QLocation l = QLocation.location;
-
-        List<Guide> guides = queryFactory
-                .select(g)
-                .from(g)
-                .leftJoin(g.author).fetchJoin()  // N+1 방지
-                .leftJoin(g.location, l).fetchJoin()  // N+1 방지
-                .where(g.id.in(actualGuideIds))
-                .orderBy(g.id.asc())
-                .fetch();
-
-        log.info("📘 Guide 엔티티 조회 완료 - 수: {}", guides.size());
-
-        // 🔹 좋아요 정보 조회
-        Set<Long> likedGuideIds = Set.of();
-        if (currentMemberId != null) {
-            QGuideLike gl = QGuideLike.guideLike;
-            likedGuideIds = queryFactory
-                    .select(gl.guide.id)
-                    .from(gl)
-                    .where(
-                            gl.member.id.eq(currentMemberId),
-                            gl.guide.id.in(actualGuideIds)
-                    )
-                    .fetch()
-                    .stream()
-                    .collect(Collectors.toSet());
-
-            log.info("❤️ 사용자 {}가 좋아요한 가이드 수: {}", currentMemberId, likedGuideIds.size());
-        }
-
-        // 🔹 Media 조회 (N+1 방지)
-        QMedia m = QMedia.media;
-        Map<Long, List<MediaDto>> mediaMap = queryFactory
-                .select(m.guide.id, m.mediaUrl)
-                .from(m)
-                .where(m.guide.id.in(actualGuideIds))
-                .orderBy(m.id.asc())
-                .transform(GroupBy.groupBy(m.guide.id).as(
-                        GroupBy.list(Projections.constructor(MediaDto.class, m.mediaName, m.mediaUrl))
-                ));
-
-        log.info("📷 Media 조회 완료 - {} 개 가이드에 미디어 매핑", mediaMap.size());
-
-        // 🔹 DTO 변환
-        Set<Long> finalLikedGuideIds = likedGuideIds;
-        List<GuideResponseDto> content = guides.stream()
-                .map(guide -> new GuideResponseDto(
-                        guide.getId(),
-                        guide.getTip(),
-                        MemberDto.fromEntity(guide.getAuthor()),
-                        guide.getLocation() != null ? guide.getLocation().getLocationName() : "no name",
-                        mediaMap.getOrDefault(guide.getId(), List.of()),
-                        guide.getLikeCount(),
-                        finalLikedGuideIds.contains(guide.getId())
-                ))
-                .toList();
-
-        log.info("✅ [findNearbyGuidesPagedOptimized] 반환 DTO 수: {}, hasNext: {}", content.size(), hasNext);
-
-        return new SliceImpl<>(content, PageRequest.of(0, size), hasNext);
-    }
 
 }

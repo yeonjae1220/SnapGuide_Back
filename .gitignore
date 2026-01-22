@@ -65,3 +65,4 @@ src/main/resources/load-test-data/*.csv
 k6/data/*.csv
 *.csv
 
+k6-tests/results

@@ -15,10 +15,10 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       # Connection Pool 설정
-      maximum-pool-size: 30          # CPU 78%에서 안전한 증가 (10 → 30)
-      minimum-idle: 15               # 최소 유지 커넥션
+      maximum-pool-size: 15          # CPU 78%에서 안전한 증가 (10 → 30)
+      minimum-idle: 10               # 최소 유지 커넥션
       connection-timeout: 20000      # 커넥션 대기 시간 (20초)
-      idle-timeout: 300000           # 유휴 커넥션 유지 시간 (5분)
+      idle-timeout: 600000           # 유휴 커넥션 유지 시간 (10분)
       max-lifetime: 1800000          # 커넥션 최대 생명 주기 (30분)
       pool-name: SnapguideHikariPool
       # PreparedStatement 캐싱 (Native Query에는 영향 적지만, JPQL 쿼리를 위해 유지)
