@@ -187,13 +187,15 @@ public class GoogleOAuthService {
      * Google 사용자 정보로 회원 찾기 또는 생성
      */
     private Member findOrCreateMember(GoogleUserInfo userInfo) {
-        return memberRepository.findByEmail(userInfo.getEmail())
+        // ✅ authority를 함께 조회하여 N+1 방지 (JWT 생성 시 필요)
+        return memberRepository.findByEmailWithAuthority(userInfo.getEmail())
                 .orElseGet(() -> {
                     log.info("🆕 새로운 Google 회원 생성: {}", userInfo.getEmail());
                     Member newMember = Member.builder()
                             .email(userInfo.getEmail())
                             .password("") // OAuth 회원은 비밀번호 없음
                             .build();
+                    // 신규 회원은 authority가 자동 설정되므로 바로 반환
                     return memberRepository.save(newMember);
                 });
     }

@@ -27,7 +27,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return memberRepository.findByEmail(email)
+        // ✅ authority를 함께 조회하여 N+1 방지
+        return memberRepository.findByEmailWithAuthority(email)
                 .map(this::createUserDetails)
                 // DB에 유효하지 않은 유저로 로그인 시도 했을 경우 Exception
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));

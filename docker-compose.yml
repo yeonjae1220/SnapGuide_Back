@@ -73,6 +73,10 @@ services:
       - "6380:6379"
     networks:
       - my-network
+    # maxmemory: 최대 512MB까지만 사용
+    # allkeys-lru: 메모리 가득 차면 오래된 키 자동 삭제
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+
 
   # OpenTelemetry Collector - 텔레메트리 데이터 수집 및 라우팅
   otel-collector:

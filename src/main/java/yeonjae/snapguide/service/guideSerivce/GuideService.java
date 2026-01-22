@@ -3,6 +3,9 @@ package yeonjae.snapguide.service.guideSerivce;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Slice;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -64,6 +67,7 @@ public class GuideService {
     media들은 얘 작성하고, 아이디들 받아와서 얘한테 연결 시켜 주는게 좋을듯?
 
      */
+    @CacheEvict(value = "nearbyGuides", allEntries = true)
     public Long createGuide(GuideCreateTestDto guideCreateTestDto) {
         Member author = memberRepository.findById(guideCreateTestDto.getMemberId())
                 .orElseThrow(() -> new EntityNotFoundException("member not found"));
@@ -99,6 +103,7 @@ public class GuideService {
         return guideRepository.findAllByMemberId(memberId);
     }
 
+    @CacheEvict(value = "nearbyGuides", allEntries = true)
     public GuideResponseDto updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
@@ -153,6 +158,7 @@ public class GuideService {
         }
     }
 
+    @CacheEvict(value = "nearbyGuides", allEntries = true)
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
@@ -174,6 +180,11 @@ public class GuideService {
         log.info("Guide deletion successful for: {}", guideId);
     }
 
+    @Cacheable(
+            value = "nearbyGuides",
+            key = "#lat + ':' + #lng + ':' + #radius",
+            unless = "#result.isEmpty()"
+    )
     public List<GuideResponseDto> findGuidesNear(double lat, double lng, double radius) { // km
         log.info("📍 [findGuidesNear] 요청 위치: lat = {}, lng = {}, radius = {} km", lat, lng, radius);
 
@@ -240,6 +251,54 @@ public class GuideService {
                 .toList();
 
         log.info("✅ 최종 반환 GuideDto 수: {}", result.size());
+        return result;
+    }
+
+    /**
+     * 커서 기반 페이징으로 주변 가이드 조회
+     * NOTE: 페이징 특성상 캐시 효율이 낮고, Slice 객체 직렬화 이슈가 있어 캐시 비활성화
+     * @param lat 위도
+     * @param lng 경도
+     * @param radius 검색 반경 (km)
+     * @param cursor 마지막 가이드 ID (null이면 첫 페이지)
+     * @param size 페이지 크기
+     * @param currentMemberId 현재 사용자 ID (좋아요 정보 조회용, null 가능)
+     * @return 페이징된 가이드 목록 (Slice)
+     */
+    public Slice<GuideResponseDto> findGuidesNearPaged(
+            double lat,
+            double lng,
+            double radius,
+            Long cursor,
+            int size,
+            Long currentMemberId
+    ) {
+        log.info("📍 [findGuidesNearPaged] 요청 - lat: {}, lng: {}, radius: {} km, cursor: {}, size: {}",
+                lat, lng, radius, cursor, size);
+
+        // 1. Bounding Box 계산 (km → degree)
+        double[] box = GeoUtil.getBoundingBox(lat, lng, radius);
+        double minLat = box[0], maxLat = box[1];
+        double minLng = box[2], maxLng = box[3];
+
+        // 2. ST_DWithin용 radius를 degree로 변환
+        double radiusInDegrees = GeoUtil.kmToDegrees(lat, radius);
+        log.info("🔄 [findGuidesNearPaged] radius 변환: {} km → {} degrees", radius, radiusInDegrees);
+
+        // 🚀 최적화된 방식: 공간 쿼리 + 가이드 조회를 단일 쿼리로 통합
+        // - 기존: Location 조회(120개) → IN 절로 Guide 조회 (느림)
+        // - 개선: PostGIS 공간 조건으로 Guide를 직접 조회 (빠름)
+        Slice<GuideResponseDto> result = guideRepository.findNearbyGuidesPagedOptimized(
+                lat, lng, radiusInDegrees,
+                minLat, minLng, maxLat, maxLng,
+                cursor,
+                size,
+                currentMemberId
+        );
+
+        log.info("✅ [findGuidesNearPaged] 최종 반환 - content: {}, hasNext: {}",
+                result.getNumberOfElements(), result.hasNext());
+
         return result;
     }
 

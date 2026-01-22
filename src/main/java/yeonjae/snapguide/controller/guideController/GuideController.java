@@ -2,6 +2,7 @@ package yeonjae.snapguide.controller.guideController;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +14,7 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
+import yeonjae.snapguide.controller.guideController.guideDto.SliceResponse;
 
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
@@ -110,6 +112,55 @@ public class GuideController {
             @RequestParam(defaultValue = "20") double radius
     ) {
         return guideService.findGuidesNear(lat, lng, radius);
+    }
+
+    /**
+     * 커서 기반 페이징으로 주변 가이드 조회
+     * @param lat 위도
+     * @param lng 경도
+     * @param radius 검색 반경 (km)
+     * @param cursor 마지막으로 조회한 가이드 ID (다음 페이지 커서)
+     * @param size 페이지 크기 (기본값: 20)
+     * @param userDetails 현재 로그인한 사용자 정보 (선택)
+     * @return 페이징된 가이드 목록 (SliceResponse)
+     */
+    @GetMapping("/nearby/paged")
+    public ResponseEntity<SliceResponse<GuideResponseDto>> getNearbyGuidesPaged(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "20") double radius,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("🌍 [getNearbyGuidesPaged] 요청 - lat: {}, lng: {}, radius: {}, cursor: {}, size: {}",
+                lat, lng, radius, cursor, size);
+
+        // 현재 사용자 ID 조회 (좋아요 정보 조회용)
+        Long currentMemberId = null;
+        if (userDetails != null) {
+            Member member = memberRepository.findByEmail(userDetails.getUsername())
+                    .orElse(null);
+            if (member != null) {
+                currentMemberId = member.getId();
+            }
+        }
+
+        // 페이징된 가이드 조회
+        Slice<GuideResponseDto> slice = guideService.findGuidesNearPaged(
+                lat, lng, radius, cursor, size, currentMemberId
+        );
+
+        // SliceResponse로 변환
+        SliceResponse<GuideResponseDto> response = SliceResponse.from(
+                slice,
+                GuideResponseDto::getId  // 커서 추출 함수
+        );
+
+        log.info("✅ [getNearbyGuidesPaged] 응답 - content: {}, hasNext: {}, nextCursor: {}",
+                response.getSize(), response.isHasNext(), response.getNextCursor());
+
+        return ResponseEntity.ok(response);
     }
     // 게시글 상세 조회 API
     @GetMapping("/{id}")

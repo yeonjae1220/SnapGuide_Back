@@ -77,8 +77,8 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
      * @return DB에 저장되거나 조회된 Member 엔티티
      */
     private Member saveOrUpdate(OAuth2UserInfo userInfo, String provider) {
-        // 이메일을 기준으로 DB에서 회원을 조회합니다.
-        Member member = memberRepository.findByEmail(userInfo.getEmail())
+        // ✅ authority를 함께 조회하여 N+1 방지 (OAuth2 인증 시 필요)
+        Member member = memberRepository.findByEmailWithAuthority(userInfo.getEmail())
                 // 이미 가입된 회원이라면, 이름이나 프로필 사진 등 변경될 수 있는 정보를 업데이트합니다.
                 // .map(entity -> entity.update(userInfo.getName(), userInfo.getPicture())) // Member 엔티티에 update 메소드가 있다면 사용 가능
 

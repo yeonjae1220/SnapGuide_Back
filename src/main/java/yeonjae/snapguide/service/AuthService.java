@@ -203,8 +203,8 @@ public class AuthService {
         authCodeRepository.deleteById(code);
         log.info("Authorization code 사용 및 삭제: {} for user: {}", code, email);
 
-        // 3. 사용자 정보 조회
-        Member member = memberRepository.findByEmail(email)
+        // 3. 사용자 정보 조회 (✅ authority 함께 조회하여 N+1 방지)
+        Member member = memberRepository.findByEmailWithAuthority(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 4. JWT 토큰 생성
