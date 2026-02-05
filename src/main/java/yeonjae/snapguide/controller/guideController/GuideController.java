@@ -8,12 +8,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
-
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
-
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
-
+import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
@@ -33,15 +30,20 @@ public class GuideController {
     private final GuideService guideService;
     private final MediaService mediaService;
     private final MemberRepository memberRepository;
+    /**
+     * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리
+     * - 원본만 빠르게 업로드 (동기)
+     * - 썸네일/웹용은 백그라운드에서 비동기 생성
+     * - Guide ID만 반환 (Media ID 불필요)
+     */
     @PostMapping("/upload")
-    public Long testCreateGuide(
+    public Long createGuideWithMedia(
             @AuthenticationPrincipal UserDetails userDetails,
-
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "tip", required = false) String tip)
             throws IOException {
 
-        // 둘 다 비었을 경우 업로드 차단
+        // 1. 검증
         boolean hasNoFiles = (files == null || files.length == 0);
         boolean hasNoTip = (tip == null || tip.trim().isEmpty());
 
@@ -49,34 +51,18 @@ public class GuideController {
             throw new IllegalArgumentException("사진 또는 팁 중 하나는 필수입니다.");
         }
 
-        // 지금 유저 찾는 코드가 너무 돌고 돔, 거기다가 memberRepository의존까지 가지게 됨
+        // 2. 사용자 조회
         String email = userDetails.getUsername();
         Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("no member : " +  email));
-        Long memberId = member.getId();
+                .orElseThrow(() -> new UsernameNotFoundException("no member : " + email));
 
-        // 사진 저장
-        List<Long> ids = hasNoFiles ? List.of() : mediaService.saveAll(Arrays.asList(files));
+        // 3. 파일 업로드 + Media 엔티티 생성 (비동기 썸네일 생성 시작)
+        List<Media> mediaList = hasNoFiles
+                ? List.of()
+                : mediaService.saveAllAndGet(Arrays.asList(files));
 
-        /**
-         * TODO : 위치 정보 , media 대표 사진에서 뽑아 와야함, 혹은 collection 써서 전체적으로 뽑아두기?
-         * -> 사용자에게 공개될 장소 정보, 제한적 공개 필요
-         * 프론트 측에서 사용자 현재위치로 제안 or 가능하면 사진 데이터로 제안, 후 사용자가 원하지 않을지 직접 위치 선택
-         * 사진들이 여러 장소에서 찍은 케이스 처리 필요 (여러 장소를 모두 저장하거나, 바운더리로 묶을 수 있으면 묶기)
-         * 현재는 우선 저장된 media를 통해 조회해서 가장 먼저 나오는 위치 데이터 사용 -> location 데이터로 요청 보내야 할듯
-         */
-
-        // 위치 ID 추정 (없으면 null)
-        Long locationId = ids.isEmpty() ? null : mediaService.getOneLocationId(ids);
-
-        GuideCreateTestDto request =  GuideCreateTestDto.of(memberId, tip, locationId, ids);
-
-        Long guideId = guideService.createGuide(request);
-
-        // 사진이 있다면 가이드에 연결
-        if (!ids.isEmpty()) {
-            guideService.linkMediaToGuide(guideId, ids);
-        }
+        // 4. Guide 생성 + Media 연결 (한 번에 처리)
+        Long guideId = guideService.createGuideWithMedia(member, tip, mediaList);
 
         return guideId;
     }

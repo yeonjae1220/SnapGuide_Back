@@ -28,7 +28,7 @@ export const options = {
   ],
   thresholds: {
     // 공간 쿼리는 복잡하므로 95%가 1초 이내
-    'spatial_query_duration': ['p(95)<1000', 'p(99)<2000'],
+    'spatial_query_duration': ['p(95)<500', 'p(99)<1000'],
     // 성공률 99% 이상
     'spatial_query_success': ['rate>0.99'],
     // 느린 쿼리(2초 이상)가 전체의 5% 미만
@@ -68,7 +68,7 @@ export default function () {
       const duration = new Date().getTime() - startTime;
       spatialQueryDuration.add(duration);
 
-      if (duration > 2000) {
+      if (duration > 500) {
         slowQueriesCount.add(1);
         console.warn(`Slow query detected: ${duration}ms at ${location.name} with radius ${radius}km`);
       }
@@ -83,8 +83,8 @@ export default function () {
             return false;
           }
         },
+        'query time < 0.5s': () => duration < 500,
         'query time < 1s': () => duration < 1000,
-        'query time < 2s': () => duration < 2000,
       });
 
       spatialQuerySuccess.add(success);
@@ -110,13 +110,13 @@ export default function () {
       const duration = new Date().getTime() - startTime;
       spatialQueryDuration.add(duration);
 
-      if (duration > 2000) {
+      if (duration > 500) {
         slowQueriesCount.add(1);
       }
 
       const success = check(res, {
         'status is 200': (r) => r.status === 200,
-        'query time < 1s': () => duration < 1000,
+        'query time < 0.5s': () => duration < 500,
       });
 
       spatialQuerySuccess.add(success);
@@ -142,13 +142,13 @@ export default function () {
       const duration = new Date().getTime() - startTime;
       spatialQueryDuration.add(duration);
 
-      if (duration > 2000) {
+      if (duration > 500) {
         slowQueriesCount.add(1);
       }
 
       const success = check(res, {
         'status is 200': (r) => r.status === 200,
-        'query time < 1s': () => duration < 1000,
+        'query time < 0.5s': () => duration < 500,
       });
 
       spatialQuerySuccess.add(success);
@@ -175,7 +175,7 @@ export function handleSummary(data) {
 
     // 인덱스 추천
     recommendations.push(
-      p95Duration > 1000
+      p95Duration > 500
         ? '⚠️  GIST 인덱스 확인 필요: CREATE INDEX idx_location_coordinate ON location USING GIST(coordinate);'
         : '✅ 공간 인덱스가 잘 작동하고 있습니다'
     );
