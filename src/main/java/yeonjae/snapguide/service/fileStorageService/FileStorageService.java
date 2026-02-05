@@ -8,7 +8,30 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public interface FileStorageService {
+    /**
+     * 파일 업로드 (동기 - 모든 파일 생성 후 반환)
+     * @deprecated 성능 이슈로 uploadOriginalOnly + generateDerivativesAsync 조합 권장
+     */
     UploadFileDto uploadFile(MultipartFile file) throws IOException;
+
+    /**
+     * 원본 파일만 업로드 (동기 - 빠른 응답)
+     * 썸네일/웹용 파일은 generateDerivativesAsync()로 비동기 생성
+     */
+    default UploadFileDto uploadOriginalOnly(MultipartFile file) throws IOException {
+        // 기본 구현은 기존 uploadFile() 호출 (하위 호환성)
+        return uploadFile(file);
+    }
+
+    /**
+     * 파생 파일(썸네일, 웹용) 비동기 생성
+     * @param mediaId Media 엔티티 ID (완료 후 업데이트용)
+     * @param originalKey 원본 파일 키/경로
+     * @param originalBytes 원본 파일 바이트 (이미지 변환용)
+     */
+    default void generateDerivativesAsync(Long mediaId, String originalKey, byte[] originalBytes) {
+        // 기본 구현은 아무것도 안 함 (하위 호환성)
+    }
 
     Resource downloadFile(String filePath) throws IOException;
 

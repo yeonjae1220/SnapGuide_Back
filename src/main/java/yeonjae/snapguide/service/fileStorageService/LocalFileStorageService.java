@@ -43,14 +43,43 @@ public class LocalFileStorageService implements FileStorageService{
      */
     private final HeicConverter heicConverter = new HeicConverter();
 
-//    @PostConstruct
-//    public void init() throws IOException {
-//        Files.createDirectories(uploadDir);
-//        Files.createDirectories(uploadOriginalDir);
-//    }
-
-    // TODO : 년, 월, 일로 파일 이름 분류해서 넣어주기
+    /**
+     * 원본 파일만 로컬에 저장 (동기 - 빠른 응답용)
+     * 썸네일은 AsyncFileProcessingService.generateDerivativesAsync()로 비동기 처리
+     */
     @Override
+    public UploadFileDto uploadOriginalOnly(MultipartFile multipartFile) throws IOException {
+        log.info("[Fast Upload-Local] Starting for: {}", multipartFile.getOriginalFilename());
+        long startTime = System.currentTimeMillis();
+
+        String baseFileName = UUID.randomUUID().toString();
+        String originalFileNameWithExt = baseFileName + ".jpg";
+
+        // 1. 이미지를 JPG로 변환
+        byte[] originalJpgBytes = convertToJpg(multipartFile);
+
+        // 2. 원본만 저장 (썸네일은 비동기로 나중에)
+        Path originalPath = uploadOriginalDir.resolve(originalFileNameWithExt);
+        Files.createDirectories(originalPath.getParent());
+        Files.copy(new ByteArrayInputStream(originalJpgBytes), originalPath, StandardCopyOption.REPLACE_EXISTING);
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.info("[Fast Upload-Local] Completed in {}ms. Original: {}", elapsed, originalPath);
+
+        return UploadFileDto.builder()
+                .originalFileBytes(originalJpgBytes)
+                .originalDir(originalPath.toString())
+                .originalKey(originalPath.toString())
+                .baseFileName(baseFileName)
+                .thumbnailDir(null)  // 아직 생성 안 됨
+                .build();
+    }
+
+    /**
+     * @deprecated 성능 이슈로 uploadOriginalOnly + generateDerivativesAsync 조합 권장
+     */
+    @Override
+    @Deprecated
     public UploadFileDto uploadFile(MultipartFile multipartFile) throws IOException {
         String baseFileName = UUID.randomUUID().toString();
         String originalFileNameWithExt = baseFileName + ".jpg";
@@ -78,10 +107,11 @@ public class LocalFileStorageService implements FileStorageService{
         Files.createDirectories(thumbnailPath.getParent());
         Files.copy(new ByteArrayInputStream(thumbnailBytes), thumbnailPath, StandardCopyOption.REPLACE_EXISTING);
 
-//        return new ByteArrayInputStream(originalJpgBytes); // NOTE : 흠...
         return UploadFileDto.builder()
                 .originalFileBytes(originalJpgBytes)
                 .originalDir(originalPath.toString())
+                .originalKey(originalPath.toString())
+                .baseFileName(baseFileName)
                 .thumbnailDir(thumbnailPath.toString())
                 .build();
     }
