@@ -33,6 +33,8 @@ public final class SecurityConstants {
 
 		public static final String[] FILE_IO = {"/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/**", "/uploads/**", "/media/**"};
 
+		public static final String[] ACTUATOR = {"/actuator/**"};
+
 
 
 		public static List<String> getAllPatterns() {
@@ -45,6 +47,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
 			whiteList.addAll(Arrays.stream(FILE_IO).toList());
+			whiteList.addAll(Arrays.stream(ACTUATOR).toList());
 			return whiteList;
 		}
 

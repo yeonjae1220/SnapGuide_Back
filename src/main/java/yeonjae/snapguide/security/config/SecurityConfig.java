@@ -104,6 +104,7 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.ACTUATOR).permitAll() // 모니터링 메트릭
                                 .anyRequest()
                                 .authenticated()
                 )

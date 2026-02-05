@@ -66,4 +66,21 @@ public class Media {
     public void assignMedia(Guide guide) {
         this.guide = guide;
     }
+
+    /**
+     * 비동기 처리 완료 후 파생 파일 URL 업데이트 (S3용)
+     */
+    public void updateDerivativeUrls(String webKey, String thumbnailKey, String mediaUrl) {
+        this.webKey = webKey;
+        this.thumbnailKey = thumbnailKey;
+        this.mediaUrl = mediaUrl;
+    }
+
+    /**
+     * 비동기 처리 완료 후 썸네일 URL 업데이트 (Local용)
+     */
+    public void updateThumbnailUrl(String thumbnailKey, String mediaUrl) {
+        this.thumbnailKey = thumbnailKey;
+        this.mediaUrl = mediaUrl;
+    }
 }

@@ -66,6 +66,41 @@ public class GuideService {
     media들은 얘 작성하고, 아이디들 받아와서 얘한테 연결 시켜 주는게 좋을듯?
 
      */
+    /**
+     * Guide 생성 + Media 연결 통합 메서드 (권장)
+     * DB 조회 최소화: Media 엔티티를 직접 받아서 처리
+     */
+    @CacheEvict(value = "nearbyGuides", allEntries = true)
+    public Long createGuideWithMedia(Member author, String tip, List<Media> mediaList) {
+        // 1. 첫 번째 Media의 Location 사용 (없으면 null)
+        Location location = mediaList.stream()
+                .map(Media::getLocation)
+                .filter(loc -> loc != null)
+                .findFirst()
+                .orElse(null);
+
+        // 2. Guide 생성
+        Guide guide = Guide.builder()
+                .tip(tip)
+                .author(author)
+                .location(location)
+                .build();
+
+        guideRepository.save(guide);
+
+        // 3. Media 연결
+        if (!mediaList.isEmpty()) {
+            linkMediaToGuide(guide, mediaList);
+        }
+
+        log.info("[Guide] Created guide {} with {} media", guide.getId(), mediaList.size());
+        return guide.getId();
+    }
+
+    /**
+     * @deprecated DTO 기반 생성은 추가 DB 조회 필요. createGuideWithMedia() 사용 권장
+     */
+    @Deprecated
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public Long createGuide(GuideCreateTestDto guideCreateTestDto) {
         Member author = memberRepository.findById(guideCreateTestDto.getMemberId())
@@ -87,15 +122,26 @@ public class GuideService {
         return guide.getId();
     }
 
+    /**
+     * Media 엔티티를 Guide에 직접 연결 (ID 조회 없이)
+     */
+    public void linkMediaToGuide(Guide guide, List<Media> mediaList) {
+        for (Media media : mediaList) {
+            guide.assignGuide(media);
+            media.assignMedia(guide);
+        }
+    }
+
+    /**
+     * @deprecated ID 기반 연결은 추가 DB 조회 필요. linkMediaToGuide(Guide, List<Media>) 사용 권장
+     */
+    @Deprecated
     public void linkMediaToGuide(Long guideId, List<Long> mediaIds) {
         Guide guide = guideRepository.findById(guideId)
                 .orElseThrow(() -> new EntityNotFoundException("Guide not found"));
         List<Media> mediaList = mediaRepository.findAllById(mediaIds);
 
-        for (Media media : mediaList) {
-            guide.assignGuide(media); // 양방향 관계 저장
-            media.assignMedia(guide); // media ← guide 연결
-        }
+        linkMediaToGuide(guide, mediaList);
     }
 
     public List<GuideResponseDto> getMyGuides(Long memberId) {
@@ -273,6 +319,14 @@ public class GuideService {
 
 
 
+    /**
+     * 좋아요 토글 (원자적 업데이트로 동시성 문제 해결)
+     *
+     * 최적화 포인트:
+     * 1. existsById 제거 → FK 제약조건이 guideId 유효성 검증
+     * 2. ID 기반 쿼리 사용 → 프록시 초기화 없이 직접 쿼리
+     * 3. @Modifying(flushAutomatically, clearAutomatically) → 영속성 컨텍스트 동기화
+     */
     @Transactional
     public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
         // 인증되지 않은 사용자 체크
@@ -280,22 +334,24 @@ public class GuideService {
             throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");
         }
 
-        Guide guide = findGuide(guideId);
         Member member = memberRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
 
-        Optional<GuideLike> like = guideLikeRepository.findByMemberAndGuide(member, guide);
+        // ID 기반 쿼리로 좋아요 존재 여부 확인 (프록시 초기화 없음)
+        boolean likeExists = guideLikeRepository.existsByMemberIdAndGuideId(member.getId(), guideId);
 
-        if (like.isPresent()) {
+        if (likeExists) {
             // 좋아요가 이미 존재하면 -> 좋아요 취소
-            guideLikeRepository.delete(like.get());
-            guide.decreaseLikeCount();
-            return false; // 좋아요 취소됨
+            guideLikeRepository.deleteByMemberIdAndGuideId(member.getId(), guideId);
+            guideRepository.decrementLikeCount(guideId);  // 원자적 감소
+            return false;
         } else {
             // 좋아요가 없으면 -> 좋아요 추가
-            guideLikeRepository.save(new GuideLike(member, guide));
-            guide.increaseLikeCount();
-            return true; // 좋아요 추가됨
+            // getReferenceById: DB 조회 없이 프록시만 생성 (INSERT용 FK 참조)
+            Guide guideRef = guideRepository.getReferenceById(guideId);
+            guideLikeRepository.save(new GuideLike(member, guideRef));
+            guideRepository.incrementLikeCount(guideId);  // 원자적 증가
+            return true;
         }
     }
 

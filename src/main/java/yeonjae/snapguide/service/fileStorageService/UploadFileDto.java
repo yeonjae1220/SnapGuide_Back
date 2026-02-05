@@ -12,7 +12,8 @@ import lombok.NoArgsConstructor;
 public class UploadFileDto {
     byte[] originalFileBytes;
     String originalDir;
+    String originalKey;      // S3 key 또는 로컬 경로
+    String baseFileName;     // UUID 기반 파일명 (비동기 처리용)
     String webDir;
     String thumbnailDir;
-
 }

@@ -37,8 +37,68 @@ public class S3FileStorageService implements FileStorageService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
+    /**
+     * 원본 파일만 S3에 업로드 (동기 - 빠른 응답용)
+     * 웹용/썸네일은 AsyncFileProcessingService.generateDerivativesAsync()로 비동기 처리
+     */
+    @Override
+    public UploadFileDto uploadOriginalOnly(MultipartFile file) throws IOException {
+        String originalFileName = file.getOriginalFilename();
+        if (originalFileName == null || originalFileName.isEmpty()) {
+            throw new IOException("파일 이름이 없습니다.");
+        }
+
+        log.info("[Fast Upload] Starting for: {}, Size: {} bytes", originalFileName, file.getSize());
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 1. Tika로 실제 파일 타입 감지
+            Tika tika = new Tika();
+            String mimeType = tika.detect(file.getInputStream());
+
+            byte[] fileBytes = file.getBytes();
+            String extension = getExtension(originalFileName);
+
+            // 2. HEIC/HEIF인 경우 JPG 변환 (원본 저장 전에 필요)
+            if ("image/heic".equals(mimeType) || "image/heif".equals(mimeType)) {
+                log.info("[Fast Upload] HEIC detected, converting...");
+                fileBytes = convertHeicToJpg(fileBytes);
+                extension = "jpg";
+            }
+
+            String baseFileName = UUID.randomUUID().toString();
+            String originalKey = "images/originals/" + baseFileName + "." + extension;
+
+            // 3. 원본 파일만 S3 업로드 (1회만!)
+            ObjectMetadata metadata = createMetadata(file.getContentType(), fileBytes.length);
+            amazonS3.putObject(bucketName, originalKey, new ByteArrayInputStream(fileBytes), metadata);
+            String originalUrl = amazonS3.getUrl(bucketName, originalKey).toString();
+
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info("[Fast Upload] Completed in {}ms. Original: {}", elapsed, originalKey);
+
+            // 4. 원본 정보만 반환 (웹용/썸네일은 비동기로 나중에)
+            return UploadFileDto.builder()
+                    .originalFileBytes(fileBytes)
+                    .originalDir(originalUrl)
+                    .originalKey(originalKey)
+                    .baseFileName(baseFileName)
+                    .webDir(null)
+                    .thumbnailDir(null)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[Fast Upload] Failed for: {}", originalFileName, e);
+            throw new IOException("파일 업로드 중 오류가 발생했습니다: " + originalFileName, e);
+        }
+    }
+
+    /**
+     * @deprecated 성능 이슈로 uploadOriginalOnly + generateDerivativesAsync 조합 권장
+     */
     @Override
     @Transactional
+    @Deprecated
     public UploadFileDto uploadFile(MultipartFile file) throws IOException {
         String originalFileName = file.getOriginalFilename();
         if (originalFileName == null || originalFileName.isEmpty()) {
@@ -126,7 +186,7 @@ public class S3FileStorageService implements FileStorageService {
             log.info("File upload process completed successfully for: {}", originalFileName);
 
             return UploadFileDto.builder()
-                    .originalFileBytes(fileBytes) // 👈 변환된 JPG가 아닌, 원본 파일 바이트를 담아 반환
+                    .originalFileBytes(fileBytes) // 변환된 JPG가 아닌, 원본 파일 바이트를 담아 반환
                     .originalDir(originalFileUrl)
                     .webDir(webOriginalFileUrl)
                     .thumbnailDir(thumbnailFileUrl)
