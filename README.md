@@ -45,7 +45,9 @@ src/main/java/yeonjae/snapguide/
 ~~~
 
 # 서비스 접속
-현재 프로젝트는 https://briankim.synology.me/ 에서 제공됩니다. 현재 UI가 완성되지 않아 개발용 화면으로 이어집니다.
+현재 프로젝트는 https://briankim.synology.me/ 에서 제공됩니다. 
+- 현재 UI가 완성되지 않아 개발용 화면으로 이어집니다.
+- 운영용 데이터가 아직 갖추어 지지 않았습니다.
 
 # 라이선스
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
