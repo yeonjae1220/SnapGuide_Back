@@ -57,8 +57,13 @@ ENV_SETUP.md
 DB_PASSWORD_CHANGE_GUIDE.md
 BLOG_POST.md
 OBSERVABILITY.md
+CLAUDE.md
+PR_SUMMARY.md
+LOAD_TEST_QUICKSTART.md
+
+### Exclude all .md except GitHub templates ###
 *.md
-# CLAUDE.md  # 프로젝트 가이드로 필요하면 이 줄 주석 해제
+!.github/**/*.md
 
 ### Load Test Data ###
 src/main/resources/load-test-data/*.csv
