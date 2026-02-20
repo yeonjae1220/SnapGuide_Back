@@ -15,7 +15,9 @@ public final class SecurityConstants {
 
 	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class AuthenticationWhiteList {
-		public static final String[] TEST_API = {"/test/**", "/guide/api/**", "/api/auth/reissue"}; // "/api/auth/test",
+		public static final String[] TEST_API = {"/test/**", "/api/auth/reissue"}; // "/api/auth/test"
+		// 비인증 공개 접근 허용 가이드 엔드포인트 (JWT 처리 대상에서 제외)
+		public static final String[] GUIDE_PUBLIC_API = {"/guide/api/nearby"};
 		public static final String[] SWAGGER_V3 = {"/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/swagger-ui.html", "/swagger-ui-custom.html"};
 
 		public static final String[] AUTH_API = {"/api-docs", "/api-docs/**", "/graphiql", "/graphql"}; // "/api/**", "/api/auth/**",
@@ -35,11 +37,14 @@ public final class SecurityConstants {
 
 		public static final String[] ACTUATOR = {"/actuator/**"};
 
+		public static final String[] LOCATION_API = {"/location/api/places/**"};
+
 
 
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
 			whiteList.addAll(Arrays.stream(TEST_API).toList());
+			whiteList.addAll(Arrays.stream(GUIDE_PUBLIC_API).toList());
 			whiteList.addAll(Arrays.stream(SWAGGER_V3).toList());
 			whiteList.addAll(Arrays.stream(AUTH_API).toList());
 			whiteList.addAll(Arrays.stream(USER_API).toList());
@@ -48,6 +53,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
 			whiteList.addAll(Arrays.stream(FILE_IO).toList());
 			whiteList.addAll(Arrays.stream(ACTUATOR).toList());
+			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			return whiteList;
 		}
 
