@@ -4,420 +4,747 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SnapGuide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
     <style>
-      * { box-sizing: border-box; }
+      /* ========== Variables ========== */
+      :root {
+        --ig: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        --bg: #fafafa;
+        --white: #ffffff;
+        --black: #0a0a0a;
+        --text: #262626;
+        --gray: #8e8e8e;
+        --border: #dbdbdb;
+        --blue: #0095f6;
+        --red: #ed4956;
+        --r: 12px;
+        --f: 'DM Sans', -apple-system, sans-serif;
+        --fd: 'Playfair Display', Georgia, serif;
+        --sh: 0 4px 20px rgba(0,0,0,0.08);
+        --t: 0.2s cubic-bezier(0.4,0,0.2,1);
+      }
+
+      /* ========== Reset ========== */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        margin: 0;
-        line-height: 1.6;
-        background: #f8f9fa;
+        font-family: var(--f);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
-      input, textarea, select {
-        padding: 10px;
-        margin: 2px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 1em;
+      input, textarea, select, button { font-family: var(--f); }
+      a { text-decoration: none; }
+
+      /* ========== Shared ========== */
+      .ig-text {
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
-      button {
-        cursor: pointer;
-        background-color: #4285f4;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 15px;
-        font-size: 1em;
-      }
-      button:hover { background-color: #357ae8; }
-      a {
-        cursor: pointer;
-        background-color: #4285f4;
-        color: white;
-        border: none;
-        text-decoration: none;
-        display: inline-block;
-        padding: 10px 15px;
-        border-radius: 6px;
-      }
-      a:hover { background-color: #357ae8; }
-      h1, h3 { border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
       /* ===================== LANDING VIEW ===================== */
       #landing-view {
-        position: relative;
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: none;
+        overflow: auto;
+        background: var(--black);
+      }
+
+      .landing-wrap {
+        display: flex;
         min-height: 100vh;
-        background: linear-gradient(135deg, #1a73e8 0%, #4285f4 50%, #669df6 100%);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 20px 40px 20px;
       }
-      #landing-return-notice {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .btn-back-map {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        border-radius: 8px;
-        padding: 7px 14px;
-        font-size: 0.9em;
-        cursor: pointer;
-      }
-      .btn-back-map:hover { background: rgba(255, 255, 255, 0.35); }
-      #landing-notice-msg {
-        background: rgba(255, 255, 255, 0.15);
-        color: white;
-        border-radius: 6px;
-        padding: 6px 12px;
-        font-size: 0.85em;
-        display: none;
-      }
-      .landing-container {
-        display: flex;
-        gap: 60px;
-        max-width: 1000px;
-        width: 100%;
-        align-items: center;
-      }
-      .hero-section { flex: 1; color: white; }
-      .hero-logo {
-        font-size: 2.8em;
-        font-weight: 800;
-        margin: 0 0 10px 0;
-        letter-spacing: -1px;
-      }
-      .hero-logo span { color: #ffd700; }
-      .hero-tagline { font-size: 1.2em; opacity: 0.9; margin-bottom: 30px; }
-      .hero-features { list-style: none; padding: 0; margin: 0; }
-      .hero-features li {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
-        font-size: 1em;
-      }
-      .hero-features li .icon {
-        width: 44px;
-        height: 44px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3em;
-        flex-shrink: 0;
-      }
-      .hero-features li .text strong { display: block; font-size: 1em; }
-      .hero-features li .text span { font-size: 0.85em; opacity: 0.85; }
-      .auth-section {
-        width: 380px;
-        flex-shrink: 0;
-        background: white;
-        border-radius: 16px;
-        padding: 32px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-      }
-      .auth-tabs {
-        display: flex;
-        margin-bottom: 24px;
-        border-bottom: 2px solid #e8eaed;
-      }
-      .auth-tab-btn {
+
+      /* Hero ─────────────────────── */
+      .lh {
         flex: 1;
-        background: none;
-        border: none;
-        color: #888;
-        font-size: 1em;
-        font-weight: 600;
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
-        border-radius: 0;
-      }
-      .auth-tab-btn:hover { background: #f8f9fa; color: #4285f4; }
-      .auth-tab-btn.active { color: #4285f4; border-bottom-color: #4285f4; }
-      .auth-panel { display: none; }
-      .auth-panel.active { display: block; }
-      .form-group { margin-bottom: 12px; }
-      .form-group input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 1em;
-        margin: 0;
-      }
-      .form-group input:focus {
-        outline: none;
-        border-color: #4285f4;
-        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-      }
-      .btn-primary {
-        width: 100%;
-        background: #4285f4;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 13px;
-        font-size: 1em;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 8px;
-      }
-      .btn-primary:hover { background: #357ae8; }
-      .divider {
-        text-align: center;
-        color: #aaa;
-        margin: 16px 0;
         position: relative;
-      }
-      .divider::before, .divider::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: 40%;
-        height: 1px;
-        background: #e0e0e0;
-      }
-      .divider::before { left: 0; }
-      .divider::after { right: 0; }
-      .btn-google {
-        width: 100%;
-        background: white;
-        color: #444;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 13px;
-        font-size: 1em;
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-      }
-      .btn-google:hover { background: #f5f5f5; }
-      .btn-google svg { width: 20px; height: 20px; }
-
-      /* ===================== MAIN VIEW ===================== */
-      .tab-nav {
-        display: flex;
-        gap: 0;
-        border-bottom: 2px solid #4285f4;
-        margin-bottom: 0;
-        position: sticky;
-        top: 0;
-        background: white;
-        z-index: 100;
-        padding: 10px 20px 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        align-items: flex-end;
-      }
-      .tab-btn {
-        padding: 12px 20px;
-        background: none;
-        color: #555;
-        border: none;
-        border-radius: 6px 6px 0 0;
-        font-size: 0.95em;
-        font-weight: 500;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
-        flex-shrink: 0;
-      }
-      .tab-btn:hover { background-color: #f0f4ff; color: #4285f4; }
-      .tab-btn.active {
-        background-color: #e8f0fe;
-        color: #4285f4;
-        border-bottom: 3px solid #4285f4;
-        font-weight: 700;
-      }
-      /* 탭 우측 사용자 영역 */
-      .nav-user-area {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding-bottom: 10px;
-        flex-shrink: 0;
-      }
-      .nav-user-area button {
-        font-size: 0.85em;
-        padding: 7px 14px;
-      }
-      #nav-login-btn { background: #4285f4; }
-      #nav-logout-btn { background: #6c757d; }
-      #nav-user-email {
-        font-size: 0.85em;
-        color: #555;
-        display: none;
-      }
-      .tab-section { display: none; padding: 20px; }
-      .tab-section.active { display: block; }
-
-      /* Guide Cards */
-      #guideWrap, #guideNear { display: flex; flex-wrap: wrap; gap: 10px; }
-      .guide-card {
-        border: 1px solid #ddd;
-        margin: 10px;
-        padding: 10px;
-        width: 260px;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
+        justify-content: center;
+        padding: 80px 52px;
+        background: #0a0a0a;
       }
-      .img-box {
-        width: 100%;
-        height: 260px;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        background-color: #f0f0f0;
-        border-radius: 6px 6px 0 0;
-      }
-      .img-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+      .lh::before {
+        content: '';
         position: absolute;
-        top: 0;
-        left: 0;
+        width: 560px; height: 560px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(240,148,51,.45) 0%, rgba(188,24,136,.2) 55%, transparent 72%);
+        top: -120px; right: -120px;
+        animation: orb 7s ease-in-out infinite;
       }
-      .guide-card p { margin: 10px 0; flex-grow: 1; }
-      .meta-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 0;
-        font-size: 0.9em;
-        color: #555;
+      .lh::after {
+        content: '';
+        position: absolute;
+        width: 420px; height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,149,246,.3) 0%, rgba(204,35,102,.18) 55%, transparent 72%);
+        bottom: -90px; left: -90px;
+        animation: orb 9s ease-in-out infinite reverse;
       }
-      .like-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.5rem;
-        padding: 0;
-        line-height: 1;
-        color: #ff4d4f;
+      @keyframes orb {
+        0%,100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-24px) scale(1.06); }
       }
-      .like-count { font-weight: bold; }
-      .button-group { margin-top: auto; display: flex; gap: 5px; }
-      .button-group button { flex-grow: 1; }
 
-      /* Location */
-      #locationSearchSection {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
+      .lh-inner { position: relative; z-index: 1; }
+
+      .lh-logo {
+        font-family: var(--fd);
+        font-size: 58px;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 18px;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
+      .lh-tag {
+        color: rgba(255,255,255,.72);
+        font-size: 18px;
+        line-height: 1.65;
+        margin-bottom: 52px;
+      }
+      .lh-feats { list-style: none; display: flex; flex-direction: column; gap: 28px; }
+      .lh-feat { display: flex; align-items: flex-start; gap: 18px; }
+      .lh-ico {
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.12);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+      }
+      .lh-feat strong { display: block; color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+      .lh-feat span { color: rgba(255,255,255,.48); font-size: 13px; }
+
+      /* Return notice */
+      #landing-return-notice {
+        position: fixed;
+        top: 18px; left: 18px;
+        z-index: 510;
+        display: flex; align-items: center; gap: 10px;
+      }
+      .btn-back-map {
+        background: rgba(255,255,255,.1);
+        color: rgba(255,255,255,.82);
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: 20px;
+        padding: 8px 18px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-back-map:hover { background: rgba(255,255,255,.2); color: #fff; }
+      #landing-notice-msg {
+        background: rgba(255,255,255,.1);
+        color: rgba(255,255,255,.88);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        display: none;
+      }
+
+      /* Auth panel ─────────────────── */
+      .la {
+        width: 440px;
+        flex-shrink: 0;
+        background: var(--white);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 64px 48px;
+      }
+      .la-brand {
+        font-family: var(--fd);
+        font-size: 30px; font-weight: 700;
+        margin-bottom: 6px;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .la-sub { font-size: 14px; color: var(--gray); margin-bottom: 32px; }
+
+      .auth-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+      .auth-tab-btn {
+        flex: 1;
+        background: none; border: none;
+        padding: 12px 0;
+        font-size: 14px; font-weight: 600;
+        color: var(--gray);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: var(--t);
+      }
+      .auth-tab-btn:hover { color: var(--text); }
+      .auth-tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+      .auth-panel { display: none; }
+      .auth-panel.active { display: block; }
+
+      .form-group { margin-bottom: 10px; }
+      .form-group input {
+        width: 100%; margin: 0;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fafafa;
+        color: var(--text);
+        outline: none;
+        transition: var(--t);
+      }
+      .form-group input:focus { border-color: #a0a0a0; background: var(--white); }
+      .form-group input::placeholder { color: #bbb; }
+
+      .btn-primary {
+        width: 100%; margin-top: 8px;
+        padding: 12px;
+        background: var(--blue); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-primary:hover { background: #1877f2; }
+      .btn-primary:active { transform: scale(.98); }
+
+      .auth-div {
+        text-align: center; color: var(--gray); font-size: 13px;
+        margin: 20px 0;
+        display: flex; align-items: center; gap: 14px;
+      }
+      .auth-div::before, .auth-div::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+      .btn-google {
+        width: 100%;
+        background: var(--white); color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px;
+        font-size: 14px; font-weight: 500;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transition: var(--t);
+      }
+      .btn-google:hover { background: #f5f5f5; }
+      .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+      /* ===================== MAIN VIEW ===================== */
+      #main-view { min-height: 100vh; }
+
+      /* Nav ─────────────────────────── */
+      .app-nav {
+        position: sticky; top: 0; z-index: 100;
+        height: 60px;
+        background: rgba(255,255,255,.95);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center;
+        padding: 0 24px; gap: 0;
+      }
+      .nav-brand {
+        font-family: var(--fd);
+        font-size: 22px; font-weight: 700;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-right: 28px; flex-shrink: 0;
+      }
+      .nav-tabs { display: flex; align-items: center; flex: 1; gap: 2px; }
+
+      .tab-btn {
+        display: flex; align-items: center; gap: 6px;
+        padding: 7px 16px;
+        background: none; border: none;
+        color: var(--gray);
+        font-size: 14px; font-weight: 500;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: var(--t);
+        white-space: nowrap;
+      }
+      .tab-btn:hover { background: rgba(0,0,0,.04); color: var(--text); }
+      .tab-btn.active { background: rgba(0,0,0,.06); color: var(--text); font-weight: 600; }
+      .tab-icon { font-size: 15px; }
+
+      .nav-user-area {
+        margin-left: auto;
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0;
+      }
+      #nav-user-email { font-size: 13px; color: var(--gray); display: none; }
+      #nav-login-btn {
+        padding: 7px 18px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 20px;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: var(--t);
+      }
+      #nav-login-btn:hover { background: #333; }
+      #nav-logout-btn {
+        padding: 7px 18px;
+        background: none; color: var(--gray);
+        border: 1px solid var(--border); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      #nav-logout-btn:hover { border-color: #aaa; color: var(--text); }
+
+      /* Sections */
+      .tab-section { display: none; }
+      .tab-section.active { display: block; animation: fadein .18s ease; }
+      @keyframes fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+      /* ========== LOCATION TAB ========== */
+      #tab-location { background: var(--bg); }
+      #locationSearchSection { position: relative; }
+
       #map {
         width: 100%;
-        height: 400px;
-        border: 1px solid #ddd;
-        margin-bottom: 15px;
+        height: 480px;
+        background: #e8eaed;
+        display: block;
       }
-      #searchBox { position: relative; }
-      #locationSearchInput { width: calc(100% - 24px); }
-      #searchStatus { text-align: center; font-weight: bold; font-size: 1.1em; color: #333; }
+
+      /* Floating search bar over map */
+      .search-float {
+        position: absolute;
+        top: 16px; left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 48px);
+        max-width: 560px;
+        z-index: 10;
+      }
+      #searchBox {
+        position: relative;
+        background: var(--white);
+        border-radius: 14px;
+        box-shadow: 0 4px 24px rgba(0,0,0,.14);
+      }
+      .search-icon-inner {
+        position: absolute;
+        left: 16px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        pointer-events: none;
+        color: var(--gray);
+        line-height: 1;
+      }
+      #locationSearchInput {
+        width: 100%; margin: 0;
+        padding: 15px 16px 15px 46px;
+        border: 1.5px solid transparent;
+        border-radius: 14px;
+        font-size: 14px;
+        background: transparent;
+        color: var(--text);
+        outline: none;
+        transition: var(--t);
+      }
+      #locationSearchInput:focus { border-color: var(--blue); }
+      #locationSearchInput::placeholder { color: #bbb; }
+
       #autocompleteResults {
         position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        z-index: 1000;
-        width: 100%;
-        max-height: 200px;
+        top: calc(100% + 6px); left: 0; right: 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+        overflow: hidden;
+        z-index: 200;
+        max-height: 240px;
         overflow-y: auto;
       }
       #autocompleteResults div {
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
-        margin-bottom: 0;
+        padding: 12px 16px;
+        font-size: 14px; cursor: pointer;
+        color: var(--text);
+        border-bottom: 1px solid #f5f5f5;
+        transition: var(--t);
+        margin: 0;
       }
-      #autocompleteResults div:hover { background-color: #f0f0f0; }
+      #autocompleteResults div:last-child { border-bottom: none; }
+      #autocompleteResults div:hover { background: #f8f9fa; }
 
-      /* Profile */
-      .profile-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        max-width: 400px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        margin-top: 16px;
+      /* Controls strip */
+      .search-strip {
+        padding: 12px 20px;
+        display: flex; align-items: center; gap: 10px;
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
       }
-      .profile-email { color: #555; margin-bottom: 20px; font-size: 1.05em; }
-      .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 16px;
-        cursor: pointer;
-        font-size: 1em;
+      #searchStatus { font-size: 13px; color: var(--gray); flex: 1; min-width: 0; }
+      #currentLocationBtn {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 16px;
+        background: none; color: var(--blue);
+        border: 1.5px solid var(--blue); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; white-space: nowrap;
+        transition: var(--t);
       }
-      .btn-danger:hover { background-color: #c82333; }
+      #currentLocationBtn:hover { background: rgba(0,149,246,.06); }
+      #radiusSelect {
+        padding: 8px 12px;
+        border: 1.5px solid var(--border); border-radius: 20px;
+        font-size: 13px;
+        background: var(--white); color: var(--text);
+        cursor: pointer; outline: none;
+        margin: 0;
+        transition: var(--t);
+      }
+      #radiusSelect:focus { border-color: var(--blue); }
 
-      /* Responsive */
-      @media (max-width: 700px) {
-        .landing-container { flex-direction: column; gap: 30px; }
-        .auth-section { width: 100%; }
-        .hero-logo { font-size: 2em; }
-        .tab-btn { padding: 10px 12px; font-size: 0.85em; }
+      /* Guide grid */
+      #guideNear {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 14px;
+      }
+
+      /* ========== GUIDE TAB ========== */
+      #tab-guide { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
+
+      .sec-title {
+        font-size: 17px; font-weight: 700;
+        color: var(--text);
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .upload-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 22px;
+        margin-bottom: 28px;
+      }
+      .file-zone {
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        padding: 28px 16px;
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+        transition: var(--t);
+        margin-bottom: 14px;
+      }
+      .file-zone:hover { border-color: var(--blue); background: rgba(0,149,246,.025); }
+      .file-zone input[type="file"] {
+        position: absolute; inset: 0;
+        opacity: 0; cursor: pointer;
+        width: 100%; height: 100%;
+      }
+      .file-zone-label { color: var(--gray); font-size: 14px; pointer-events: none; }
+      .file-zone-label strong { display: block; color: var(--blue); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+
+      #tip {
+        width: 100%; margin: 0;
+        min-height: 96px;
+        padding: 12px 14px;
+        border: 1px solid var(--border); border-radius: 8px;
+        font-size: 14px; line-height: 1.55;
+        resize: vertical; outline: none;
+        background: #fafafa; color: var(--text);
+        transition: var(--t);
+      }
+      #tip:focus { border-color: #a0a0a0; background: var(--white); }
+      #tip::placeholder { color: #bbb; }
+
+      .btn-upload {
+        width: 100%; margin-top: 14px;
+        padding: 12px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-upload:hover { background: #222; }
+      .btn-upload:active { transform: scale(.99); }
+
+      .guides-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .btn-load {
+        padding: 7px 16px;
+        background: none; color: var(--blue);
+        border: 1.5px solid var(--blue); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .btn-load:hover { background: rgba(0,149,246,.06); }
+
+      #guideWrap {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+      }
+
+      /* ========== Guide Cards ========== */
+      .guide-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        overflow: hidden;
+        transition: var(--t);
+      }
+      .guide-card:hover { box-shadow: var(--sh); transform: translateY(-2px); }
+
+      .img-box {
+        position: relative;
+        width: 100%;
+        padding-top: 100%;   /* 1:1 square like Instagram */
+        background: #efefef;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .img-box img {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform .3s ease;
+      }
+      .img-box:hover img { transform: scale(1.04); }
+
+      .guide-card-body { padding: 12px; }
+      .guide-card p {
+        font-size: 13px; color: var(--text);
+        margin-bottom: 10px; line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .meta-info {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid #f5f5f5;
+      }
+      .view-count { font-size: 12px; color: var(--gray); }
+      .like-area { display: flex; align-items: center; gap: 4px; }
+      .like-btn {
+        background: none; border: none; padding: 0;
+        font-size: 18px; line-height: 1; cursor: pointer;
+        transition: transform .15s cubic-bezier(.4,0,.2,1);
+      }
+      .like-btn:hover { transform: scale(1.25); }
+      .like-btn:active { transform: scale(.88); }
+      .like-count { font-size: 13px; color: var(--gray); font-weight: 500; }
+
+      .button-group { display: flex; gap: 6px; margin-top: 10px; }
+      .button-group button {
+        flex: 1; padding: 7px;
+        background: #f5f5f5; border: none; border-radius: 6px;
+        font-size: 12px; color: var(--text); font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .button-group button:first-child:hover { background: #ebebeb; }
+      .button-group button:last-child:hover { background: #fde8ea; color: var(--red); }
+
+      /* ========== PROFILE TAB ========== */
+      #tab-profile { max-width: 480px; margin: 0 auto; padding: 40px 20px; }
+
+      .profile-head {
+        display: flex; align-items: center; gap: 24px;
+        margin-bottom: 32px;
+        padding-bottom: 28px;
+        border-bottom: 1px solid var(--border);
+      }
+      .profile-avatar {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: var(--ig);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 34px; flex-shrink: 0;
+      }
+      .profile-info h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+      #profileEmail { font-size: 14px; color: var(--gray); }
+
+      .profile-actions { display: flex; flex-direction: column; gap: 10px; }
+      .btn-pa {
+        width: 100%; padding: 13px 16px;
+        background: var(--white); color: var(--text);
+        border: 1px solid var(--border); border-radius: 10px;
+        font-size: 14px; font-weight: 500;
+        cursor: pointer; text-align: left;
+        display: flex; align-items: center; gap: 12px;
+        transition: var(--t);
+      }
+      .btn-pa:hover { background: #f8f9fa; }
+      .btn-pa.danger { color: var(--red); }
+      .btn-pa.danger:hover { background: #fff5f6; border-color: #ffd5d8; }
+
+      /* ========== ADMIN TAB ========== */
+      #tab-admin { max-width: 820px; margin: 0 auto; padding: 28px 20px; }
+
+      .admin-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+      .admin-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 20px;
+      }
+      .admin-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+      .btn-a {
+        padding: 9px 18px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .btn-a:hover { background: #222; }
+      .btn-a.sm { font-size: 12px; padding: 6px 13px; }
+      #authResult { margin-top: 10px; font-size: 13px; color: var(--gray); }
+
+      .panel {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 20px;
+        margin-bottom: 14px;
+      }
+      .panel-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .panel-head h3 { font-size: 14px; font-weight: 600; }
+      #photoCountText { font-size: 13px; color: var(--gray); }
+
+      #photoList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+        gap: 3px;
+        margin-top: 8px;
+      }
+      #photoList img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; margin: 0; border-radius: 4px; }
+
+      #allPhotoContainer {
+        height: 380px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      #allPhoto {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+        gap: 3px;
+        padding: 3px;
+      }
+      #allPhoto img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; margin: 0; }
+
+      .page-ctrl { display: flex; align-items: center; gap: 8px; }
+      .btn-pg {
+        padding: 8px 14px;
+        background: none; color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        font-size: 13px; cursor: pointer; transition: var(--t);
+      }
+      .btn-pg:hover:not(:disabled) { border-color: var(--text); }
+      .btn-pg:disabled { opacity: .38; cursor: not-allowed; }
+      #loadStartBtn {
+        padding: 8px 16px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      #loadStartBtn:hover { background: #222; }
+      #loadingText { font-size: 13px; color: var(--gray); }
+
+      #memberList { list-style: none; margin-top: 10px; }
+      #memberList li {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 14px; color: var(--text);
+      }
+      #memberList li:last-child { border-bottom: none; }
+
+      /* ========== Responsive ========== */
+      @media (max-width: 768px) {
+        .landing-wrap { flex-direction: column; }
+        .lh { padding: 80px 28px 36px; min-height: 45vh; }
+        .la { width: 100%; padding: 32px 24px 52px; }
+        .lh-logo { font-size: 38px; }
+        .lh-tag { font-size: 15px; margin-bottom: 32px; }
+
+        .app-nav { padding: 0 14px; }
+        .nav-brand { margin-right: 14px; font-size: 18px; }
+        .tab-btn { padding: 6px 10px; font-size: 12px; }
+        .tab-btn span:not(.tab-icon) { display: none; }
+
+        #guideNear { padding: 14px; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
+        #guideWrap { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
+        .admin-row { grid-template-columns: 1fr; }
+        #tab-guide, #tab-admin, #tab-profile { padding: 20px 14px; }
       }
     </style>
   </head>
   <body>
 
-    <!-- ===================== LANDING VIEW (로그인 페이지) ===================== -->
+    <!-- ===================== LANDING VIEW ===================== -->
     <div id="landing-view">
-      <!-- 지도로 돌아가기 버튼 (항상 표시) -->
       <div id="landing-return-notice">
         <button class="btn-back-map" onclick="showMainView()">← 지도로 돌아가기</button>
         <span id="landing-notice-msg"></span>
       </div>
 
-      <div class="landing-container">
-        <!-- Hero Section -->
-        <div class="hero-section">
-          <div class="hero-logo">Snap<span>Guide</span></div>
-          <p class="hero-tagline">여행의 순간을 가이드로, 세상과 나누다</p>
-          <ul class="hero-features">
-            <li>
-              <div class="icon">📍</div>
-              <div class="text">
-                <strong>위치 기반 검색</strong>
-                <span>현재 위치 주변의 여행 가이드를 지도에서 바로 탐색하세요</span>
-              </div>
-            </li>
-            <li>
-              <div class="icon">📖</div>
-              <div class="text">
-                <strong>가이드 공유</strong>
-                <span>여행 팁과 사진을 담은 나만의 가이드를 만들고 공유하세요</span>
-              </div>
-            </li>
-            <li>
-              <div class="icon">📷</div>
-              <div class="text">
-                <strong>스마트 사진 관리</strong>
-                <span>EXIF 메타데이터로 사진의 위치 정보를 자동으로 추출합니다</span>
-              </div>
-            </li>
-          </ul>
+      <div class="landing-wrap">
+        <!-- Hero -->
+        <div class="lh">
+          <div class="lh-inner">
+            <div class="lh-logo">SnapGuide</div>
+            <p class="lh-tag">여행의 순간을 가이드로,<br>세상과 나누다</p>
+            <ul class="lh-feats">
+              <li class="lh-feat">
+                <div class="lh-ico">📍</div>
+                <div>
+                  <strong>위치 기반 탐색</strong>
+                  <span>현재 위치 주변의 가이드를 지도에서 바로</span>
+                </div>
+              </li>
+              <li class="lh-feat">
+                <div class="lh-ico">📖</div>
+                <div>
+                  <strong>가이드 공유</strong>
+                  <span>나만의 여행 팁과 사진으로 가이드를 공유</span>
+                </div>
+              </li>
+              <li class="lh-feat">
+                <div class="lh-ico">📷</div>
+                <div>
+                  <strong>스마트 사진 관리</strong>
+                  <span>EXIF 메타데이터로 위치 정보 자동 추출</span>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <!-- Auth Section -->
-        <div class="auth-section">
+        <!-- Auth -->
+        <div class="la">
+          <div class="la-brand">SnapGuide</div>
+          <p class="la-sub">계속하려면 로그인하거나 가입하세요</p>
+
           <div class="auth-tabs">
             <button class="auth-tab-btn active" onclick="switchAuthTab('login', this)">로그인</button>
             <button class="auth-tab-btn" onclick="switchAuthTab('signup', this)">회원가입</button>
@@ -432,7 +759,7 @@
               <input id="loginPassword" type="password" placeholder="비밀번호" />
             </div>
             <button class="btn-primary" onclick="login()">로그인</button>
-            <div class="divider">또는</div>
+            <div class="auth-div">또는</div>
             <button class="btn-google" onclick="googleLogin()">
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -440,7 +767,7 @@
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Google로 로그인
+              Google로 계속하기
             </button>
           </div>
 
@@ -453,7 +780,7 @@
               <input id="password" type="password" placeholder="비밀번호" />
             </div>
             <button class="btn-primary" onclick="signup()">회원가입</button>
-            <div class="divider">또는</div>
+            <div class="auth-div">또는</div>
             <button class="btn-google" onclick="googleLogin()">
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -470,13 +797,24 @@
 
     <!-- ===================== MAIN VIEW ===================== -->
     <div id="main-view">
-      <!-- Tab Nav -->
-      <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="location" onclick="switchTab('location', this)">📍 위치 검색</button>
-        <button class="tab-btn" data-tab="guide" onclick="switchTab('guide', this)">📖 가이드</button>
-        <button class="tab-btn" data-tab="profile" onclick="switchTab('profile', this)">👤 내 정보</button>
-        <button class="tab-btn" data-tab="admin" onclick="switchTab('admin', this)">🔧 관리자</button>
-        <!-- 우측 사용자 영역 -->
+
+      <!-- Nav -->
+      <nav class="app-nav">
+        <div class="nav-brand">SnapGuide</div>
+        <div class="nav-tabs">
+          <button class="tab-btn active" data-tab="location" onclick="switchTab('location', this)">
+            <span class="tab-icon">📍</span><span>위치 검색</span>
+          </button>
+          <button class="tab-btn" data-tab="guide" onclick="switchTab('guide', this)">
+            <span class="tab-icon">📖</span><span>가이드</span>
+          </button>
+          <button class="tab-btn" data-tab="profile" onclick="switchTab('profile', this)">
+            <span class="tab-icon">👤</span><span>내 정보</span>
+          </button>
+          <button class="tab-btn" data-tab="admin" onclick="switchTab('admin', this)">
+            <span class="tab-icon">🔧</span><span>관리자</span>
+          </button>
+        </div>
         <div class="nav-user-area">
           <span id="nav-user-email"></span>
           <button id="nav-login-btn" onclick="showLandingView(null)">로그인</button>
@@ -484,87 +822,122 @@
         </div>
       </nav>
 
-      <!-- Location Tab (Default) -->
+      <!-- Location Tab -->
       <section id="tab-location" class="tab-section active">
         <div id="locationSearchSection">
-          <h1>📍 위치 기반 가이드 검색</h1>
-          <div id="map" style="background-color: #e0e0e0">지도를 불러오는 중...</div>
-          <p id="searchStatus">지도를 움직여 검색 기준점을 설정하거나 장소를 검색하세요.</p>
-          <div id="searchBox">
-            <input id="locationSearchInput" placeholder="장소, 주소 검색 (예: 창원 시청)" />
-            <div id="autocompleteResults"></div>
+          <div id="map" style="background-color:#e8eaed;">지도를 불러오는 중...</div>
+
+          <!-- Floating search bar -->
+          <div class="search-float">
+            <div id="searchBox">
+              <span class="search-icon-inner">🔍</span>
+              <input id="locationSearchInput" placeholder="장소, 주소 검색 (예: 창원 시청)" />
+              <div id="autocompleteResults"></div>
+            </div>
           </div>
-          <div style="margin-top: 10px;">
-            <button id="currentLocationBtn">🛰️ 내 현재 위치로 검색</button>
+
+          <!-- Controls strip -->
+          <div class="search-strip">
+            <p id="searchStatus">지도를 움직여 기준점을 설정하거나 장소를 검색하세요.</p>
+            <button id="currentLocationBtn">🛰️ 내 위치</button>
             <select id="radiusSelect">
-              <option value="5">반경 5km</option>
-              <option value="10" selected>반경 10km</option>
-              <option value="20">반경 20km</option>
-              <option value="50">반경 50km</option>
-              <option value="100">반경 100km</option>
+              <option value="5">5km</option>
+              <option value="10" selected>10km</option>
+              <option value="20">20km</option>
+              <option value="50">50km</option>
+              <option value="100">100km</option>
             </select>
           </div>
-          <div id="guideNear" style="margin-top: 16px;"></div>
+
+          <div id="guideNear"></div>
         </div>
       </section>
 
       <!-- Guide Tab -->
       <section id="tab-guide" class="tab-section">
-        <h1>가이드 업로드</h1>
-        <div style="margin-bottom: 12px;">
-          <input type="file" id="imageFile" name="file" multiple />
+        <h2 class="sec-title">가이드 업로드</h2>
+        <div class="upload-card">
+          <div class="file-zone">
+            <input type="file" id="imageFile" name="file" multiple />
+            <div class="file-zone-label">
+              <strong>📷 사진 선택</strong>
+              클릭하거나 파일을 드래그하세요
+            </div>
+          </div>
+          <textarea id="tip" placeholder="여행 팁을 입력하세요... 이 장소에 대한 정보를 공유해보세요!"></textarea>
+          <button class="btn-upload" onclick="upload()">업로드</button>
         </div>
-        <div style="margin-bottom: 12px;">
-          <label for="tip"></label>
-          <textarea id="tip" placeholder="팁을 입력하세요" style="width: 100%; min-height: 80px;"></textarea>
-        </div>
-        <button onclick="upload()">업로드</button>
 
-        <h1>내 가이드 목록</h1>
-        <button onclick="loadUserGuides()">가이드 목록 불러오기</button>
-        <div id="guideWrap" style="margin-top: 16px;"></div>
+        <div class="guides-header">
+          <h2 class="sec-title" style="margin:0; border:none; padding:0;">내 가이드 목록</h2>
+          <button class="btn-load" onclick="loadUserGuides()">불러오기</button>
+        </div>
+        <div id="guideWrap"></div>
       </section>
 
       <!-- Profile Tab -->
       <section id="tab-profile" class="tab-section">
-        <h1>내 정보</h1>
-        <div class="profile-card">
-          <p class="profile-email">📧 <span id="profileEmail">-</span></p>
-          <button onclick="logout()" style="margin-right: 8px;">로그아웃</button>
-          <button onclick="deleteMember()" class="btn-danger">회원 탈퇴</button>
+        <div class="profile-head">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <h2>내 계정</h2>
+            <div id="profileEmail">-</div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn-pa" onclick="logout()"><span>🚪</span> 로그아웃</button>
+          <button class="btn-pa danger" onclick="deleteMember()"><span>⚠️</span> 회원 탈퇴</button>
         </div>
       </section>
 
       <!-- Admin Tab -->
       <section id="tab-admin" class="tab-section">
-        <h1>토큰 재발급</h1>
-        <button onclick="reissueToken()">토큰 재발급</button>
-
-        <h1>인증 테스트</h1>
-        <button onclick="authTest()">인증된 사용자 확인</button>
-        <div id="authResult" style="margin-top: 10px;"></div>
-
-        <h1>사진 목록 보기</h1>
-        <button onclick="loadPhotos()">사진 목록 불러오기</button>
-        <div id="photoList" style="margin-top: 10px;"></div>
-
-        <h1>모든 사진 보기</h1>
-        <h3 id="photoCountText">📷 전체 사진 수: 알 수 없음</h3>
-        <div id="allPhotoContainer" style="height: 500px; overflow-y: auto; border: 1px solid gray">
-          <div id="allPhoto"></div>
-        </div>
-        <div style="margin-top: 10px">
-          <button id="prevPageBtn" disabled>⬅️ 이전</button>
-          <button id="nextPageBtn" disabled>➡️ 다음</button>
-          <button id="loadStartBtn">📸 사진 불러오기 시작</button>
-          <span id="loadingText" style="margin-left: 10px; display: none">⌛ 불러오는 중...</span>
+        <div class="admin-row">
+          <div class="admin-card">
+            <h3>🔄 토큰 재발급</h3>
+            <button class="btn-a" onclick="reissueToken()">재발급</button>
+          </div>
+          <div class="admin-card">
+            <h3>🔐 인증 테스트</h3>
+            <button class="btn-a" onclick="authTest()">인증 확인</button>
+            <div id="authResult"></div>
+          </div>
         </div>
 
-        <h1>멤버 리스트</h1>
-        <button onclick="loadMembers()">멤버 리스트 불러오기</button>
-        <ul id="memberList"></ul>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>📷 사진 목록</h3>
+            <button class="btn-a sm" onclick="loadPhotos()">불러오기</button>
+          </div>
+          <div id="photoList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>🗂️ 전체 사진</h3>
+            <span id="photoCountText">전체 사진 수: -</span>
+          </div>
+          <div id="allPhotoContainer">
+            <div id="allPhoto"></div>
+          </div>
+          <div class="page-ctrl" style="margin-top:10px;">
+            <button id="prevPageBtn" class="btn-pg" disabled>← 이전</button>
+            <button id="nextPageBtn" class="btn-pg" disabled>다음 →</button>
+            <button id="loadStartBtn">📸 불러오기</button>
+            <span id="loadingText" style="display:none;">⌛ 로딩 중...</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>👥 멤버 리스트</h3>
+            <button class="btn-a sm" onclick="loadMembers()">불러오기</button>
+          </div>
+          <ul id="memberList"></ul>
+        </div>
       </section>
-    </div>
+
+    </div><!-- /main-view -->
 
     <script>
       const API_BASE_URL = window.location.origin;
@@ -576,11 +949,6 @@
         return !!localStorage.getItem("accessToken");
       }
 
-      /**
-       * 로그인 페이지로 이동.
-       * @param {string|null} requiredFor - 인증 후 돌아갈 탭 이름 (null이면 단순 로그인 요청)
-       * @param {string|null} noticeMsg - 랜딩 상단에 표시할 안내 메시지
-       */
       function showLandingView(requiredFor, noticeMsg) {
         if (requiredFor) {
           sessionStorage.setItem("returnTab", requiredFor);
@@ -627,9 +995,6 @@
         document.getElementById("profileEmail").textContent = email || "이메일 정보 없음";
       }
 
-      /**
-       * 로그인 성공 후 sessionStorage에 저장된 returnTab으로 이동
-       */
       function navigateToReturnTab() {
         const returnTab = sessionStorage.getItem("returnTab");
         sessionStorage.removeItem("returnTab");
@@ -639,10 +1004,6 @@
         }
       }
 
-      /**
-       * 서버에 토큰 유효성을 확인. 만료/무효이면 false 반환.
-       * localStorage 토큰이 있어도 서버 재시작 등으로 무효화된 경우를 처리.
-       */
       async function validateToken() {
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/test`, {
@@ -657,8 +1018,6 @@
       async function initApp() {
         await handleRedirectToken();
 
-        // localStorage에 토큰이 있어도 서버에서 유효한지 검증
-        // (Docker 재빌드, 서버 재시작, 토큰 만료 등으로 무효화된 경우 제거)
         if (localStorage.getItem("accessToken")) {
           const valid = await validateToken();
           if (!valid) {
@@ -668,7 +1027,6 @@
           }
         }
 
-        // 인증 여부와 관계없이 항상 메인 뷰(지도) 표시
         showMainView();
         navigateToReturnTab();
 
@@ -692,7 +1050,7 @@
 
       document.addEventListener("DOMContentLoaded", initApp);
 
-      // ===================== Auth Tab Switch (Landing) =====================
+      // ===================== Auth Tab Switch =====================
       function switchAuthTab(tabName, btnEl) {
         document.querySelectorAll(".auth-tab-btn").forEach(b => b.classList.remove("active"));
         document.querySelectorAll(".auth-panel").forEach(p => p.classList.remove("active"));
@@ -704,8 +1062,7 @@
       function switchTab(tabName, btnEl) {
         const authRequiredTabs = ["guide", "profile", "admin"];
         if (authRequiredTabs.includes(tabName) && !isAuthenticated()) {
-          // 로그인 페이지로 이동 후 로그인 완료 시 해당 탭으로 복귀
-          showLandingView(tabName, `로그인 후 이용할 수 있는 메뉴입니다.`);
+          showLandingView(tabName, "로그인 후 이용할 수 있는 메뉴입니다.");
           return;
         }
         document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
@@ -792,7 +1149,7 @@
             localStorage.setItem("userEmail", email);
             token = data.accessToken;
             showMainView();
-            navigateToReturnTab(); // 저장된 탭이 있으면 해당 탭으로 이동
+            navigateToReturnTab();
           })
           .catch(err => alert(err.message));
       }
@@ -835,7 +1192,6 @@
             localStorage.removeItem("userEmail");
             token = null;
             alert("로그아웃 되었습니다.");
-            // 메인 뷰 유지, 위치 탭으로 복귀
             showMainView();
             const locationBtn = document.querySelector(".tab-btn[data-tab='location']");
             if (locationBtn) switchTab("location", locationBtn);
@@ -903,9 +1259,9 @@
         map = new google.maps.Map(document.getElementById("map"), { center: defaultLocation, zoom: 13 });
         marker = new google.maps.Marker({ position: defaultLocation, map, draggable: true });
         searchCircle = new google.maps.Circle({
-          strokeColor: "#4285F4",
+          strokeColor: "#0095f6",
           strokeWeight: 2,
-          fillOpacity: 0.15,
+          fillOpacity: 0.08,
           map,
           center: defaultLocation,
           radius: 10000,
@@ -915,7 +1271,6 @@
         document.getElementById("currentLocationBtn").onclick = handleGetCurrentLocation;
         document.getElementById("radiusSelect").onchange = handleRadiusChange;
         document.getElementById("locationSearchInput").addEventListener("input", debounce(handleLocationSearchInput, 300));
-        // 비인증 포함 모든 유저에게 자동 현재 위치 요청
         handleGetCurrentLocation();
       };
 
@@ -1017,7 +1372,7 @@
       }
 
       async function fetchGuides(lat, lng, radius) {
-        document.getElementById("guideNear").innerHTML = "<p>가이드를 불러오는 중...</p>";
+        document.getElementById("guideNear").innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>가이드를 불러오는 중...</p>";
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         try {
           const res = await fetch(`${API_BASE_URL}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`, { headers });
@@ -1030,13 +1385,13 @@
           const wrap = document.getElementById("guideNear");
           wrap.innerHTML = "";
           if (list.length === 0) {
-            wrap.innerHTML = "<p>주변에 가이드가 없습니다.</p>";
+            wrap.innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>주변에 가이드가 없습니다.</p>";
             return;
           }
           list.forEach(g => wrap.appendChild(createGuideCard(g)));
         } catch (err) {
           console.error("가이드 로딩 실패:", err);
-          document.getElementById("guideNear").innerHTML = "<p>가이드를 불러오는 중 오류가 발생했습니다.</p>";
+          document.getElementById("guideNear").innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>가이드를 불러오는 중 오류가 발생했습니다.</p>";
         }
       }
 
@@ -1066,7 +1421,7 @@
         })
           .then(res => { if (!res.ok) throw new Error("좋아요 처리 실패"); return res.json(); })
           .then(data => {
-            likeBtn.textContent = data.liked ? "❤️" : "♡";
+            likeBtn.textContent = data.liked ? "❤️" : "🤍";
             likeCountSpan.textContent = data.likeCount;
           })
           .catch(err => alert(err.message));
@@ -1075,9 +1430,12 @@
       function createGuideCard(g) {
         const card = document.createElement("div");
         card.className = "guide-card";
+
         const imgBox = document.createElement("div");
         imgBox.className = "img-box";
+
         if (g.media && g.media.length > 0) {
+          if (g.media.length > 1) imgBox.classList.add("img-box-multi");
           g.media.slice(0, 10).forEach((m, i) => {
             const img = document.createElement("img");
             img.src = `${API_BASE_URL}${m.url}`;
@@ -1091,33 +1449,52 @@
             imgs[(idx + 1) % imgs.length].style.display = "block";
           };
         }
+
+        const body = document.createElement("div");
+        body.className = "guide-card-body";
+
         const tipEl = document.createElement("p");
         tipEl.textContent = g.tip;
+
         const metaInfo = document.createElement("div");
         metaInfo.className = "meta-info";
+
         const viewSpan = document.createElement("span");
         viewSpan.className = "view-count";
-        viewSpan.textContent = `조회수: ${g.viewCount || 0}`;
-        const likeContainer = document.createElement("span");
+        viewSpan.textContent = `조회 ${g.viewCount || 0}`;
+
+        const likeArea = document.createElement("div");
+        likeArea.className = "like-area";
+
         const likeBtn = document.createElement("button");
         likeBtn.className = "like-btn";
-        likeBtn.textContent = g.userHasLiked ? "❤️" : "♡";
+        likeBtn.textContent = g.userHasLiked ? "❤️" : "🤍";
+
         const likeCountSpan = document.createElement("span");
         likeCountSpan.className = "like-count";
         likeCountSpan.textContent = g.likeCount;
+
         likeBtn.onclick = () => toggleLike(g.id, likeBtn, likeCountSpan);
-        likeContainer.append(likeBtn, likeCountSpan);
-        metaInfo.append(viewSpan, likeContainer);
+        likeArea.append(likeBtn, likeCountSpan);
+        metaInfo.append(viewSpan, likeArea);
+
         const updateBtn = document.createElement("button");
         updateBtn.textContent = "✏️ 수정";
-        updateBtn.onclick = () => { const newTip = prompt("새 팁 내용을 입력하세요:", g.tip); if (newTip) updateGuide(g.id, newTip); };
+        updateBtn.onclick = () => {
+          const newTip = prompt("새 팁 내용을 입력하세요:", g.tip);
+          if (newTip) updateGuide(g.id, newTip);
+        };
+
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "🗑️ 삭제";
         deleteBtn.onclick = () => { if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id); };
+
         const btnGroup = document.createElement("div");
         btnGroup.className = "button-group";
         btnGroup.append(updateBtn, deleteBtn);
-        card.append(imgBox, tipEl, metaInfo, btnGroup);
+
+        body.append(tipEl, metaInfo, btnGroup);
+        card.append(imgBox, body);
         return card;
       }
 
@@ -1162,8 +1539,6 @@
             data.forEach(media => {
               const img = document.createElement("img");
               img.src = `${API_BASE_URL}${media.url}`;
-              img.style.width = "200px";
-              img.style.margin = "10px";
               container.appendChild(img);
             });
           })
@@ -1175,7 +1550,7 @@
           .then(res => res.json())
           .then(count => {
             totalCount = count;
-            document.getElementById("photoCountText").innerText = `📷 전체 사진 수: ${totalCount}개`;
+            document.getElementById("photoCountText").innerText = `전체 사진 수: ${totalCount}개`;
           })
           .catch(err => console.warn("총 개수 불러오기 실패", err));
       }
@@ -1195,11 +1570,11 @@
             if ((page + 1) * size >= totalCount) {
               done = true;
               nextBtn.disabled = true;
-              nextBtn.innerText = "✅ 마지막 페이지";
+              nextBtn.innerText = "✅ 마지막";
             } else {
               done = false;
               nextBtn.disabled = false;
-              nextBtn.innerText = "➡️ 다음";
+              nextBtn.innerText = "다음 →";
             }
             photoContainer.innerHTML = "";
             data.forEach(media => {
@@ -1208,17 +1583,14 @@
               if (fileName.endsWith(".heic")) {
                 const link = document.createElement("a");
                 link.href = fileUrl;
-                link.innerText = `${media.fileName} (HEIC 파일 - 다운로드)`;
+                link.innerText = `${media.fileName} (HEIC)`;
                 link.download = media.fileName;
-                link.style.display = "block";
-                link.style.margin = "10px";
+                link.style.cssText = "display:block; margin:10px; font-size:13px;";
                 photoContainer.appendChild(link);
               } else {
                 const img = document.createElement("img");
                 img.src = fileUrl;
                 img.loading = "lazy";
-                img.style.width = "200px";
-                img.style.margin = "10px";
                 photoContainer.appendChild(img);
               }
             });
