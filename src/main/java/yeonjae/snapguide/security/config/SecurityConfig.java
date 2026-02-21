@@ -96,7 +96,8 @@ public class SecurityConfig {
                 // 조건 별 요청 허용 or 제한 설정
                 .authorizeHttpRequests(
                         authorize -> authorize
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()//.hasAnyAuthority("MEMBER", "ADMIN")
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.GUIDE_PUBLIC_API).permitAll() // 비인증 공개 가이드 조회
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
@@ -105,6 +106,7 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.ACTUATOR).permitAll() // 모니터링 메트릭
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll() // 위치 검색 (비인증 허용)
                                 .anyRequest()
                                 .authenticated()
                 )

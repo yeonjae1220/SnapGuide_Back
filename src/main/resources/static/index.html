@@ -2,256 +2,1023 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>SnapGuide Test with Server-Side Places API</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SnapGuide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
     <style>
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          "Helvetica Neue", Arial, sans-serif;
-        padding-bottom: 100px;
-        line-height: 1.6;
-      }
-      h1,
-      h3 {
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-      }
-      div {
-        margin-bottom: 15px;
-      }
-      input,
-      textarea,
-      button,
-      select {
-        padding: 10px;
-        margin: 2px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 1em;
-      }
-      button,
-      a {
-        cursor: pointer;
-        background-color: #4285f4;
-        color: white;
-        border: none;
-        text-decoration: none;
-        display: inline-block;
-        padding: 10px 15px;
-      }
-      a:hover,
-      button:hover {
-        background-color: #357ae8;
-      }
-      #guideWrap,
-      #guideNear {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-      .guide-card {
-        border: 1px solid #ddd;
-        margin: 10px;
-        padding: 10px;
-        width: 260px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-      }
-      .img-box {
-        width: 100%;
-        height: 260px;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        background-color: #f0f0f0;
-        border-radius: 6px 6px 0 0;
-      }
-      .img-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
-      .guide-card p {
-        margin: 10px 0;
-        flex-grow: 1;
-      }
-      .meta-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 0;
-        font-size: 0.9em;
-        color: #555;
-      }
-      .like-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.5rem;
-        padding: 0;
-        line-height: 1;
-        color: #ff4d4f;
-      }
-      .like-count {
-        font-weight: bold;
-      }
-      .button-group {
-        margin-top: auto;
-        display: flex;
-        gap: 5px;
-      }
-      .button-group button {
-        flex-grow: 1;
+      /* ========== Variables ========== */
+      :root {
+        --ig: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        --bg: #fafafa;
+        --white: #ffffff;
+        --black: #0a0a0a;
+        --text: #262626;
+        --gray: #8e8e8e;
+        --border: #dbdbdb;
+        --blue: #0095f6;
+        --red: #ed4956;
+        --r: 12px;
+        --f: 'DM Sans', -apple-system, sans-serif;
+        --fd: 'Playfair Display', Georgia, serif;
+        --sh: 0 4px 20px rgba(0,0,0,0.08);
+        --t: 0.2s cubic-bezier(0.4,0,0.2,1);
       }
 
-      /* 위치 검색 UI 스타일 */
-      #locationSearchSection {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
+      /* ========== Reset ========== */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: var(--f);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
+      input, textarea, select, button { font-family: var(--f); }
+      a { text-decoration: none; }
+
+      /* ========== Shared ========== */
+      .ig-text {
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* ===================== LANDING VIEW ===================== */
+      #landing-view {
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: none;
+        overflow: auto;
+        background: var(--black);
+      }
+
+      .landing-wrap {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* Hero ─────────────────────── */
+      .lh {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 80px 52px;
+        background: #0a0a0a;
+      }
+      .lh::before {
+        content: '';
+        position: absolute;
+        width: 560px; height: 560px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(240,148,51,.45) 0%, rgba(188,24,136,.2) 55%, transparent 72%);
+        top: -120px; right: -120px;
+        animation: orb 7s ease-in-out infinite;
+      }
+      .lh::after {
+        content: '';
+        position: absolute;
+        width: 420px; height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,149,246,.3) 0%, rgba(204,35,102,.18) 55%, transparent 72%);
+        bottom: -90px; left: -90px;
+        animation: orb 9s ease-in-out infinite reverse;
+      }
+      @keyframes orb {
+        0%,100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-24px) scale(1.06); }
+      }
+
+      .lh-inner { position: relative; z-index: 1; }
+
+      .lh-logo {
+        font-family: var(--fd);
+        font-size: 58px;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 18px;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .lh-tag {
+        color: rgba(255,255,255,.72);
+        font-size: 18px;
+        line-height: 1.65;
+        margin-bottom: 52px;
+      }
+      .lh-feats { list-style: none; display: flex; flex-direction: column; gap: 28px; }
+      .lh-feat { display: flex; align-items: flex-start; gap: 18px; }
+      .lh-ico {
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.12);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+      }
+      .lh-feat strong { display: block; color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+      .lh-feat span { color: rgba(255,255,255,.48); font-size: 13px; }
+
+      /* Return notice */
+      #landing-return-notice {
+        position: fixed;
+        top: 18px; left: 18px;
+        z-index: 510;
+        display: flex; align-items: center; gap: 10px;
+      }
+      .btn-back-map {
+        background: rgba(255,255,255,.1);
+        color: rgba(255,255,255,.82);
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: 20px;
+        padding: 8px 18px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-back-map:hover { background: rgba(255,255,255,.2); color: #fff; }
+      #landing-notice-msg {
+        background: rgba(255,255,255,.1);
+        color: rgba(255,255,255,.88);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        display: none;
+      }
+
+      /* Auth panel ─────────────────── */
+      .la {
+        width: 440px;
+        flex-shrink: 0;
+        background: var(--white);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 64px 48px;
+      }
+      .la-brand {
+        font-family: var(--fd);
+        font-size: 30px; font-weight: 700;
+        margin-bottom: 6px;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .la-sub { font-size: 14px; color: var(--gray); margin-bottom: 32px; }
+
+      .auth-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+      .auth-tab-btn {
+        flex: 1;
+        background: none; border: none;
+        padding: 12px 0;
+        font-size: 14px; font-weight: 600;
+        color: var(--gray);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: var(--t);
+      }
+      .auth-tab-btn:hover { color: var(--text); }
+      .auth-tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+      .auth-panel { display: none; }
+      .auth-panel.active { display: block; }
+
+      .form-group { margin-bottom: 10px; }
+      .form-group input {
+        width: 100%; margin: 0;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fafafa;
+        color: var(--text);
+        outline: none;
+        transition: var(--t);
+      }
+      .form-group input:focus { border-color: #a0a0a0; background: var(--white); }
+      .form-group input::placeholder { color: #bbb; }
+
+      .btn-primary {
+        width: 100%; margin-top: 8px;
+        padding: 12px;
+        background: var(--blue); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-primary:hover { background: #1877f2; }
+      .btn-primary:active { transform: scale(.98); }
+
+      .auth-div {
+        text-align: center; color: var(--gray); font-size: 13px;
+        margin: 20px 0;
+        display: flex; align-items: center; gap: 14px;
+      }
+      .auth-div::before, .auth-div::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+      .btn-google {
+        width: 100%;
+        background: var(--white); color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px;
+        font-size: 14px; font-weight: 500;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transition: var(--t);
+      }
+      .btn-google:hover { background: #f5f5f5; }
+      .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+      /* ===================== MAIN VIEW ===================== */
+      #main-view { min-height: 100vh; }
+
+      /* Nav ─────────────────────────── */
+      .app-nav {
+        position: sticky; top: 0; z-index: 100;
+        height: 60px;
+        background: rgba(255,255,255,.95);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center;
+        padding: 0 24px; gap: 0;
+      }
+      .nav-brand {
+        font-family: var(--fd);
+        font-size: 22px; font-weight: 700;
+        background: var(--ig);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-right: 28px; flex-shrink: 0;
+      }
+      .nav-tabs { display: flex; align-items: center; flex: 1; gap: 2px; }
+
+      .tab-btn {
+        display: flex; align-items: center; gap: 6px;
+        padding: 7px 16px;
+        background: none; border: none;
+        color: var(--gray);
+        font-size: 14px; font-weight: 500;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: var(--t);
+        white-space: nowrap;
+      }
+      .tab-btn:hover { background: rgba(0,0,0,.04); color: var(--text); }
+      .tab-btn.active { background: rgba(0,0,0,.06); color: var(--text); font-weight: 600; }
+
+      .nav-user-area {
+        margin-left: auto;
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0;
+      }
+      #nav-user-email { font-size: 13px; color: var(--gray); display: none; }
+      #nav-login-btn {
+        padding: 7px 18px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 20px;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: var(--t);
+      }
+      #nav-login-btn:hover { background: #333; }
+      #nav-logout-btn {
+        padding: 7px 18px;
+        background: none; color: var(--gray);
+        border: 1px solid var(--border); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      #nav-logout-btn:hover { border-color: #aaa; color: var(--text); }
+
+      /* Sections */
+      .tab-section { display: none; }
+      .tab-section.active { display: block; animation: fadein .18s ease; }
+      @keyframes fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+      /* ========== LOCATION TAB ========== */
+      #tab-location { background: var(--bg); }
+      #locationSearchSection { position: relative; }
+
       #map {
         width: 100%;
-        height: 400px;
-        border: 1px solid #ddd;
-        margin-bottom: 15px;
+        height: 480px;
+        background: #e8eaed;
+        display: block;
+      }
+
+      /* Floating search bar over map */
+      .search-float {
+        position: absolute;
+        top: 16px; left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 48px);
+        max-width: 560px;
+        z-index: 10;
       }
       #searchBox {
         position: relative;
-      } /* 자동완성 결과를 위한 position 기준 */
+        background: var(--white);
+        border-radius: 14px;
+        box-shadow: 0 4px 24px rgba(0,0,0,.14);
+      }
+      .search-icon-inner {
+        position: absolute;
+        left: 16px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        pointer-events: none;
+        color: var(--gray);
+        line-height: 1;
+      }
       #locationSearchInput {
-        width: calc(100% - 24px);
+        width: 100%; margin: 0;
+        padding: 15px 16px 15px 46px;
+        border: 1.5px solid transparent;
+        border-radius: 14px;
+        font-size: 14px;
+        background: transparent;
+        color: var(--text);
+        outline: none;
+        transition: var(--t);
       }
-      #searchStatus {
-        text-align: center;
-        font-weight: bold;
-        font-size: 1.1em;
-        color: #333;
-      }
+      #locationSearchInput:focus { border-color: var(--blue); }
+      #locationSearchInput::placeholder { color: #bbb; }
+
       #autocompleteResults {
         position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        z-index: 1000;
-        width: 100%;
-        max-height: 200px;
+        top: calc(100% + 6px); left: 0; right: 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--sh);
+        overflow: hidden;
+        z-index: 200;
+        max-height: 240px;
         overflow-y: auto;
       }
       #autocompleteResults div {
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
+        padding: 12px 16px;
+        font-size: 14px; cursor: pointer;
+        color: var(--text);
+        border-bottom: 1px solid #f5f5f5;
+        transition: var(--t);
+        margin: 0;
       }
-      #autocompleteResults div:hover {
-        background-color: #f0f0f0;
+      #autocompleteResults div:last-child { border-bottom: none; }
+      #autocompleteResults div:hover { background: #f8f9fa; }
+
+      /* Controls strip */
+      .search-strip {
+        padding: 12px 20px;
+        display: flex; align-items: center; gap: 10px;
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      #searchStatus { font-size: 13px; color: var(--gray); flex: 1; min-width: 0; }
+      #currentLocationBtn {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 16px;
+        background: none; color: var(--blue);
+        border: 1.5px solid var(--blue); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; white-space: nowrap;
+        transition: var(--t);
+      }
+      #currentLocationBtn:hover { background: rgba(0,149,246,.06); }
+      #radiusSelect {
+        padding: 8px 12px;
+        border: 1.5px solid var(--border); border-radius: 20px;
+        font-size: 13px;
+        background: var(--white); color: var(--text);
+        cursor: pointer; outline: none;
+        margin: 0;
+        transition: var(--t);
+      }
+      #radiusSelect:focus { border-color: var(--blue); }
+
+      /* Guide grid */
+      #guideNear {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 14px;
+      }
+
+      /* ========== GUIDE TAB ========== */
+      #tab-guide { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
+
+      .sec-title {
+        font-size: 17px; font-weight: 700;
+        color: var(--text);
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .upload-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 22px;
+        margin-bottom: 28px;
+      }
+      .file-zone {
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        padding: 28px 16px;
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+        transition: var(--t);
+        margin-bottom: 14px;
+      }
+      .file-zone:hover { border-color: var(--blue); background: rgba(0,149,246,.025); }
+      .file-zone input[type="file"] {
+        position: absolute; inset: 0;
+        opacity: 0; cursor: pointer;
+        width: 100%; height: 100%;
+      }
+      .file-zone-label { color: var(--gray); font-size: 14px; pointer-events: none; }
+      .file-zone-label strong { display: block; color: var(--blue); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+
+      #tip {
+        width: 100%; margin: 0;
+        min-height: 96px;
+        padding: 12px 14px;
+        border: 1px solid var(--border); border-radius: 8px;
+        font-size: 14px; line-height: 1.55;
+        resize: vertical; outline: none;
+        background: #fafafa; color: var(--text);
+        transition: var(--t);
+      }
+      #tip:focus { border-color: #a0a0a0; background: var(--white); }
+      #tip::placeholder { color: #bbb; }
+
+      .btn-upload {
+        width: 100%; margin-top: 14px;
+        padding: 12px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600;
+        cursor: pointer;
+        transition: var(--t);
+      }
+      .btn-upload:hover { background: #222; }
+      .btn-upload:active { transform: scale(.99); }
+
+      .guides-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .btn-load {
+        padding: 7px 16px;
+        background: none; color: var(--blue);
+        border: 1.5px solid var(--blue); border-radius: 20px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .btn-load:hover { background: rgba(0,149,246,.06); }
+
+      #guideWrap {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+      }
+
+      /* ========== Guide Cards ========== */
+      .guide-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        overflow: hidden;
+        transition: var(--t);
+      }
+      .guide-card:hover { box-shadow: var(--sh); transform: translateY(-2px); }
+
+      .img-box {
+        position: relative;
+        width: 100%;
+        padding-top: 100%;   /* 1:1 square like Instagram */
+        background: #efefef;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .img-box img {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform .3s ease;
+      }
+      .img-box:hover img { transform: scale(1.04); }
+
+      .guide-card-body { padding: 12px; }
+      .guide-card p {
+        font-size: 13px; color: var(--text);
+        margin-bottom: 10px; line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .meta-info {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid #f5f5f5;
+      }
+      .view-count { font-size: 12px; color: var(--gray); }
+      .like-area { display: flex; align-items: center; gap: 4px; }
+      .like-btn {
+        background: none; border: none; padding: 0;
+        font-size: 18px; line-height: 1; cursor: pointer;
+        transition: transform .15s cubic-bezier(.4,0,.2,1);
+      }
+      .like-btn:hover { transform: scale(1.25); }
+      .like-btn:active { transform: scale(.88); }
+      .like-count { font-size: 13px; color: var(--gray); font-weight: 500; }
+
+      .button-group { display: flex; gap: 6px; margin-top: 10px; }
+      .button-group button {
+        flex: 1; padding: 7px;
+        background: #f5f5f5; border: none; border-radius: 6px;
+        font-size: 12px; color: var(--text); font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .button-group button:first-child:hover { background: #ebebeb; }
+      .button-group button:last-child:hover { background: #fde8ea; color: var(--red); }
+
+      /* ========== PROFILE TAB ========== */
+      #tab-profile { max-width: 480px; margin: 0 auto; padding: 40px 20px; }
+
+      .profile-head {
+        display: flex; align-items: center; gap: 24px;
+        margin-bottom: 32px;
+        padding-bottom: 28px;
+        border-bottom: 1px solid var(--border);
+      }
+      .profile-avatar {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: var(--ig);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 34px; flex-shrink: 0;
+      }
+      .profile-info h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+      #profileEmail { font-size: 14px; color: var(--gray); }
+
+      .profile-actions { display: flex; flex-direction: column; gap: 10px; }
+      .btn-pa {
+        width: 100%; padding: 13px 16px;
+        background: var(--white); color: var(--text);
+        border: 1px solid var(--border); border-radius: 10px;
+        font-size: 14px; font-weight: 500;
+        cursor: pointer; text-align: left;
+        display: flex; align-items: center; gap: 12px;
+        transition: var(--t);
+      }
+      .btn-pa:hover { background: #f8f9fa; }
+      .btn-pa.danger { color: var(--red); }
+      .btn-pa.danger:hover { background: #fff5f6; border-color: #ffd5d8; }
+
+      /* ========== ADMIN TAB ========== */
+      #tab-admin { max-width: 820px; margin: 0 auto; padding: 28px 20px; }
+
+      .admin-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+      .admin-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 20px;
+      }
+      .admin-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+      .btn-a {
+        padding: 9px 18px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      .btn-a:hover { background: #222; }
+      .btn-a.sm { font-size: 12px; padding: 6px 13px; }
+      #authResult { margin-top: 10px; font-size: 13px; color: var(--gray); }
+
+      .panel {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 20px;
+        margin-bottom: 14px;
+      }
+      .panel-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .panel-head h3 { font-size: 14px; font-weight: 600; }
+      #photoCountText { font-size: 13px; color: var(--gray); }
+
+      #photoList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+        gap: 3px;
+        margin-top: 8px;
+      }
+      #photoList img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; margin: 0; border-radius: 4px; }
+
+      #allPhotoContainer {
+        height: 380px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      #allPhoto {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+        gap: 3px;
+        padding: 3px;
+      }
+      #allPhoto img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; margin: 0; }
+
+      .page-ctrl { display: flex; align-items: center; gap: 8px; }
+      .btn-pg {
+        padding: 8px 14px;
+        background: none; color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        font-size: 13px; cursor: pointer; transition: var(--t);
+      }
+      .btn-pg:hover:not(:disabled) { border-color: var(--text); }
+      .btn-pg:disabled { opacity: .38; cursor: not-allowed; }
+      #loadStartBtn {
+        padding: 8px 16px;
+        background: var(--text); color: var(--white);
+        border: none; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: var(--t);
+      }
+      #loadStartBtn:hover { background: #222; }
+      #loadingText { font-size: 13px; color: var(--gray); }
+
+      #memberList { list-style: none; margin-top: 10px; }
+      #memberList li {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 14px; color: var(--text);
+      }
+      #memberList li:last-child { border-bottom: none; }
+
+      /* ========== Responsive ========== */
+      @media (max-width: 768px) {
+        .landing-wrap { flex-direction: column; }
+        .lh { padding: 80px 28px 36px; min-height: 45vh; }
+        .la { width: 100%; padding: 32px 24px 52px; }
+        .lh-logo { font-size: 38px; }
+        .lh-tag { font-size: 15px; margin-bottom: 32px; }
+
+        .app-nav { padding: 0 14px; }
+        .nav-brand { margin-right: 14px; font-size: 18px; }
+        .tab-btn { padding: 6px 10px; font-size: 12px; }
+
+        #guideNear { padding: 14px; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
+        #guideWrap { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
+        .admin-row { grid-template-columns: 1fr; }
+        #tab-guide, #tab-admin, #tab-profile { padding: 20px 14px; }
       }
     </style>
   </head>
   <body>
-    <h1>회원가입</h1>
-    <input id="email" placeholder="이메일" /><input
-      id="password"
-      placeholder="비밀번호"
-      type="password"
-    /><button onclick="signup()">회원가입</button>
-    <h1>로그인</h1>
-    <input id="loginEmail" placeholder="이메일" /><input
-      id="loginPassword"
-      placeholder="비밀번호"
-      type="password"
-    /><button onclick="login()">로그인</button>
-    <h1>구글 로그인</h1><button onclick="window.location.href=`${window.location.origin}/oauth2/authorization/google?redirect_uri=${encodeURIComponent(window.location.origin)}`">구글 로그인</button>
 
-    <h1>토큰 재발급</h1>
-    <button onclick="reissueToken()">토큰 재발급</button>
-    <h1>로그아웃</h1>
-    <button onclick="logout()">로그아웃</button>
-    <h1>회원 탈퇴</h1>
-    <button onclick="deleteMember()" style="background-color: #dc3545;">회원 탈퇴 (복구 불가)</button>
-    <h1>인증 테스트</h1>
-    <button onclick="authTest()">인증된 사용자 확인</button>
-    <div id="authResult"></div>
-    <h1>가이드 업로드</h1>
-    <input type="file" id="imageFile" name="file" multiple /><label
-      for="tip"
-    ></label
-    ><textarea id="tip" placeholder="팁을 입력하세요"></textarea
-    ><button onclick="upload()">업로드</button>
-    <h1>유저 가이드 작성 리스트</h1>
-    <button onclick="loadUserGuides()">사용자 가이드 목록 불러오기</button>
-    <div id="guideWrap"></div>
-    <div id="locationSearchSection">
-      <h1>📍 위치 기반 가이드 검색</h1>
-      <div id="map" style="background-color: #e0e0e0">
-        지도를 불러오는 중...
+    <!-- ===================== LANDING VIEW ===================== -->
+    <div id="landing-view">
+      <div id="landing-return-notice">
+        <button class="btn-back-map" onclick="showMainView()">← 지도로 돌아가기</button>
+        <span id="landing-notice-msg"></span>
       </div>
-      <p id="searchStatus">
-        지도를 움직여 검색 기준점을 설정하거나 장소를 검색하세요.
-      </p>
-      <div id="searchBox">
-        <input
-          id="locationSearchInput"
-          placeholder="장소, 주소 검색 (예: 창원 시청)"
-        />
-        <div id="autocompleteResults"></div>
+
+      <div class="landing-wrap">
+        <!-- Hero -->
+        <div class="lh">
+          <div class="lh-inner">
+            <div class="lh-logo">SnapGuide</div>
+            <p class="lh-tag">여행의 순간을 가이드로,<br>세상과 나누다</p>
+            <ul class="lh-feats">
+              <li class="lh-feat">
+                <div class="lh-ico">📍</div>
+                <div>
+                  <strong>위치 기반 탐색</strong>
+                  <span>현재 위치 주변의 가이드를 지도에서 바로</span>
+                </div>
+              </li>
+              <li class="lh-feat">
+                <div class="lh-ico">📖</div>
+                <div>
+                  <strong>가이드 공유</strong>
+                  <span>나만의 여행 팁과 사진으로 가이드를 공유</span>
+                </div>
+              </li>
+              <li class="lh-feat">
+                <div class="lh-ico">📷</div>
+                <div>
+                  <strong>스마트 사진 관리</strong>
+                  <span>EXIF 메타데이터로 위치 정보 자동 추출</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Auth -->
+        <div class="la">
+          <div class="la-brand">SnapGuide</div>
+          <p class="la-sub">계속하려면 로그인하거나 가입하세요</p>
+
+          <div class="auth-tabs">
+            <button class="auth-tab-btn active" onclick="switchAuthTab('login', this)">로그인</button>
+            <button class="auth-tab-btn" onclick="switchAuthTab('signup', this)">회원가입</button>
+          </div>
+
+          <!-- Login Panel -->
+          <div id="auth-panel-login" class="auth-panel active">
+            <div class="form-group">
+              <input id="loginEmail" type="email" placeholder="이메일" />
+            </div>
+            <div class="form-group">
+              <input id="loginPassword" type="password" placeholder="비밀번호" />
+            </div>
+            <button class="btn-primary" onclick="login()">로그인</button>
+            <div class="auth-div">또는</div>
+            <button class="btn-google" onclick="googleLogin()">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Google로 계속하기
+            </button>
+          </div>
+
+          <!-- Signup Panel -->
+          <div id="auth-panel-signup" class="auth-panel">
+            <div class="form-group">
+              <input id="email" type="email" placeholder="이메일" />
+            </div>
+            <div class="form-group">
+              <input id="password" type="password" placeholder="비밀번호" />
+            </div>
+            <button class="btn-primary" onclick="signup()">회원가입</button>
+            <div class="auth-div">또는</div>
+            <button class="btn-google" onclick="googleLogin()">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Google로 시작하기
+            </button>
+          </div>
+        </div>
       </div>
-      <div>
-        <button id="currentLocationBtn">🛰️ 내 현재 위치로 검색</button>
-        <select id="radiusSelect">
-          <option value="5">반경 5km</option>
-          <option value="10" selected>반경 10km</option>
-          <option value="20">반경 20km</option>
-          <option value="50">반경 50km</option>
-          <option value="100">반경 100km</option>
-        </select>
-      </div>
-      <div id="guideNear"></div>
     </div>
-    <h1>사진 목록 보기</h1>
-    <button onclick="loadPhotos()">사진 목록 불러오기</button>
-    <div id="photoList"></div>
-    <h1>모든 사진 보기</h1>
-    <h3 id="photoCountText">📷 전체 사진 수: 알 수 없음</h3>
-    <div
-      id="allPhotoContainer"
-      style="height: 500px; overflow-y: auto; border: 1px solid gray"
-    >
-      <div id="allPhoto"></div>
-    </div>
-    <div style="margin-top: 10px">
-      <button id="prevPageBtn" disabled>⬅️ 이전</button
-      ><button id="nextPageBtn" disabled>➡️ 다음</button
-      ><button id="loadStartBtn">📸 사진 불러오기 시작</button
-      ><span id="loadingText" style="margin-left: 10px; display: none"
-        >⌛ 불러오는 중...</span
-      >
-    </div>
-    <h1>멤버 리스트 보기</h1>
-    <button onclick="loadMembers()">멤버 리스트 불러오기</button>
-    <ul id="memberList"></ul>
+
+    <!-- ===================== MAIN VIEW ===================== -->
+    <div id="main-view">
+
+      <!-- Nav -->
+      <nav class="app-nav">
+        <div class="nav-brand">SnapGuide</div>
+        <div class="nav-tabs">
+          <button class="tab-btn active" data-tab="location" onclick="switchTab('location', this)">위치 검색</button>
+          <button class="tab-btn" data-tab="guide" onclick="switchTab('guide', this)">가이드</button>
+          <button class="tab-btn" data-tab="profile" onclick="switchTab('profile', this)">내 정보</button>
+          <button class="tab-btn" data-tab="admin" onclick="switchTab('admin', this)">관리자</button>
+        </div>
+        <div class="nav-user-area">
+          <span id="nav-user-email"></span>
+          <button id="nav-login-btn" onclick="showLandingView(null)">로그인</button>
+          <button id="nav-logout-btn" style="display:none;" onclick="logout()">로그아웃</button>
+        </div>
+      </nav>
+
+      <!-- Location Tab -->
+      <section id="tab-location" class="tab-section active">
+        <div id="locationSearchSection">
+          <div id="map" style="background-color:#e8eaed;">지도를 불러오는 중...</div>
+
+          <!-- Floating search bar -->
+          <div class="search-float">
+            <div id="searchBox">
+              <span class="search-icon-inner">🔍</span>
+              <input id="locationSearchInput" placeholder="장소, 주소 검색 (예: 창원 시청)" />
+              <div id="autocompleteResults"></div>
+            </div>
+          </div>
+
+          <!-- Controls strip -->
+          <div class="search-strip">
+            <p id="searchStatus">지도를 움직여 기준점을 설정하거나 장소를 검색하세요.</p>
+            <button id="currentLocationBtn">🛰️ 내 위치</button>
+            <select id="radiusSelect">
+              <option value="5">5km</option>
+              <option value="10" selected>10km</option>
+              <option value="20">20km</option>
+              <option value="50">50km</option>
+              <option value="100">100km</option>
+            </select>
+          </div>
+
+          <div id="guideNear"></div>
+        </div>
+      </section>
+
+      <!-- Guide Tab -->
+      <section id="tab-guide" class="tab-section">
+        <h2 class="sec-title">가이드 업로드</h2>
+        <div class="upload-card">
+          <div class="file-zone">
+            <input type="file" id="imageFile" name="file" multiple />
+            <div class="file-zone-label">
+              <strong>📷 사진 선택</strong>
+              클릭하거나 파일을 드래그하세요
+            </div>
+          </div>
+          <textarea id="tip" placeholder="여행 팁을 입력하세요... 이 장소에 대한 정보를 공유해보세요!"></textarea>
+          <button class="btn-upload" onclick="upload()">업로드</button>
+        </div>
+
+        <div class="guides-header">
+          <h2 class="sec-title" style="margin:0; border:none; padding:0;">내 가이드 목록</h2>
+          <button class="btn-load" onclick="loadUserGuides()">불러오기</button>
+        </div>
+        <div id="guideWrap"></div>
+      </section>
+
+      <!-- Profile Tab -->
+      <section id="tab-profile" class="tab-section">
+        <div class="profile-head">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <h2>내 계정</h2>
+            <div id="profileEmail">-</div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn-pa" onclick="logout()"><span>🚪</span> 로그아웃</button>
+          <button class="btn-pa danger" onclick="deleteMember()"><span>⚠️</span> 회원 탈퇴</button>
+        </div>
+      </section>
+
+      <!-- Admin Tab -->
+      <section id="tab-admin" class="tab-section">
+        <div class="admin-row">
+          <div class="admin-card">
+            <h3>🔄 토큰 재발급</h3>
+            <button class="btn-a" onclick="reissueToken()">재발급</button>
+          </div>
+          <div class="admin-card">
+            <h3>🔐 인증 테스트</h3>
+            <button class="btn-a" onclick="authTest()">인증 확인</button>
+            <div id="authResult"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>📷 사진 목록</h3>
+            <button class="btn-a sm" onclick="loadPhotos()">불러오기</button>
+          </div>
+          <div id="photoList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>🗂️ 전체 사진</h3>
+            <span id="photoCountText">전체 사진 수: -</span>
+          </div>
+          <div id="allPhotoContainer">
+            <div id="allPhoto"></div>
+          </div>
+          <div class="page-ctrl" style="margin-top:10px;">
+            <button id="prevPageBtn" class="btn-pg" disabled>← 이전</button>
+            <button id="nextPageBtn" class="btn-pg" disabled>다음 →</button>
+            <button id="loadStartBtn">📸 불러오기</button>
+            <span id="loadingText" style="display:none;">⌛ 로딩 중...</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>👥 멤버 리스트</h3>
+            <button class="btn-a sm" onclick="loadMembers()">불러오기</button>
+          </div>
+          <ul id="memberList"></ul>
+        </div>
+      </section>
+
+    </div><!-- /main-view -->
 
     <script>
-      // ====================================================================================
-      // 🔹 1. API 서버의 기본 주소를 변수로 선언합니다.
-      // ====================================================================================
-      // const API_BASE_URL = "http://localhost:8082"; // 👈 서버 주소가 바뀌면 여기만 수정
+      const API_BASE_URL = window.location.origin;
+      let token = null;
+      let page = 0, size = 10, totalCount = 0, loading = false, done = false;
 
-      // 현재 페이지의 origin을 자동으로 사용 (localhost 또는 NAS URL)
-      const API_BASE_URL = window.location.origin; // 👈 자동으로 현재 도메인 사용
+      // ===================== App Init =====================
+      function isAuthenticated() {
+        return !!localStorage.getItem("accessToken");
+      }
 
-      let token = localStorage.getItem("accessToken") || null;
+      function showLandingView(requiredFor, noticeMsg) {
+        if (requiredFor) {
+          sessionStorage.setItem("returnTab", requiredFor);
+        }
+        const noticeEl = document.getElementById("landing-notice-msg");
+        if (noticeMsg) {
+          noticeEl.textContent = noticeMsg;
+          noticeEl.style.display = "inline";
+        } else {
+          noticeEl.style.display = "none";
+        }
+        document.getElementById("landing-view").style.display = "flex";
+        document.getElementById("main-view").style.display = "none";
+      }
 
-      // 페이지 로딩 시 실행
-      document.addEventListener("DOMContentLoaded", async () => {
-        // OAuth 리다이렉트 토큰 처리 완료까지 대기
-        await handleRedirectToken();
+      function showMainView() {
+        document.getElementById("landing-view").style.display = "none";
+        document.getElementById("main-view").style.display = "block";
         token = localStorage.getItem("accessToken");
         loadGoogleMapsScript();
+        updateNavUI();
+        if (isAuthenticated()) updateProfileSection();
+      }
+
+      function updateNavUI() {
+        const loginBtn = document.getElementById("nav-login-btn");
+        const logoutBtn = document.getElementById("nav-logout-btn");
+        const emailEl = document.getElementById("nav-user-email");
+        if (isAuthenticated()) {
+          loginBtn.style.display = "none";
+          logoutBtn.style.display = "inline-block";
+          const email = localStorage.getItem("userEmail") || "";
+          emailEl.textContent = email;
+          emailEl.style.display = email ? "inline" : "none";
+        } else {
+          loginBtn.style.display = "inline-block";
+          logoutBtn.style.display = "none";
+          emailEl.style.display = "none";
+        }
+      }
+
+      function updateProfileSection() {
+        const email = localStorage.getItem("userEmail") || "";
+        document.getElementById("profileEmail").textContent = email || "이메일 정보 없음";
+      }
+
+      function navigateToReturnTab() {
+        const returnTab = sessionStorage.getItem("returnTab");
+        sessionStorage.removeItem("returnTab");
+        if (returnTab) {
+          const btn = document.querySelector(`.tab-btn[data-tab="${returnTab}"]`);
+          if (btn) switchTab(returnTab, btn);
+        }
+      }
+
+      async function validateToken() {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/auth/test`, {
+            headers: { Authorization: "Bearer " + localStorage.getItem("accessToken") },
+          });
+          return res.ok;
+        } catch {
+          return false;
+        }
+      }
+
+      async function initApp() {
+        await handleRedirectToken();
+
+        if (localStorage.getItem("accessToken")) {
+          const valid = await validateToken();
+          if (!valid) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("userEmail");
+          }
+        }
+
+        showMainView();
+        navigateToReturnTab();
 
         const startBtn = document.getElementById("loadStartBtn");
         const nextBtn = document.getElementById("nextPageBtn");
@@ -260,238 +1027,64 @@
         startBtn.addEventListener("click", () => {
           page = 0;
           done = false;
-          document.getElementById("allPhoto").innerHTML = ""; // photoContainer -> allPhoto
+          document.getElementById("allPhoto").innerHTML = "";
           nextBtn.style.display = "inline-block";
           prevBtn.style.display = "inline-block";
           nextBtn.disabled = false;
           fetchPhotoCount();
           allPhotos();
         });
-        nextBtn.addEventListener("click", () => {
-          if (!done) {
-            page++;
-            allPhotos();
-          }
-        });
-        prevBtn.addEventListener("click", () => {
-          if (page > 0) {
-            page--;
-            allPhotos();
-          }
-        });
-      });
-
-      function loadGoogleMapsScript() {
-        fetch(`${API_BASE_URL}/api/maps/key`) // 👈 변수 사용
-          .then((res) =>
-            res.ok
-              ? res.json()
-              : Promise.reject("Could not fetch map API key."),
-          )
-          .then((data) => {
-            const apiKey = data.apiKey;
-            if (!apiKey) throw new Error("API key is missing.");
-            const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-          })
-          .catch((err) => {
-            console.error("Failed to load Google Maps:", err);
-            document.getElementById("map").textContent =
-              "지도를 불러오는 데 실패했습니다. API 설정을 확인해주세요.";
-            alert("지도를 불러오는 데 실패했습니다.");
-          });
+        nextBtn.addEventListener("click", () => { if (!done) { page++; allPhotos(); } });
+        prevBtn.addEventListener("click", () => { if (page > 0) { page--; allPhotos(); } });
       }
 
-      // ====================================================================================
-      // 🔹 2. 모든 fetch 및 이미지 URL 호출에서 API_BASE_URL 변수를 사용하도록 수정합니다.
-      // ====================================================================================
+      document.addEventListener("DOMContentLoaded", initApp);
 
-      // --- (이하 모든 함수에서 "http://localhost:8080" 을 `${API_BASE_URL}` 로 교체) ---
+      // ===================== Auth Tab Switch =====================
+      function switchAuthTab(tabName, btnEl) {
+        document.querySelectorAll(".auth-tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".auth-panel").forEach(p => p.classList.remove("active"));
+        document.getElementById("auth-panel-" + tabName).classList.add("active");
+        btnEl.classList.add("active");
+      }
 
-      let map, marker, searchCircle, currentSearchCoords;
-      window.initMap = function () {
-        const defaultLocation = { lat: 35.2283, lng: 128.6814 };
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: defaultLocation,
-          zoom: 13,
-        });
-        marker = new google.maps.Marker({
-          position: defaultLocation,
-          map: map,
-          draggable: true,
-        });
-        searchCircle = new google.maps.Circle({
-          strokeColor: "#4285F4",
-          strokeWeight: 2,
-          fillOpacity: 0.15,
-          map: map,
-          center: defaultLocation,
-          radius: 10000,
-        });
-        map.addListener("click", (e) =>
-          updateMapAndSearch(
-            { lat: e.latLng.lat(), lng: e.latLng.lng() },
-            "지도에서 선택한 위치",
-          ),
-        );
-        marker.addListener("dragend", (e) =>
-          updateMapAndSearch(
-            { lat: e.latLng.lat(), lng: e.latLng.lng() },
-            "마커 위치",
-          ),
-        );
-        document.getElementById("currentLocationBtn").onclick =
-          handleGetCurrentLocation;
-        document.getElementById("radiusSelect").onchange = handleRadiusChange;
-        document
-          .getElementById("locationSearchInput")
-          .addEventListener("input", debounce(handleLocationSearchInput, 300));
-        handleGetCurrentLocation();
-      };
-      let page = 0,
-        size = 10,
-        totalCount = 0,
-        loading = false,
-        done = false;
-      function debounce(func, delay) {
-        let timeout;
-        return function (...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-      }
-      async function fetchPlaceAutocomplete(input) {
-        if (!input || input.trim().length < 2 || !token) return [];
-        try {
-          const url = `${API_BASE_URL}/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;
-          const response = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok)
-            throw new Error(`Network response was not ok: ${response.status}`);
-          const data = await response.json();
-          return data?.predictions || [];
-        } catch (error) {
-          console.error("장소 자동완성 API 호출 오류:", error);
-          return [];
-        }
-      }
-      async function fetchPlaceDetails(placeId) {
-        if (!placeId || !token) return null;
-        try {
-          const url = `${API_BASE_URL}/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;
-          const response = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok)
-            throw new Error(`Network response was not ok: ${response.status}`);
-          const data = await response.json();
-          return data?.result || null;
-        } catch (error) {
-          console.error("장소 상세 정보 API 호출 오류:", error);
-          return null;
-        }
-      }
-      async function handleLocationSearchInput(event) {
-        const query = event.target.value;
-        const results = await fetchPlaceAutocomplete(query);
-        displayAutocompleteResults(results);
-      }
-      function displayAutocompleteResults(predictions) {
-        const resultsContainer = document.getElementById("autocompleteResults");
-        resultsContainer.innerHTML = "";
-        predictions.forEach((prediction) => {
-          const item = document.createElement("div");
-          item.textContent = prediction.description;
-          item.onclick = async () => {
-            document.getElementById("locationSearchInput").value =
-              prediction.description;
-            resultsContainer.innerHTML = "";
-            const details = await fetchPlaceDetails(prediction.place_id);
-            if (details && details.geometry && details.geometry.location) {
-              const coords = {
-                lat: details.geometry.location.lat,
-                lng: details.geometry.location.lng,
-              };
-              updateMapAndSearch(coords, prediction.description);
-            } else {
-              alert("장소의 좌표를 가져오는 데 실패했습니다.");
-            }
-          };
-          resultsContainer.appendChild(item);
-        });
-      }
-      function updateMapAndSearch(coords, locationName) {
-        currentSearchCoords = coords;
-        document.getElementById("searchStatus").textContent =
-          `기준 위치: ${locationName}`;
-        map.panTo(coords);
-        marker.setPosition(coords);
-        searchCircle.setCenter(coords);
-        const radius = document.getElementById("radiusSelect").value;
-        fetchGuides(coords.lat, coords.lng, radius);
-      }
-      function handleGetCurrentLocation() {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const coords = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              };
-              updateMapAndSearch(coords, "내 현재 위치");
-            },
-            () => {
-              alert(
-                "위치 정보를 가져올 수 없습니다. 기본 위치에서 검색합니다.",
-              );
-              updateMapAndSearch(
-                { lat: 35.2283, lng: 128.6814 },
-                "창원 시청(기본값)",
-              );
-            },
-          );
-        } else {
-          alert("이 브라우저에서는 위치 서비스를 지원하지 않습니다.");
-        }
-      }
-      function handleRadiusChange() {
-        if (!currentSearchCoords) {
-          alert("먼저 검색 기준 위치를 설정해주세요.");
+      // ===================== Main Tab Switch =====================
+      function switchTab(tabName, btnEl) {
+        const authRequiredTabs = ["guide", "profile", "admin"];
+        if (authRequiredTabs.includes(tabName) && !isAuthenticated()) {
+          showLandingView(tabName, "로그인 후 이용할 수 있는 메뉴입니다.");
           return;
         }
-        const radiusKm = document.getElementById("radiusSelect").value;
-        searchCircle.setRadius(radiusKm * 1000);
-        fetchGuides(currentSearchCoords.lat, currentSearchCoords.lng, radiusKm);
+        document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById("tab-" + tabName).classList.add("active");
+        btnEl.classList.add("active");
       }
+
+      // ===================== Google Login =====================
+      function googleLogin() {
+        window.location.href = `${window.location.origin}/oauth2/authorization/google?redirect_uri=${encodeURIComponent(window.location.origin)}`;
+      }
+
+      // ===================== OAuth Redirect Token =====================
       async function handleRedirectToken() {
         const urlParams = new URLSearchParams(window.location.search);
 
-        // Authorization Code Flow: code를 토큰으로 교환
         const code = urlParams.get("code");
         if (code) {
           try {
             const res = await fetch(`${API_BASE_URL}/api/auth/oauth/token`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ code: code }),
+              body: JSON.stringify({ code }),
             });
-
             if (!res.ok) throw new Error("토큰 교환 실패");
-
             const data = await res.json();
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
             token = data.accessToken;
+            window.history.replaceState({}, document.title, window.location.pathname);
             alert("구글 로그인 성공!");
-            window.history.replaceState(
-              {},
-              document.title,
-              window.location.pathname,
-            );
           } catch (err) {
             console.error("Google OAuth error:", err);
             alert("구글 로그인 실패: " + err.message);
@@ -499,21 +1092,18 @@
           return;
         }
 
-        // 기존 방식: accessToken과 refreshToken이 URL에 있는 경우
         const accessToken = urlParams.get("accessToken");
         const refreshToken = urlParams.get("refreshToken");
         if (accessToken && refreshToken) {
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", refreshToken);
           token = accessToken;
+          window.history.replaceState({}, document.title, window.location.pathname);
           alert("구글 로그인 성공!");
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname,
-          );
         }
       }
+
+      // ===================== Auth Functions =====================
       function signup() {
         fetch(`${API_BASE_URL}/api/auth/signup`, {
           method: "POST",
@@ -523,13 +1113,14 @@
             password: document.getElementById("password").value,
           }),
         })
-          .then((res) => {
+          .then(res => {
             if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
             alert("회원가입 성공! 로그인 해주세요.");
             return res.json();
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function login() {
         const email = document.getElementById("loginEmail").value;
         const password = document.getElementById("loginPassword").value;
@@ -538,316 +1129,427 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         })
-          .then((res) => {
+          .then(res => {
             if (!res.ok) throw new Error("로그인 실패");
             return res.json();
           })
-          .then((data) => {
+          .then(data => {
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
+            localStorage.setItem("userEmail", email);
             token = data.accessToken;
-            alert("로그인 성공");
+            showMainView();
+            navigateToReturnTab();
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function reissueToken() {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!accessToken || !refreshToken) {
-          return alert("토큰이 없습니다. 로그인 해주세요.");
-        }
+        if (!accessToken || !refreshToken) return alert("토큰이 없습니다. 로그인 해주세요.");
         fetch(`${API_BASE_URL}/api/auth/reissue`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + accessToken,
-          },
-          body: JSON.stringify({
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          }),
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+          body: JSON.stringify({ accessToken, refreshToken }),
         })
-          .then((res) => {
+          .then(res => {
             if (!res.ok) throw new Error("토큰 재발급 실패");
             return res.json();
           })
-          .then((data) => {
+          .then(data => {
             localStorage.setItem("accessToken", data.accessToken);
             token = data.accessToken;
-            if (data.refreshToken) {
-              localStorage.setItem("refreshToken", data.refreshToken);
-            }
+            if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
             alert("토큰이 재발급 되었습니다.");
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function logout() {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!accessToken) {
-          return alert("로그인이 필요합니다.");
-        }
+        if (!accessToken) return alert("로그인이 필요합니다.");
         fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + accessToken,
-          },
-          body: JSON.stringify({
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          }),
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+          body: JSON.stringify({ accessToken, refreshToken }),
         })
-          .then((res) => {
+          .then(res => {
             if (!res.ok) throw new Error("로그아웃 실패");
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
+            localStorage.removeItem("userEmail");
+            token = null;
             alert("로그아웃 되었습니다.");
+            showMainView();
+            const locationBtn = document.querySelector(".tab-btn[data-tab='location']");
+            if (locationBtn) switchTab("location", locationBtn);
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function deleteMember() {
         const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) {
-          return alert("로그인이 필요합니다.");
-        }
-
+        if (!accessToken) return alert("로그인이 필요합니다.");
         const confirmMessage = "정말로 회원 탈퇴하시겠습니까?\n\n⚠️ 주의사항:\n- 모든 가이드와 사진이 삭제됩니다\n- S3에 저장된 파일도 모두 삭제됩니다\n- 이 작업은 복구할 수 없습니다\n\n계속하시겠습니까?";
-
-        if (!confirm(confirmMessage)) {
-          return;
-        }
-
-        // 한 번 더 확인
-        if (!confirm("마지막 확인: 정말로 탈퇴하시겠습니까?")) {
-          return;
-        }
-
+        if (!confirm(confirmMessage)) return;
+        if (!confirm("마지막 확인: 정말로 탈퇴하시겠습니까?")) return;
         fetch(`${API_BASE_URL}/api/members/delete/me`, {
           method: "DELETE",
-          headers: {
-            Authorization: "Bearer " + accessToken,
-          },
+          headers: { Authorization: "Bearer " + accessToken },
         })
-          .then((res) => {
-            if (!res.ok) {
-              return res.text().then(text => {
-                throw new Error(`회원 탈퇴 실패: ${text || res.status}`);
-              });
-            }
-            // 성공 시 토큰 제거 및 알림
+          .then(res => {
+            if (!res.ok) return res.text().then(text => { throw new Error(`회원 탈퇴 실패: ${text || res.status}`); });
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
+            localStorage.removeItem("userEmail");
             token = null;
             alert("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
-            // 페이지 새로고침
             location.reload();
           })
-          .catch((err) => {
-            console.error("회원 탈퇴 오류:", err);
-            alert(err.message);
-          });
+          .catch(err => { console.error("회원 탈퇴 오류:", err); alert(err.message); });
       }
+
       function authTest() {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-          alert("로그인이 필요합니다.");
-          return;
-        }
+        const t = localStorage.getItem("accessToken");
+        if (!t) { alert("로그인이 필요합니다."); return; }
         fetch(`${API_BASE_URL}/api/auth/test`, {
           method: "GET",
-          headers: { Authorization: "Bearer " + token },
+          headers: { Authorization: "Bearer " + t },
         })
-          .then((res) => {
-            if (!res.ok) throw new Error("인증 실패");
-            return res.text();
-          })
-          .then((data) => {
-            document.getElementById("authResult").innerText = data;
-          })
-          .catch((err) => alert(err.message));
+          .then(res => { if (!res.ok) throw new Error("인증 실패"); return res.text(); })
+          .then(data => { document.getElementById("authResult").innerText = data; })
+          .catch(err => alert(err.message));
       }
+
+      // ===================== Google Maps =====================
+      function loadGoogleMapsScript() {
+        if (window.google && window.google.maps) return;
+        fetch(`${API_BASE_URL}/api/maps/key`)
+          .then(res => res.ok ? res.json() : Promise.reject("Could not fetch map API key."))
+          .then(data => {
+            const apiKey = data.apiKey;
+            if (!apiKey) throw new Error("API key is missing.");
+            const script = document.createElement("script");
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+          })
+          .catch(err => {
+            console.error("Failed to load Google Maps:", err);
+            document.getElementById("map").textContent = "지도를 불러오는 데 실패했습니다. API 설정을 확인해주세요.";
+          });
+      }
+
+      let map, marker, searchCircle, currentSearchCoords;
+      window.initMap = function () {
+        const defaultLocation = { lat: 35.2283, lng: 128.6814 };
+        map = new google.maps.Map(document.getElementById("map"), { center: defaultLocation, zoom: 13 });
+        marker = new google.maps.Marker({ position: defaultLocation, map, draggable: true });
+        searchCircle = new google.maps.Circle({
+          strokeColor: "#0095f6",
+          strokeWeight: 2,
+          fillOpacity: 0.08,
+          map,
+          center: defaultLocation,
+          radius: 10000,
+        });
+        map.addListener("click", e => updateMapAndSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() }, "지도에서 선택한 위치"));
+        marker.addListener("dragend", e => updateMapAndSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() }, "마커 위치"));
+        document.getElementById("currentLocationBtn").onclick = handleGetCurrentLocation;
+        document.getElementById("radiusSelect").onchange = handleRadiusChange;
+        document.getElementById("locationSearchInput").addEventListener("input", debounce(handleLocationSearchInput, 300));
+        handleGetCurrentLocation();
+      };
+
+      // ===================== Location Functions =====================
+      function debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      async function fetchPlaceAutocomplete(input) {
+        if (!input || input.trim().length < 2) return [];
+        try {
+          const url = `${API_BASE_URL}/location/api/places/autocomplete?input=${encodeURIComponent(input)}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Network response was not ok: ${response.status}`);
+          const data = await response.json();
+          return data?.predictions || [];
+        } catch (error) {
+          console.error("장소 자동완성 API 호출 오류:", error);
+          return [];
+        }
+      }
+
+      async function fetchPlaceDetails(placeId) {
+        if (!placeId) return null;
+        try {
+          const url = `${API_BASE_URL}/location/api/places/details?placeId=${encodeURIComponent(placeId)}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Network response was not ok: ${response.status}`);
+          const data = await response.json();
+          return data?.result || null;
+        } catch (error) {
+          console.error("장소 상세 정보 API 호출 오류:", error);
+          return null;
+        }
+      }
+
+      async function handleLocationSearchInput(event) {
+        const query = event.target.value;
+        const results = await fetchPlaceAutocomplete(query);
+        displayAutocompleteResults(results);
+      }
+
+      function displayAutocompleteResults(predictions) {
+        const resultsContainer = document.getElementById("autocompleteResults");
+        resultsContainer.innerHTML = "";
+        predictions.forEach(prediction => {
+          const item = document.createElement("div");
+          item.textContent = prediction.description;
+          item.onclick = async () => {
+            document.getElementById("locationSearchInput").value = prediction.description;
+            resultsContainer.innerHTML = "";
+            const details = await fetchPlaceDetails(prediction.place_id);
+            if (details && details.geometry && details.geometry.location) {
+              const coords = { lat: details.geometry.location.lat, lng: details.geometry.location.lng };
+              updateMapAndSearch(coords, prediction.description);
+            } else {
+              alert("장소의 좌표를 가져오는 데 실패했습니다.");
+            }
+          };
+          resultsContainer.appendChild(item);
+        });
+      }
+
+      function updateMapAndSearch(coords, locationName) {
+        currentSearchCoords = coords;
+        document.getElementById("searchStatus").textContent = `기준 위치: ${locationName}`;
+        map.panTo(coords);
+        marker.setPosition(coords);
+        searchCircle.setCenter(coords);
+        const radius = document.getElementById("radiusSelect").value;
+        fetchGuides(coords.lat, coords.lng, radius);
+      }
+
+      function handleGetCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+              // 현재 위치는 zoom을 높여서 명확하게 표시
+              map.setCenter(coords);
+              map.setZoom(16);
+              updateMapAndSearch(coords, "내 현재 위치");
+            },
+            err => {
+              console.warn("위치 가져오기 실패:", err.code, err.message);
+              updateMapAndSearch({ lat: 35.2283, lng: 128.6814 }, "창원 시청(기본값)");
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          );
+        } else {
+          updateMapAndSearch({ lat: 35.2283, lng: 128.6814 }, "창원 시청(기본값)");
+        }
+      }
+
+      function handleRadiusChange() {
+        if (!currentSearchCoords) { alert("먼저 검색 기준 위치를 설정해주세요."); return; }
+        const radiusKm = document.getElementById("radiusSelect").value;
+        searchCircle.setRadius(radiusKm * 1000);
+        fetchGuides(currentSearchCoords.lat, currentSearchCoords.lng, radiusKm);
+      }
+
+      async function fetchGuides(lat, lng, radius) {
+        document.getElementById("guideNear").innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>가이드를 불러오는 중...</p>";
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        try {
+          const res = await fetch(`${API_BASE_URL}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`, { headers });
+          if (!res.ok) {
+            console.error("서버 응답 오류:", res.status);
+            throw new Error("가이드 로딩 실패: 서버 오류.");
+          }
+          const list = await res.json();
+          console.log("📦 받아온 가이드 리스트:", list);
+          const wrap = document.getElementById("guideNear");
+          wrap.innerHTML = "";
+          if (list.length === 0) {
+            wrap.innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>주변에 가이드가 없습니다.</p>";
+            return;
+          }
+          list.forEach(g => wrap.appendChild(createGuideCard(g)));
+        } catch (err) {
+          console.error("가이드 로딩 실패:", err);
+          document.getElementById("guideNear").innerHTML = "<p style='padding:20px; color:#8e8e8e; font-size:14px;'>가이드를 불러오는 중 오류가 발생했습니다.</p>";
+        }
+      }
+
+      // ===================== Guide Functions =====================
       function upload() {
         if (!token) return alert("로그인이 필요합니다.");
         const files = document.getElementById("imageFile").files;
         const tip = document.getElementById("tip").value;
         const formData = new FormData();
-        for (const file of files) {
-          formData.append("files", file);
-        }
+        for (const file of files) formData.append("files", file);
         formData.append("tip", tip);
         fetch(`${API_BASE_URL}/guide/api/upload`, {
           method: "POST",
           headers: { Authorization: "Bearer " + token },
           body: formData,
         })
-          .then((res) => {
-            if (!res.ok) throw new Error("업로드 실패");
-            return res.json();
-          })
-          .then((data) => {
-            alert("업로드 성공");
-          })
-          .catch((err) => alert(err.message));
+          .then(res => { if (!res.ok) throw new Error("업로드 실패"); return res.json(); })
+          .then(() => alert("업로드 성공"))
+          .catch(err => alert(err.message));
       }
+
       function toggleLike(guideId, likeBtn, likeCountSpan) {
         if (!token) return alert("좋아요를 누르려면 로그인이 필요합니다.");
         fetch(`${API_BASE_URL}/guide/api/like/${guideId}`, {
           method: "POST",
           headers: { Authorization: "Bearer " + token },
         })
-          .then((res) => {
-            if (!res.ok) throw new Error("좋아요 처리 실패");
-            return res.json();
-          })
-          .then((data) => {
-            likeBtn.textContent = data.liked ? "❤️" : "♡";
+          .then(res => { if (!res.ok) throw new Error("좋아요 처리 실패"); return res.json(); })
+          .then(data => {
+            likeBtn.textContent = data.liked ? "❤️" : "🤍";
             likeCountSpan.textContent = data.likeCount;
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function createGuideCard(g) {
         const card = document.createElement("div");
         card.className = "guide-card";
+
         const imgBox = document.createElement("div");
         imgBox.className = "img-box";
+
         if (g.media && g.media.length > 0) {
+          if (g.media.length > 1) imgBox.classList.add("img-box-multi");
           g.media.slice(0, 10).forEach((m, i) => {
             const img = document.createElement("img");
             img.src = `${API_BASE_URL}${m.url}`;
-            if (i !== 0) {
-              img.style.display = "none";
-            }
+            if (i !== 0) img.style.display = "none";
             imgBox.appendChild(img);
           });
           imgBox.onclick = () => {
             const imgs = imgBox.querySelectorAll("img");
-            let idx = [...imgs].findIndex((el) => el.style.display !== "none");
+            let idx = [...imgs].findIndex(el => el.style.display !== "none");
             imgs[idx].style.display = "none";
             imgs[(idx + 1) % imgs.length].style.display = "block";
           };
         }
-        const tip = document.createElement("p");
-        tip.textContent = g.tip;
+
+        const body = document.createElement("div");
+        body.className = "guide-card-body";
+
+        const tipEl = document.createElement("p");
+        tipEl.textContent = g.tip;
+
         const metaInfo = document.createElement("div");
         metaInfo.className = "meta-info";
+
         const viewSpan = document.createElement("span");
         viewSpan.className = "view-count";
-        viewSpan.textContent = `조회수: ${g.viewCount || 0}`;
-        const likeContainer = document.createElement("span");
+        viewSpan.textContent = `조회 ${g.viewCount || 0}`;
+
+        const likeArea = document.createElement("div");
+        likeArea.className = "like-area";
+
         const likeBtn = document.createElement("button");
         likeBtn.className = "like-btn";
-        likeBtn.textContent = g.userHasLiked ? "❤️" : "♡";
+        likeBtn.textContent = g.userHasLiked ? "❤️" : "🤍";
+
         const likeCountSpan = document.createElement("span");
         likeCountSpan.className = "like-count";
         likeCountSpan.textContent = g.likeCount;
+
         likeBtn.onclick = () => toggleLike(g.id, likeBtn, likeCountSpan);
-        likeContainer.append(likeBtn, likeCountSpan);
-        metaInfo.append(viewSpan, likeContainer);
+        likeArea.append(likeBtn, likeCountSpan);
+        metaInfo.append(viewSpan, likeArea);
+
         const updateBtn = document.createElement("button");
         updateBtn.textContent = "✏️ 수정";
         updateBtn.onclick = () => {
           const newTip = prompt("새 팁 내용을 입력하세요:", g.tip);
           if (newTip) updateGuide(g.id, newTip);
         };
+
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "🗑️ 삭제";
-        deleteBtn.onclick = () => {
-          if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id);
-        };
+        deleteBtn.onclick = () => { if (confirm("정말 삭제하시겠습니까?")) deleteGuide(g.id); };
+
         const btnGroup = document.createElement("div");
         btnGroup.className = "button-group";
         btnGroup.append(updateBtn, deleteBtn);
-        card.append(imgBox, tip, metaInfo, btnGroup);
+
+        body.append(tipEl, metaInfo, btnGroup);
+        card.append(imgBox, body);
         return card;
       }
+
       function loadUserGuides() {
         if (!token) return alert("로그인이 필요합니다.");
-        fetch(`${API_BASE_URL}/guide/api/my`, {
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then((r) => r.json())
-          .then((list) => {
+        fetch(`${API_BASE_URL}/guide/api/my`, { headers: { Authorization: "Bearer " + token } })
+          .then(r => r.json())
+          .then(list => {
             const wrap = document.getElementById("guideWrap");
             wrap.innerHTML = "";
-            list.forEach((g) => {
-              const card = createGuideCard(g);
-              wrap.appendChild(card);
-            });
+            list.forEach(g => wrap.appendChild(createGuideCard(g)));
           });
       }
-      function fetchGuides(lat, lng, radius) {
-        if (!token) return alert("로그인이 필요합니다.");
-        document.getElementById("guideNear").innerHTML =
-          "<p>가이드를 불러오는 중...</p>";
-        fetch(
-          `${API_BASE_URL}/guide/api/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,
-          { headers: { Authorization: "Bearer " + token } },
-        )
-          .then((res) => {
-            if (!res.ok) {
-              console.error("서버 응답 오류:", res.status);
-              throw new Error("가이드 로딩 실패: 서버 오류.");
-            }
-            return res.json();
-          })
-          .then((list) => {
-            console.log("📦 받아온 가이드 리스트:", list);
-            const wrap = document.getElementById("guideNear");
-            wrap.innerHTML = "";
-            if (list.length === 0) {
-              wrap.innerHTML = "<p>주변에 가이드가 없습니다.</p>";
-              return;
-            }
-            list.forEach((g) => {
-              const card = createGuideCard(g);
-              wrap.appendChild(card);
-            });
-          })
-          .catch((err) => {
-            console.error("가이드 로딩 실패:", err);
-            document.getElementById("guideNear").innerHTML =
-              "<p>가이드를 불러오는 중 오류가 발생했습니다.</p>";
-            alert("가이드를 불러오는 중 오류가 발생했습니다.");
-          });
+
+      function updateGuide(id, newTip) {
+        fetch(`${API_BASE_URL}/guide/api/update`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ id, tip: newTip }),
+        })
+          .then(() => { alert("수정 완료"); loadUserGuides(); })
+          .catch(err => { alert("수정 실패"); console.error(err); });
       }
-      function loadPhotos() {
-        if (!token) return alert("로그인이 필요합니다.");
-        fetch(`${API_BASE_URL}/media/list`, {
-          method: "GET",
+
+      function deleteGuide(id) {
+        fetch(`${API_BASE_URL}/guide/api/delete/${id}`, {
+          method: "DELETE",
           headers: { Authorization: "Bearer " + token },
         })
-          .then((res) => {
-            if (!res.ok) throw new Error("불러오기 실패");
-            return res.json();
-          })
-          .then((data) => {
+          .then(() => { alert("삭제 완료"); loadUserGuides(); })
+          .catch(err => { alert("삭제 실패"); console.error(err); });
+      }
+
+      // ===================== Media Functions =====================
+      function loadPhotos() {
+        if (!token) return alert("로그인이 필요합니다.");
+        fetch(`${API_BASE_URL}/media/list`, { method: "GET", headers: { Authorization: "Bearer " + token } })
+          .then(res => { if (!res.ok) throw new Error("불러오기 실패"); return res.json(); })
+          .then(data => {
             const container = document.getElementById("photoList");
             container.innerHTML = "";
-            data.forEach((media) => {
+            data.forEach(media => {
               const img = document.createElement("img");
               img.src = `${API_BASE_URL}${media.url}`;
-              img.style.width = "200px";
-              img.style.margin = "10px";
               container.appendChild(img);
             });
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
+
       function fetchPhotoCount() {
-        const countText = document.getElementById("photoCountText");
-        fetch(`${API_BASE_URL}/media/allphoto/count`, {
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then((res) => res.json())
-          .then((count) => {
+        fetch(`${API_BASE_URL}/media/allphoto/count`, { headers: { Authorization: "Bearer " + token } })
+          .then(res => res.json())
+          .then(count => {
             totalCount = count;
-            countText.innerText = `📷 전체 사진 수: ${totalCount}개`;
+            document.getElementById("photoCountText").innerText = `전체 사진 수: ${totalCount}개`;
           })
-          .catch((err) => {
-            console.warn("총 개수 불러오기 실패", err);
-          });
+          .catch(err => console.warn("총 개수 불러오기 실패", err));
       }
+
       function allPhotos() {
         if (loading) return;
         const photoContainer = document.getElementById("allPhoto");
@@ -856,112 +1558,58 @@
         const nextBtn = document.getElementById("nextPageBtn");
         loading = true;
         loadingText.style.display = "inline";
-        fetch(`${API_BASE_URL}/media/allphoto?page=${page}&size=${size}`, {
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error("불러오기 실패");
-            return res.json();
-          })
-          .then((data) => {
-            if (page === 0) {
-              prevBtn.disabled = true;
-            } else {
-              prevBtn.disabled = false;
-            }
+        fetch(`${API_BASE_URL}/media/allphoto?page=${page}&size=${size}`, { headers: { Authorization: "Bearer " + token } })
+          .then(res => { if (!res.ok) throw new Error("불러오기 실패"); return res.json(); })
+          .then(data => {
+            prevBtn.disabled = page === 0;
             if ((page + 1) * size >= totalCount) {
               done = true;
               nextBtn.disabled = true;
-              nextBtn.innerText = "✅ 마지막 페이지";
+              nextBtn.innerText = "✅ 마지막";
             } else {
               done = false;
               nextBtn.disabled = false;
-              nextBtn.innerText = "➡️ 다음";
+              nextBtn.innerText = "다음 →";
             }
             photoContainer.innerHTML = "";
-            data.forEach((media) => {
+            data.forEach(media => {
               const fileName = media.fileName.toLowerCase();
               const fileUrl = `${API_BASE_URL}${media.url}`;
               if (fileName.endsWith(".heic")) {
                 const link = document.createElement("a");
                 link.href = fileUrl;
-                link.innerText = `${media.fileName} (HEIC 파일 - 다운로드)`;
+                link.innerText = `${media.fileName} (HEIC)`;
                 link.download = media.fileName;
-                link.style.display = "block";
-                link.style.margin = "10px";
+                link.style.cssText = "display:block; margin:10px; font-size:13px;";
                 photoContainer.appendChild(link);
               } else {
                 const img = document.createElement("img");
                 img.src = fileUrl;
                 img.loading = "lazy";
-                img.style.width = "200px";
-                img.style.margin = "10px";
                 photoContainer.appendChild(img);
               }
             });
             loading = false;
             loadingText.style.display = "none";
           })
-          .catch((err) => {
-            alert(err.message);
-            loading = false;
-            loadingText.style.display = "none";
-          });
+          .catch(err => { alert(err.message); loading = false; loadingText.style.display = "none"; });
       }
-      function updateGuide(id, newTip) {
-        fetch(`${API_BASE_URL}/guide/api/update`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
-          },
-          body: JSON.stringify({ id: id, tip: newTip }),
-        })
-          .then(() => {
-            alert("수정 완료");
-            loadUserGuides();
-          })
-          .catch((err) => {
-            alert("수정 실패");
-            console.error(err);
-          });
-      }
-      function deleteGuide(id) {
-        fetch(`${API_BASE_URL}/guide/api/delete/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then(() => {
-            alert("삭제 완료");
-            loadUserGuides();
-          })
-          .catch((err) => {
-            alert("삭제 실패");
-            console.error(err);
-          });
-      }
+
+      // ===================== Member Functions =====================
       function loadMembers() {
-        if (!token) {
-          alert("로그인이 필요합니다.");
-          return;
-        }
-        fetch(`${API_BASE_URL}/api/members`, {
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error("멤버 불러오기 실패");
-            return res.json();
-          })
-          .then((data) => {
+        if (!token) { alert("로그인이 필요합니다."); return; }
+        fetch(`${API_BASE_URL}/api/members`, { headers: { Authorization: "Bearer " + token } })
+          .then(res => { if (!res.ok) throw new Error("멤버 불러오기 실패"); return res.json(); })
+          .then(data => {
             const list = document.getElementById("memberList");
             list.innerHTML = "";
-            data.forEach((member) => {
+            data.forEach(member => {
               const li = document.createElement("li");
               li.textContent = `${member.id}: ${member.email}`;
               list.appendChild(li);
             });
           })
-          .catch((err) => alert(err.message));
+          .catch(err => alert(err.message));
       }
     </script>
   </body>

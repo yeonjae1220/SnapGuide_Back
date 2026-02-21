@@ -72,14 +72,20 @@ public class GuideService {
      */
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public Long createGuideWithMedia(Member author, String tip, List<Media> mediaList) {
-        // 1. 첫 번째 Media의 Location 사용 (없으면 null)
-        Location location = mediaList.stream()
+        // 1. 전달받은 Media 엔티티는 이전 트랜잭션에서 저장 후 detached 상태임.
+        //    현재 트랜잭션의 영속성 컨텍스트에서 재조회하여 managed 상태로 만든다.
+        //    (Guide.mediaList의 CascadeType.ALL이 detached 엔티티에 PERSIST를 시도하는 문제 방지)
+        List<Long> mediaIds = mediaList.stream().map(Media::getId).collect(Collectors.toList());
+        List<Media> managedMedia = mediaIds.isEmpty() ? List.of() : mediaRepository.findAllById(mediaIds);
+
+        // 2. 첫 번째 Media의 Location 사용 (없으면 null)
+        Location location = managedMedia.stream()
                 .map(Media::getLocation)
                 .filter(loc -> loc != null)
                 .findFirst()
                 .orElse(null);
 
-        // 2. Guide 생성
+        // 3. Guide 생성
         Guide guide = Guide.builder()
                 .tip(tip)
                 .author(author)
@@ -88,12 +94,12 @@ public class GuideService {
 
         guideRepository.save(guide);
 
-        // 3. Media 연결
-        if (!mediaList.isEmpty()) {
-            linkMediaToGuide(guide, mediaList);
+        // 4. Media 연결 (managed 상태의 엔티티 사용)
+        if (!managedMedia.isEmpty()) {
+            linkMediaToGuide(guide, managedMedia);
         }
 
-        log.info("[Guide] Created guide {} with {} media", guide.getId(), mediaList.size());
+        log.info("[Guide] Created guide {} with {} media", guide.getId(), managedMedia.size());
         return guide.getId();
     }
 

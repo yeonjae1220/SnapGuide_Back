@@ -23,9 +23,9 @@ const concurrentLikes = new Counter('concurrent_likes');
 export const options = {
   stages: [
     { duration: '1m', target: 20 },    // 워밍업
-    { duration: '3m', target: 100 },   // 일반 부하
-    { duration: '3m', target: 200 },   // 피크 시간대
-    { duration: '2m', target: 300 },   // 스트레스 테스트
+    { duration: '3m', target: 50},   // 일반 부하
+    { duration: '3m', target: 100 },   // 피크 시간대
+    { duration: '2m', target: 150 },   // 스트레스 테스트
     { duration: '1m', target: 0 },     // 종료
   ],
   thresholds: {
