@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오프라인 - SnapGuide</title>
+  <style>
+    :root {
+      --ig: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+      --bg: #fafafa;
+      --text: #262626;
+      --gray: #8e8e8e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      background: var(--ig);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 32px;
+    }
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    p {
+      color: var(--gray);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 320px;
+      margin-bottom: 32px;
+    }
+    button {
+      background: var(--ig);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="logo">SnapGuide</div>
+  <div class="icon">📡</div>
+  <h1>오프라인 상태입니다</h1>
+  <p>인터넷 연결을 확인해주세요. 연결이 복구되면 자동으로 다시 시도합니다.</p>
+  <button onclick="window.location.reload()">다시 시도</button>
+</body>
+</html>
