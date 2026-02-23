@@ -227,17 +227,16 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     public String generatePresignedUrl(String filename) {
-        String objectKey = "images/web/" + filename;
+        String objectKey = resolveS3Key(filename);
+        if (objectKey == null) {
+            log.warn("S3에 존재하지 않는 파일에 대한 URL 생성 시도: {}", filename);
+            return null;
+        }
+
         Date expiration = new Date();
-        long expTimeMillis = expiration.getTime();
-        expTimeMillis += 1000 * 60 * 10; // 10분
-        expiration.setTime(expTimeMillis);
+        expiration.setTime(expiration.getTime() + 1000 * 60 * 10); // 10분
 
         try {
-            if (!amazonS3.doesObjectExist(bucketName, objectKey)) {
-                log.warn("S3에 존재하지 않는 파일에 대한 URL 생성 시도: {}", objectKey);
-                return null;
-            }
             GeneratePresignedUrlRequest generatePresignedUrlRequest =
                     new GeneratePresignedUrlRequest(bucketName, objectKey)
                             .withMethod(HttpMethod.GET)
@@ -271,6 +270,17 @@ public class S3FileStorageService implements FileStorageService {
     @Override
     public String generatePublicUrl(String filePath) {
         // TODO: S3 파일의 public URL 생성 로직 구현
+        return null;
+    }
+
+    // images/web/ → images/thumbnails/ 순서로 존재 여부 확인 후 key 반환
+    private String resolveS3Key(String filename) {
+        String webKey = "images/web/" + filename;
+        if (amazonS3.doesObjectExist(bucketName, webKey)) return webKey;
+
+        String thumbnailKey = "images/thumbnails/" + filename;
+        if (amazonS3.doesObjectExist(bucketName, thumbnailKey)) return thumbnailKey;
+
         return null;
     }
 
