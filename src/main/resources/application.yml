@@ -59,3 +59,10 @@ springdoc:
   model-and-view-allowed: true
   paths-to-match:
     - /api/**
+
+# PWA Push Notification (VAPID)
+pwa:
+  vapid:
+    public-key: ${VAPID_PUBLIC_KEY:}
+    private-key: ${VAPID_PRIVATE_KEY:}
+    subject: ${VAPID_SUBJECT:mailto:admin@snapguide.com}

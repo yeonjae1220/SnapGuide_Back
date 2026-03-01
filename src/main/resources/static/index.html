@@ -7,6 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#bc1888" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <style>
       /* ========== Variables ========== */
       :root {
@@ -302,6 +305,14 @@
         cursor: pointer; transition: var(--t);
       }
       #nav-logout-btn:hover { border-color: #aaa; color: var(--text); }
+      #install-btn {
+        padding: 7px 18px;
+        background: var(--ig); color: var(--white);
+        border: none; border-radius: 20px;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: var(--t);
+      }
+      #install-btn:hover { opacity: 0.85; }
 
       /* Sections */
       .tab-section { display: none; }
@@ -807,6 +818,7 @@
         </div>
         <div class="nav-user-area">
           <span id="nav-user-email"></span>
+          <button id="install-btn" style="display:none;" onclick="installPWA()">앱 설치</button>
           <button id="nav-login-btn" onclick="showLandingView(null)">로그인</button>
           <button id="nav-logout-btn" style="display:none;" onclick="logout()">로그아웃</button>
         </div>
@@ -1085,6 +1097,7 @@
             token = data.accessToken;
             window.history.replaceState({}, document.title, window.location.pathname);
             alert("구글 로그인 성공!");
+            subscribeToPush();
           } catch (err) {
             console.error("Google OAuth error:", err);
             alert("구글 로그인 실패: " + err.message);
@@ -1140,6 +1153,7 @@
             token = data.accessToken;
             showMainView();
             navigateToReturnTab();
+            subscribeToPush();
           })
           .catch(err => alert(err.message));
       }
@@ -1593,6 +1607,77 @@
             loadingText.style.display = "none";
           })
           .catch(err => { alert(err.message); loading = false; loadingText.style.display = "none"; });
+      }
+
+      // ===================== PWA: Service Worker Registration =====================
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+
+      // ===================== PWA: Install Prompt =====================
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) installBtn.style.display = 'inline-block';
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) installBtn.style.display = 'none';
+      });
+
+      function installPWA() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          const installBtn = document.getElementById('install-btn');
+          if (installBtn) installBtn.style.display = 'none';
+        });
+      }
+
+      // ===================== PWA: Push Notifications =====================
+      function urlB64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+      }
+
+      async function subscribeToPush() {
+        if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        try {
+          const keyRes = await fetch('/api/push/vapid-public-key');
+          if (!keyRes.ok) return;
+          const vapidPublicKey = await keyRes.text();
+
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
+          });
+
+          const currentToken = localStorage.getItem('accessToken');
+          await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify(sub)
+          });
+        } catch (err) {
+          console.warn('Push subscription failed:', err);
+        }
       }
 
       // ===================== Member Functions =====================

@@ -39,7 +39,13 @@ public final class SecurityConstants {
 
 		public static final String[] LOCATION_API = {"/location/api/places/**"};
 
-
+		public static final String[] PWA_PUBLIC = {
+				"/manifest.json",
+				"/service-worker.js",
+				"/offline.html",
+				"/icons/**",
+				"/api/push/vapid-public-key"
+		};
 
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
@@ -54,6 +60,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(FILE_IO).toList());
 			whiteList.addAll(Arrays.stream(ACTUATOR).toList());
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
+			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
 			return whiteList;
 		}
 

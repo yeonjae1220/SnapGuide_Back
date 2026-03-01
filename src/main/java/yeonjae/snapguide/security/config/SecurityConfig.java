@@ -107,6 +107,7 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.ACTUATOR).permitAll() // 모니터링 메트릭
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll() // 위치 검색 (비인증 허용)
+                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.PWA_PUBLIC).permitAll() // PWA 공개 리소스
                                 .anyRequest()
                                 .authenticated()
                 )
