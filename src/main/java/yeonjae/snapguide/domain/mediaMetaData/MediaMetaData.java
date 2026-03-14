@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(of = "id")
 public class MediaMetaData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

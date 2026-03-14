@@ -122,11 +122,12 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
 
         // [변경 2] DTO 매핑을 위해 현재 사용자가 좋아요를 눌렀는지 여부를 별도로 조회합니다.
         // (한 번의 쿼리로 Set에 담아 메모리에서 확인하는 것이 효율적입니다)
-        Set<Long> likedGuideIds;
-        likedGuideIds = queryFactory
+        // NOTE: memberId == 로그인한 사용자 ID (내 가이드 조회이므로 작성자 = 현재 사용자)
+        // 타인 프로필 조회를 지원하게 되면 currentUserId를 별도 파라미터로 분리해야 함
+        Set<Long> likedGuideIds = queryFactory
                 .select(gl.guide.id)
                 .from(gl)
-                .where(gl.member.id.eq(memberId)) // 여기서는 '현재 사용자' ID를 써야 하지만, 메서드 시그니처상 '작성자' ID를 사용합니다.
+                .where(gl.member.id.eq(memberId))
                 .fetch()
                 .stream().collect(Collectors.toSet());
 

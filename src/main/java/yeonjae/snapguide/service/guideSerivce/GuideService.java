@@ -156,7 +156,7 @@ public class GuideService {
 
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public GuideResponseDto updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
-        Guide guide = guideRepository.findById(guideId)
+        Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         Member member = memberRepository.findByEmail(userDetails.getUsername())
@@ -211,7 +211,7 @@ public class GuideService {
 
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
-        Guide guide = guideRepository.findById(guideId)
+        Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         Member member = memberRepository.findByEmail(userDetails.getUsername())
@@ -236,6 +236,7 @@ public class GuideService {
             key = "T(Math).round(#lat * 100) / 100.0 + ':' + T(Math).round(#lng * 100) / 100.0 + ':' + #radius",
             unless = "#result.isEmpty()"
     )
+    @Transactional(readOnly = true)
     public List<GuideResponseDto> findGuidesNear(double lat, double lng, double radius) { // km
         log.info("📍 [findGuidesNear] 요청 위치: lat = {}, lng = {}, radius = {} km", lat, lng, radius);
 
