@@ -81,15 +81,11 @@ public class JwtTokenProvider {
     // TODO : 매개변수 확인, 좀 된 코드에서는 Authentication authentication 으로 받아서 .getAuthorities().stream()으로 가져오네
     public JwtToken generateToken(Collection<? extends GrantedAuthority> authorityInfo,
                                    String id) {
-        System.out.println("Authority info: " + authorityInfo); // 디버깅용
         // 사용자의 권한 정보들을 모아 문자열로 만든다.
         String authorities = authorityInfo.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(",")); // "MEMBER,ADMIN"
-        log.info("token authorities : " + authorities);
-        for (GrantedAuthority authority : authorityInfo) {
-            log.info("권한: " + authority.getAuthority());
-        }
+        log.debug("token authorities: {}", authorities);
 
         long now = (new Date()).getTime();
 
@@ -201,8 +197,8 @@ public class JwtTokenProvider {
             throw new CustomException(ErrorCode.INVALID_SIGNATURE);
         } catch (ExpiredJwtException e) {
             log.info("JWT 토큰이 만료되었습니다.");
-            log.info("토큰 생성일자 : {}", parseClaims(token).getIssuedAt());
-            log.info("토큰 만료시간 : {}", parseClaims(token).getExpiration());
+            log.info("토큰 생성일자 : {}", e.getClaims().getIssuedAt());
+            log.info("토큰 만료시간 : {}", e.getClaims().getExpiration());
             throw new CustomException(ErrorCode.EXPIRED_TOKEN);
         } catch (UnsupportedJwtException e) {
             log.info("지원되지 않는 JWT 토큰입니다.");

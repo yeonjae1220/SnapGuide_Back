@@ -41,7 +41,7 @@ public class MediaController {
         List<MediaResponseDto> response = mediaDtoList.stream()
                 .map(dto -> new MediaResponseDto(dto.getUrl()))
                 .collect(Collectors.toList());
-        log.info("media/list response : " + response);
+        log.info("media/list response: {}", response);
         return ResponseEntity.ok(response);
     }
 

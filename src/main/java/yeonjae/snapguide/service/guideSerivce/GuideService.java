@@ -260,10 +260,10 @@ public class GuideService {
         List<Guide> guides = guideRepository.findByLocationIdInWithFetch(locationIds);
         log.info("📘 Guide 수: {} (Fetch Join 적용)", guides.size());
         guides.forEach(g ->
-                log.info("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
+                log.debug("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
                         g.getId(),
                         g.getTip(),
-                        g.getLocation().getId())
+                        g.getLocation() != null ? g.getLocation().getId() : null)
         );
 
 //        List<GuideResponseDto> result = guides.stream()
@@ -284,7 +284,7 @@ public class GuideService {
                             .id(guide.getId())
                             .tip(guide.getTip())
                             .author(MemberDto.fromEntity(guide.getAuthor())) // 이 부분이 id만 가져오는게 아니라 객체 전체 가져오는거라 LazyLoading
-                            .locationName(guide.getLocation().getLocationName())
+                            .locationName(guide.getLocation() != null ? guide.getLocation().getLocationName() : "")
                             .media(mediaDto)
                             .likeCount(guide.getLikeCount())
                             .build();

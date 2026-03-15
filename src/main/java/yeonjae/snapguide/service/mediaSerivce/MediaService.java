@@ -154,7 +154,7 @@ public class MediaService {
         return mediaRepository.findAll()
                 .stream()
                 .map(MediaMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 //    public List<Media> getUserMedias() {
