@@ -23,8 +23,7 @@ import yeonjae.snapguide.infrastructure.cookie.CookieUtil;
 import com.nimbusds.oauth2.sdk.util.StringUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -54,6 +53,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 .map(cookie -> cookie.getValue())
                 .orElse(appRedirectUri); // 없으면 모바일 앱 URI를 기본값으로 사용
 
+        // 오픈 리다이렉트 방지: 허용된 URI만 사용
+        Set<String> allowedUris = Set.of(frontendRedirectUrl, appRedirectUri);
+        if (!allowedUris.contains(targetUrl)) {
+            log.warn("허용되지 않은 redirect_uri 시도: {}", targetUrl);
+            targetUrl = appRedirectUri;
+        }
         log.info("🎯 Target redirect URL: {}", targetUrl);
 
         // 🔒 모든 클라이언트에 대해 Authorization Code 방식 적용

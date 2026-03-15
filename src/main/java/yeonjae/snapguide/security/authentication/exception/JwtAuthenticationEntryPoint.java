@@ -11,7 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
+import yeonjae.snapguide.exception.ErrorCode;
+import yeonjae.snapguide.exception.ErrorResponse;
 
 import java.io.IOException;
 
@@ -19,21 +20,19 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
-//    private final ObjectMapper objectMapper;
-    private final String UTF_8 = "utf-8";
+
+    private final ObjectMapper objectMapper;
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
-        // 권한 문제 발생시
+        log.warn("인증 실패: {}", request.getRequestURI());
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setCharacterEncoding(UTF_8);
+        response.setCharacterEncoding("UTF-8");
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.findAndRegisterModules();
         response.getWriter().write(
-//                objectMapper.writeValueAsString(
-//                        MemberResponseDto.create(AUTHENTICATION_FAILED.getMessage())
-//                )
-                "인증되지 않은 사용자입니다"
+                objectMapper.writeValueAsString(new ErrorResponse(ErrorCode.MISSING_AUTH_HEADER))
         );
     }
 }

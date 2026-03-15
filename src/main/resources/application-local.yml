@@ -7,6 +7,11 @@ spring:
     frontend-redirect-url: http://localhost:8080
     app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
+cors:
+  allowed-origins:
+    - http://localhost:8080
+    - http://localhost:3000
+
 
   server:
     port: 8080

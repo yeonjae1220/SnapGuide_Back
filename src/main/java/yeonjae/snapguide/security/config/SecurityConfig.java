@@ -137,6 +137,12 @@ public class SecurityConfig {
                         .failureHandler(oAuth2FailureHandler)
                 )
                 // .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
+                .headers(headers -> headers
+                        .contentTypeOptions(c -> {})
+                        .frameOptions(f -> f.deny())
+                        .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:"))
+                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
                 .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화 // ID, password 문자열을 Base64로 인코딩하여 전달하는 구조

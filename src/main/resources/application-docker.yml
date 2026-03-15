@@ -8,6 +8,9 @@ spring:
     frontend-redirect-url: http://localhost:8082
     app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8082}
+
   # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
   # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
 
