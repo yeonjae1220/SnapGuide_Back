@@ -1,6 +1,7 @@
 package yeonjae.snapguide.service.locationSerivce;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.location.Location;
@@ -9,40 +10,35 @@ import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
+@Primary  // LocationService 빈 충돌 시 기본(Geo 버전) 선택
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class LocationServiceGeoImpl implements LocationService {
     private final LocationRepository locationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
-    // 좌표 값 추출 && 저장
-    public Location extractAndResolveLocation(byte[] imageBytes) {
+
+    @Override
+    public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
         if (coordinate.isEmpty()) {
-            return null;
+            return Optional.empty();  // EXIF 좌표 없음 → 정상 케이스
         }
-        double[] latLng = coordinate.orElseThrow(() ->
-                new IllegalArgumentException("좌표 정보가 없습니다."));
+        double[] latLng = coordinate.get();
 
-        // Location이 존재할경우 처리
-
-        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
-
-        if (!locationByCoordinate.isEmpty()) {
-            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        List<Location> existing = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
+        if (!existing.isEmpty()) {
+            return Optional.of(existing.get(0));
         }
 
         Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
-        // 2. 해당 Guide 찾기 TODO : Media, Location과 Guide 연관관계 연결 해줘야함
         if (location == null) {
             throw new IllegalStateException("Reverse geocoding failed for lat=" + latLng[0] + ", lng=" + latLng[1]);
         }
-        return locationRepository.save(location); // 아마 코드가 media까지 흘러 들어가서 CascadeType.PERSIST으로 저장될텐데, 그래도 혹시 몰라 넣어줌
+        return Optional.of(locationRepository.save(location));
     }
 
     // 사용자가 지정한 좌표 값을 받아 location 저장, google map api

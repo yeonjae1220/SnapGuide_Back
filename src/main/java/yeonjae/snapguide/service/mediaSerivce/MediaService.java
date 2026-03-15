@@ -16,7 +16,7 @@ import yeonjae.snapguide.service.fileStorageService.AsyncFileProcessingService;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
-import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
+import yeonjae.snapguide.service.locationSerivce.LocationService;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
@@ -34,7 +34,7 @@ public class MediaService {
     private final FileStorageService fileStorageService;
     private final AsyncFileProcessingService asyncFileProcessingService;
     private final MediaMetaDataService mediaMetaDataService;
-    private final LocationServiceGeoImpl locationServiceGeoImpl;
+    private final LocationService locationService;
     private final GuideService guideService;
     private final MediaRepository mediaRepository;
 
@@ -56,7 +56,7 @@ public class MediaService {
 
             // 2. 메타데이터 & 위치 정보 추출
             MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
+            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
 
             // 3. 임시 URL (원본 파일 기반) - 비동기 처리 완료 후 업데이트됨
             String tempUrl = "/media/files/" + savedFile.getBaseFileName() + ".jpg";
@@ -116,7 +116,7 @@ public class MediaService {
             @SuppressWarnings("deprecation")
             UploadFileDto savedFile = fileStorageService.uploadFile(file);
             MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
+            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
 
             String webFileName;
             if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {

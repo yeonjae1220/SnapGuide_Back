@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -226,11 +227,12 @@ public class S3FileStorageService implements FileStorageService {
         }
     }
 
-    public String generatePresignedUrl(String filename) {
+    @Override
+    public Optional<String> generatePresignedUrl(String filename) {
         String objectKey = resolveS3Key(filename);
         if (objectKey == null) {
             log.warn("S3에 존재하지 않는 파일에 대한 URL 생성 시도: {}", filename);
-            return null;
+            return Optional.empty();
         }
 
         Date expiration = new Date();
@@ -242,10 +244,10 @@ public class S3FileStorageService implements FileStorageService {
                             .withMethod(HttpMethod.GET)
                             .withExpiration(expiration);
             URL url = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
-            return url.toString();
+            return Optional.of(url.toString());
         } catch (Exception e) {
             log.error("Presigned URL 생성 중 오류 발생: {}", e.getMessage());
-            return null;
+            return Optional.empty();
         }
     }
 

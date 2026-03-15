@@ -1,7 +1,9 @@
 package yeonjae.snapguide.service.fileStorageService;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -26,22 +28,19 @@ import net.coobird.thumbnailator.Thumbnails;
 @ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService{
 
-    /**
-     * System.getProperty("user.dir")는 JVM이 실행 중인 현재 디렉토리의 절대 경로
-     */
-//    private final String uploadPath = System.getProperty("user.dir") + "/uploads";
+    @Value("${storage.local.base-dir}")
+    private String uploadBasePath;
 
+    private Path uploadOriginalDir;
+    private Path uploadThumbnailDir;
 
-//    private final Path uploadDir = Paths.get("uploads");
-    // 변경: 절대 경로 사용
-    private final Path uploadOriginalDir = Paths.get("/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/originals");
-    private final Path uploadThumbnailDir = Paths.get("/Users/kim-yeonjae/Desktop/Study/snapguide/uploads");
-    /**
-     * 이 주소가 더 보기 편하네
-     *      private final String uploadOriginalDir = "C:/uploads/originals";
-     *     private final String uploadThumbnailDir = "C:/uploads/thumbnails";
-     */
     private final HeicConverter heicConverter = new HeicConverter();
+
+    @PostConstruct
+    private void initPaths() {
+        uploadOriginalDir = Paths.get(uploadBasePath).resolve("originals");
+        uploadThumbnailDir = Paths.get(uploadBasePath);
+    }
 
     /**
      * 원본 파일만 로컬에 저장 (동기 - 빠른 응답용)

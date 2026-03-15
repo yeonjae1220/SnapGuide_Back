@@ -11,6 +11,7 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
+import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -27,6 +28,7 @@ import java.util.Map;
 @Slf4j
 public class GuideController {
     private final GuideService guideService;
+    private final GuideLikeService guideLikeService;
     private final MediaService mediaService;
     private final MemberService memberService;
     /**
@@ -100,7 +102,7 @@ public class GuideController {
 
     @PostMapping("/like/{id}")
     public ResponseEntity<Map<String, Object>> likeGuide(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        boolean liked = guideService.toggleLike(id, userDetails);
+        boolean liked = guideLikeService.toggleLike(id, userDetails);
         GuideResponseDto updatedGuide = guideService.findGuideById(id, userDetails);
 
         Map<String, Object> response = new HashMap<>();

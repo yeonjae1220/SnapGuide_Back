@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -37,10 +38,10 @@ public class FileServingService {
      * 로컬: Resource로 직접 응답.
      */
     public ResponseEntity<?> serveFile(String filename) throws IOException {
-        String presignedUrl = fileStorageService.generatePresignedUrl(filename);
-        if (presignedUrl != null) {
+        Optional<String> presignedUrl = fileStorageService.generatePresignedUrl(filename);
+        if (presignedUrl.isPresent()) {
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(URI.create(presignedUrl));
+            headers.setLocation(URI.create(presignedUrl.get()));
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
         }
 

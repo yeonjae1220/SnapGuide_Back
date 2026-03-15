@@ -3,9 +3,8 @@ package yeonjae.snapguide.service.fileStorageService;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Optional;
 
 public interface FileStorageService {
     /**
@@ -44,10 +43,10 @@ public interface FileStorageService {
 
     /**
      * S3 Presigned URL 생성 (임시 접근용).
-     * S3 외 구현체는 null 반환 (로컬/NAS는 지원하지 않음).
+     * S3 외 구현체는 Optional.empty() 반환 (로컬/NAS는 지원하지 않음).
      */
-    default String generatePresignedUrl(String filename) {
-        return null;
+    default Optional<String> generatePresignedUrl(String filename) {
+        return Optional.empty();
     }
 }
 

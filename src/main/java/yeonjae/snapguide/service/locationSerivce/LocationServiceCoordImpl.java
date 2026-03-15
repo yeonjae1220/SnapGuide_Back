@@ -9,8 +9,6 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtra
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,29 +22,24 @@ public class LocationServiceCoordImpl implements LocationService{
      * 좌표값만 저장 (나중에 api 무료 사용량 다 찼을 때 좌표만 저장하기 위해)
      */
 
-    public Location extractAndResolveLocation(byte[] imageBytes) {
+    @Override
+    public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
         if (coordinate.isEmpty()) {
-            return null;
+            return Optional.empty();  // EXIF 좌표 없음 → 정상 케이스
         }
-        double[] latLng = coordinate.orElseThrow(() ->
-                new IllegalArgumentException("좌표 정보가 없습니다."));
+        double[] latLng = coordinate.get();
 
-        // Location이 존재할경우 처리
-
-        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
-
-        if (!locationByCoordinate.isEmpty()) {
-            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+        List<Location> existing = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
+        if (!existing.isEmpty()) {
+            return Optional.of(existing.get(0));
         }
 
         Location location = Location.builder()
-//                .latitude(latLng[0])
-//                .longitude(latLng[1])
                 .coordinate(GeometryUtils.createPoint(latLng[0], latLng[1]))
                 .build();
 
-        return locationRepository.save(location);
+        return Optional.of(locationRepository.save(location));
     }
 
     public Location saveLocation(Double lat, Double lng) {

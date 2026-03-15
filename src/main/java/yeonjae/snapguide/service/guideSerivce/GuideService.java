@@ -12,12 +12,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
-//import yeonjae.snapguide.domain.guide.GuideDistanceDto;
-import yeonjae.snapguide.domain.like.GuideLike;
+import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.media.MediaDto;
@@ -31,7 +29,6 @@ import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,6 +42,7 @@ public class GuideService {
     private final LocationRepository locationRepository;
     private final MediaRepository mediaRepository;
     private final GuideLikeRepository guideLikeRepository;
+    private final GuideLikeService guideLikeService;
     private final ApplicationEventPublisher eventPublisher;
 
     /*
@@ -304,59 +302,13 @@ public class GuideService {
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         boolean userHasLiked = false;
-
-        // 인증된 사용자인 경우에만 좋아요 정보 조회
         if (userDetails != null) {
             Member member = memberRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
-            userHasLiked = guideLikeRepository.findByMemberAndGuide(member, guide).isPresent();
+            userHasLiked = guideLikeService.hasUserLiked(member, guide);
         }
 
         return GuideResponseDto.of(guide, userHasLiked);
-    }
-
-
-
-    /**
-     * 좋아요 토글 (원자적 업데이트로 동시성 문제 해결)
-     *
-     * 최적화 포인트:
-     * 1. existsById 제거 → FK 제약조건이 guideId 유효성 검증
-     * 2. ID 기반 쿼리 사용 → 프록시 초기화 없이 직접 쿼리
-     * 3. @Modifying(flushAutomatically, clearAutomatically) → 영속성 컨텍스트 동기화
-     */
-    @Transactional
-    public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
-        // 인증되지 않은 사용자 체크
-        if (userDetails == null) {
-            throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");
-        }
-
-        Member member = memberRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
-
-        // ID 기반 쿼리로 좋아요 존재 여부 확인 (프록시 초기화 없음)
-        boolean likeExists = guideLikeRepository.existsByMemberIdAndGuideId(member.getId(), guideId);
-
-        if (likeExists) {
-            // 좋아요가 이미 존재하면 -> 좋아요 취소
-            guideLikeRepository.deleteByMemberIdAndGuideId(member.getId(), guideId);
-            guideRepository.decrementLikeCount(guideId);  // 원자적 감소
-            return false;
-        } else {
-            // 좋아요가 없으면 -> 좋아요 추가
-            // getReferenceById: DB 조회 없이 프록시만 생성 (INSERT용 FK 참조)
-            Guide guideRef = guideRepository.getReferenceById(guideId);
-            guideLikeRepository.save(new GuideLike(member, guideRef));
-            guideRepository.incrementLikeCount(guideId);  // 원자적 증가
-            return true;
-        }
-    }
-
-    // 중복 코드를 줄이기 위한 private 메서드
-    private Guide findGuide(Long guideId) {
-        return guideRepository.findById(guideId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + guideId));
     }
 
 
