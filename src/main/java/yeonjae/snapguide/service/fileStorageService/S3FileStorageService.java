@@ -253,8 +253,7 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public Resource downloadFile(String filePath) throws IOException {
-        // TODO: S3에서 파일 다운로드 로직 구현
-        return null;
+        throw new UnsupportedOperationException("S3 파일 다운로드는 presigned URL을 사용하세요.");
     }
 
     @Override
@@ -271,8 +270,7 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public String generatePublicUrl(String filePath) {
-        // TODO: S3 파일의 public URL 생성 로직 구현
-        return null;
+        return amazonS3.getUrl(bucketName, filePath).toString();
     }
 
     // images/web/ → images/thumbnails/ 순서로 존재 여부 확인 후 key 반환

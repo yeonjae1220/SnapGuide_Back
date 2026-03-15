@@ -46,7 +46,7 @@ public class MediaService {
      */
     public List<Media> saveAllAndGet(List<MultipartFile> files) throws IOException {
         List<Media> savedMediaList = new ArrayList<>();
-        List<AsyncTask> asyncTasks = new ArrayList<>();
+        List<MediaProcessingTask> asyncTasks = new ArrayList<>();
 
         for (MultipartFile file : files) {
             long startTime = System.currentTimeMillis();
@@ -76,7 +76,7 @@ public class MediaService {
             savedMediaList.add(media);
 
             // 5. 비동기 작업 예약
-            asyncTasks.add(new AsyncTask(
+            asyncTasks.add(new MediaProcessingTask(
                     media.getId(),
                     savedFile.getBaseFileName(),
                     savedFile.getOriginalFileBytes()
@@ -87,7 +87,7 @@ public class MediaService {
         }
 
         // 6. 비동기 작업 시작
-        for (AsyncTask task : asyncTasks) {
+        for (MediaProcessingTask task : asyncTasks) {
             asyncFileProcessingService.generateDerivativesAsync(
                     task.mediaId, task.baseFileName, task.originalBytes
             );
@@ -143,7 +143,7 @@ public class MediaService {
         return ids;
     }
 
-    private record AsyncTask(Long mediaId, String baseFileName, byte[] originalBytes) {}
+    private record MediaProcessingTask(Long mediaId, String baseFileName, byte[] originalBytes) {}
 
     /**
      * 모든 Media를 DTO로 반환

@@ -26,7 +26,10 @@ import net.coobird.thumbnailator.Thumbnails;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
-public class LocalFileStorageService implements FileStorageService{
+public class LocalFileStorageService implements FileStorageService {
+
+    private static final int THUMBNAIL_SIZE = 1080;
+    private static final double THUMBNAIL_QUALITY = 0.7;
 
     @Value("${storage.local.base-dir}")
     private String uploadBasePath;
@@ -90,8 +93,8 @@ public class LocalFileStorageService implements FileStorageService{
         // 2. 변환된 JPG 바이트 배열을 사용해 썸네일 생성
         ByteArrayOutputStream thumbnailOutputStream = new ByteArrayOutputStream();
         Thumbnails.of(new ByteArrayInputStream(originalJpgBytes))
-                .size(1080, 1080)
-                .outputQuality(0.7)
+                .size(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+                .outputQuality(THUMBNAIL_QUALITY)
                 .toOutputStream(thumbnailOutputStream);
         byte[] thumbnailBytes = thumbnailOutputStream.toByteArray();
 
@@ -173,6 +176,3 @@ public class LocalFileStorageService implements FileStorageService{
     }
 
 }
-
-
-// TODO : 썸네일용 압축 파일도 처리 해야함
