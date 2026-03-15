@@ -1,5 +1,6 @@
 package yeonjae.snapguide.controller.locationController;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class LocationController {
 
 
     @PostMapping("/api/upload")
-    public ResponseEntity<String> saveLocation(@RequestBody LocationRequestDto requestDto) {
+    public ResponseEntity<String> saveLocation(@RequestBody @Valid LocationRequestDto requestDto) {
         Location location = locationServiceGeoImpl.saveLocation(requestDto.getLatitude(), requestDto.getLongitude());
 
         return ResponseEntity.ok("위치 저장 완료");
