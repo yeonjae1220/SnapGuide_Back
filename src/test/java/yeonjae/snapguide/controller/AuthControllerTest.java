@@ -68,7 +68,7 @@ class AuthControllerTest {
     void setUp() {
         signupRequest = new MemberRequestDto();
         signupRequest.setEmail("test@example.com");
-        signupRequest.setPassword("password123");
+        signupRequest.setPassword("Password123");
         signupRequest.setNickname("testUser");
 
         mockJwtToken = JwtToken.builder()
@@ -107,7 +107,7 @@ class AuthControllerTest {
         // given
         MemberRequestDto loginRequest = new MemberRequestDto();
         loginRequest.setEmail("test@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPassword("Password123");
 
         given(authService.login(any(MemberRequestDto.class)))
                 .willReturn(mockJwtToken);
@@ -286,7 +286,7 @@ class AuthControllerTest {
         // given
         MemberRequestDto invalidRequest = new MemberRequestDto();
         invalidRequest.setEmail("");
-        invalidRequest.setPassword("password123");
+        invalidRequest.setPassword("Password123");
         invalidRequest.setNickname("testUser");
 
         // when & then
@@ -347,7 +347,7 @@ class AuthControllerTest {
         // given
         MemberRequestDto loginRequest = new MemberRequestDto();
         loginRequest.setEmail("nonexistent@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPassword("Password123");
 
         given(authService.login(any(MemberRequestDto.class)))
                 .willThrow(new yeonjae.snapguide.exception.CustomException(
@@ -372,7 +372,7 @@ class AuthControllerTest {
         // given
         MemberRequestDto loginRequest = new MemberRequestDto();
         loginRequest.setEmail("test@example.com");
-        loginRequest.setPassword("wrongpassword");
+        loginRequest.setPassword("WrongPassword1");
 
         given(authService.login(any(MemberRequestDto.class)))
                 .willThrow(new yeonjae.snapguide.exception.CustomException(
