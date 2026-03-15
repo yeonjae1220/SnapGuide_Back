@@ -5,12 +5,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
@@ -27,9 +29,7 @@ import yeonjae.snapguide.repository.locationRepository.GeoUtil;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
-import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,8 +45,7 @@ public class GuideService {
     private final LocationRepository locationRepository;
     private final MediaRepository mediaRepository;
     private final GuideLikeRepository guideLikeRepository;
-
-    private final FileStorageService fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /*
     가이드 생성하고
@@ -182,30 +181,22 @@ public class GuideService {
     }
 
     /**
-     * Guide의 S3 미디어 파일들을 삭제합니다. (MemberService에서도 재사용)
-     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
+     * Guide 미디어 파일 삭제 이벤트 발행. (MemberService에서도 재사용)
+     * 실제 파일 삭제는 DB 커밋 후 MediaFileCleanupListener가 처리.
      */
     public void deleteGuideMediaFiles(Guide guide) {
-        deleteMediaFilesFromStorage(guide);
+        publishMediaDeleteEvent(guide);
     }
 
-    /**
-     * S3에서 Guide의 모든 미디어 파일 삭제 (private 헬퍼 메서드)
-     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
-     */
-    private void deleteMediaFilesFromStorage(Guide guide) {
-        log.info("Starting S3 file deletion for guide: {}", guide.getId());
+    private void publishMediaDeleteEvent(Guide guide) {
+        List<GuideDeletedEvent.MediaFileInfo> fileInfos = guide.getMediaList().stream()
+                .map(m -> new GuideDeletedEvent.MediaFileInfo(
+                        m.getOriginalKey(), m.getWebKey(), m.getThumbnailKey()))
+                .toList();
 
-        for (Media media : guide.getMediaList()) {
-            try {
-                fileStorageService.deleteFile(media.getOriginalKey());
-                fileStorageService.deleteFile(media.getWebKey());
-                fileStorageService.deleteFile(media.getThumbnailKey());
-                log.info("S3 파일 삭제 성공: {}", media.getMediaName());
-            } catch (IOException e) {
-                log.error("S3 파일 삭제 실패: {}", media.getMediaUrl(), e);
-                throw new RuntimeException("S3 파일 삭제 중 오류가 발생했습니다.");
-            }
+        if (!fileInfos.isEmpty()) {
+            log.info("[Guide] 파일 삭제 이벤트 발행: guide={}, 파일={}건", guide.getId(), fileInfos.size());
+            eventPublisher.publishEvent(new GuideDeletedEvent(fileInfos));
         }
     }
 
@@ -223,10 +214,10 @@ public class GuideService {
 
         log.info("Starting deletion for guide: {}", guideId);
 
-        // S3 파일 삭제 (추출한 메서드 호출)
-        deleteMediaFilesFromStorage(guide);
+        // 파일 삭제 이벤트 발행 (DB 커밋 후 MediaFileCleanupListener가 처리)
+        publishMediaDeleteEvent(guide);
 
-        // DB에서 Guide 삭제
+        // DB에서 Guide 삭제 (Cascade로 연관 엔티티 자동 삭제)
         guideRepository.delete(guide);
         log.info("Guide deletion successful for: {}", guideId);
     }

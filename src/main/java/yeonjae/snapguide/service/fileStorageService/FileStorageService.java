@@ -41,6 +41,14 @@ public interface FileStorageService {
      * 파일 접근용 URL 생성
      */
     String generatePublicUrl(String filePath);
+
+    /**
+     * S3 Presigned URL 생성 (임시 접근용).
+     * S3 외 구현체는 null 반환 (로컬/NAS는 지원하지 않음).
+     */
+    default String generatePresignedUrl(String filename) {
+        return null;
+    }
 }
 
 /**

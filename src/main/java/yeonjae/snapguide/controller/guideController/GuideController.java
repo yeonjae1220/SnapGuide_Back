@@ -5,16 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
-import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
+import yeonjae.snapguide.service.memberSerivce.MemberService;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,7 +28,7 @@ import java.util.Map;
 public class GuideController {
     private final GuideService guideService;
     private final MediaService mediaService;
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
     /**
      * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리
      * - 원본만 빠르게 업로드 (동기)
@@ -52,9 +51,7 @@ public class GuideController {
         }
 
         // 2. 사용자 조회
-        String email = userDetails.getUsername();
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("no member : " + email));
+        Member member = memberService.getCurrentMember(userDetails.getUsername());
 
         // 3. 파일 업로드 + Media 엔티티 생성 (비동기 썸네일 생성 시작)
         List<Media> mediaList = hasNoFiles
@@ -69,10 +66,7 @@ public class GuideController {
 
     @GetMapping("/my")
     public ResponseEntity<List<GuideResponseDto>> myGuides(@AuthenticationPrincipal UserDetails userDetails) {
-        String email = userDetails.getUsername();
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("no member : " +  email));
-        Long memberId = member.getId();
+        Long memberId = memberService.getCurrentMember(userDetails.getUsername()).getId();
         return ResponseEntity.ok(guideService.getMyGuides(memberId));
     }
 
