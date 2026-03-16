@@ -141,7 +141,14 @@ public class SecurityConfig {
                         .contentTypeOptions(c -> {})
                         .frameOptions(f -> f.deny())
                         .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true))
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com; " +
+                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                "font-src 'self' https://fonts.gstatic.com; " +
+                                "img-src 'self' data: https:; " +
+                                "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com; " +
+                                "worker-src 'self' blob:"))
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
