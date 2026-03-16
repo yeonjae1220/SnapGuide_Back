@@ -62,7 +62,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432" # 기존 5432:5432는 5432번 포트를 사용하려고 해서 충돌 발생 내 컴퓨터의 5433번 포트와 컨테이너의 5432번 포트를 연결
+      - "127.0.0.1:5435:5432" # 기존 5432:5432는 5432번 포트를 사용하려고 해서 충돌 발생 내 컴퓨터의 5435번 포트와 컨테이너의 5432번 포트를 연결
     networks:
       - my-network
 
@@ -70,7 +70,7 @@ services:
     image: redis:7-alpine
     container_name: snapguide-redis-cache
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     networks:
       - my-network
     # maxmemory: 최대 512MB까지만 사용
@@ -86,9 +86,9 @@ services:
     volumes:
       - ./observability/otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
-      - "4318:4318"   # OTLP HTTP receiver
-      - "4317:4317"   # OTLP gRPC receiver
-      - "8889:8889"   # Prometheus metrics exporter
+      - "127.0.0.1:4328:4318"   # OTLP HTTP receiver
+      - "127.0.0.1:4327:4317"   # OTLP gRPC receiver
+      - "127.0.0.1:8889:8889"   # Prometheus metrics exporter
     networks:
       - my-network
 
@@ -145,7 +145,7 @@ services:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9091:9090"
     networks:
       - my-network
 
@@ -158,10 +158,10 @@ services:
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3002:3000"
     depends_on:
       - prometheus
       - loki
