@@ -1,18 +1,22 @@
 # SnapGuide
+
 사진 기반 여행 가이드 공유 플랫폼
 
 ## 소개
+
 SnapGuide는 사용자들이 사진과 함께 여행 팁을 공유하고, 위치 기반으로 다른 사용자의 가이드를 발견할 수 있는 애플리케이션입니다. 사진의 EXIF 메타데이터를 자동 추출하여 촬영 위치와 카메라 정보를 활용하고, PostGIS 기반의 공간 쿼리로 근처 가이드를 검색할 수 있습니다.
 
 ## 주요 기능
 
-- **여행 가이드 공유**: 사진과 함께 여행 팁 작성 및 공유
-- **위치 기반 검색**: 반경 기반으로 근처 가이드 발견
+- **여행 가이드 공유**: 사진과 함께 여행 팁 작성, 조회, 수정, 삭제
+- **위치 기반 검색**: 현재 위치 반경 또는 지도 범위 기반으로 근처 가이드 발견
 - **EXIF 메타데이터 추출**: 사진에서 GPS 좌표, 촬영 시간, 카메라 정보 자동 추출
-- **미디어 처리**: 썸네일 자동 생성, HEIC→JPEG 변환 지원, S3 Presigned URL 지원
-- **소셜 로그인**: Google OAuth2 인증, 토큰 블랙리스트 기반 로그아웃
-- **좋아요 기능**: 가이드 좋아요 및 인기순 정렬
-- **PWA 지원**: 오프라인 지원, 홈 화면 설치, 푸시 알림
+- **미디어 처리**: 썸네일 자동 생성, HEIC→JPEG 변환, S3 Presigned URL 지원, 비동기 업로드
+- **소셜 로그인**: Google OAuth2 인증, 토큰 블랙리스트 기반 로그아웃, 회원 탈퇴 및 데이터 삭제
+- **좋아요 기능**: 가이드 좋아요 및 인기순 정렬 (원자적 카운트 최적화)
+- **PWA 지원**: 오프라인 모드, 홈 화면 설치 프롬프트, Web Push 알림
+- **커서 기반 페이지네이션**: 대용량 데이터 효율적 조회
+- **Redis 캐싱**: 조회 성능 최적화 및 세션 관리
 
 ## 기술 스택
 
@@ -23,35 +27,51 @@ SnapGuide는 사용자들이 사진과 함께 여행 팁을 공유하고, 위치
 | Database | PostgreSQL 15 + PostGIS |
 | Cache | Redis 7 |
 | ORM | Spring Data JPA + QueryDSL |
-| Security | OAuth2 + JWT |
+| Security | OAuth2 (Google) + JWT |
 | Storage | AWS S3 / Local / NAS |
+| API Docs | SpringDoc OpenAPI (Swagger) |
+
+### Frontend (PWA)
+| 구분 | 기술 |
+|---|---|
+| 구조 | Single Page + Landing/Main Split |
+| PWA | Service Worker, Web App Manifest |
+| 오프라인 | Cache API 기반 오프라인 지원 |
+| 알림 | Web Push Notifications |
 
 ### DevOps & Observability
 | 구분 | 기술 |
 |---|---|
 | Container | Docker, Docker Compose |
-| Tracing | OpenTelemetry + Tempo |
+| Orchestration | Kubernetes (k8s) |
+| Tracing | OpenTelemetry + Grafana Tempo |
 | Metrics | Prometheus + Micrometer |
-| Logging | Loki + Promtail |
+| Logging | Loki + Promtail (JSON 구조화 로깅) |
 | Dashboard | Grafana |
 | Load Testing | k6 |
 
 ## 프로젝트 구조
 
 ```
-src/main/java/yeonjae/snapguide/
-├── controller/           # REST API 컨트롤러
-├── domain/               # 도메인 엔티티
-│   ├── member/           # 회원
-│   ├── guide/            # 여행 가이드
-│   ├── media/            # 미디어 파일
-│   ├── location/         # 위치 정보
-│   ├── comment/          # 댓글
-│   └── like/             # 좋아요
-├── service/              # 비즈니스 로직
-├── repository/           # 데이터 접근 (JPA + QueryDSL)
-├── security/             # OAuth2 + JWT 인증
-└── infrastructure/       # AOP, Cache, AWS 설정
+snapguide/
+├── src/main/java/yeonjae/snapguide/
+│   ├── controller/           # REST API 컨트롤러 (Swagger 문서화)
+│   ├── domain/               # 도메인 엔티티
+│   │   ├── member/           # 회원 (OAuth2, JWT)
+│   │   ├── guide/            # 여행 가이드
+│   │   ├── media/            # 미디어 파일 + EXIF 추출
+│   │   ├── location/         # 위치 정보 (PostGIS)
+│   │   ├── comment/          # 댓글
+│   │   └── like/             # 좋아요
+│   ├── service/              # 비즈니스 로직
+│   ├── repository/           # JPA + QueryDSL 데이터 접근
+│   ├── security/             # OAuth2 + JWT 인증/인가
+│   └── infrastructure/       # AOP, Redis 캐시, AWS 설정
+├── src/main/resources/
+│   └── static/               # PWA (index.html, service-worker.js, manifest.json)
+├── k6-tests/                 # 부하 테스트 시나리오
+├── k8s/                      # Kubernetes 배포 매니페스트
+└── db-migration/             # 데이터베이스 마이그레이션
 ```
 
 ## 시작하기
@@ -93,7 +113,7 @@ docker-compose up -d
 
 | 서비스 | URL | 계정 |
 |---|---|---|
-| Grafana | http://localhost:3000 | admin / admin |
+| Grafana | http://localhost:3000 | admin / (환경변수) |
 | Prometheus | http://localhost:9090 | - |
 | Tempo | http://localhost:3200 | - |
 | Loki | http://localhost:3100 | - |
@@ -110,17 +130,31 @@ docker-compose up -d
 ./gradlew test --tests "ClassName"
 
 # 부하 테스트 (k6)
-cd k6-tests && k6 run <script.js>
+cd k6-tests && k6 run scripts/1-upload-test.js
 ```
 
-부하 테스트 시나리오 및 결과 분석은 [k6-tests/README.md](k6-tests/README.md)를 참고하세요.
+### k6 부하 테스트 시나리오
+
+| 시나리오 | 파일 | 목적 |
+|---|---|---|
+| 파일 업로드 | `1-upload-test.js` | HEIC 변환, EXIF 추출, S3 업로드 성능 |
+| API 읽기 | `2-api-read-test.js` | 조회 API 및 Redis 캐싱 효과 측정 |
+| 공간 쿼리 | `3-spatial-query-test.js` | PostGIS ST_DWithin 반경 검색 성능 |
+| 혼합 시나리오 | `4-mixed-scenario-test.js` | 실제 사용자 행동 패턴 시뮬레이션 (70% 읽기 / 20% 쓰기 / 10% 업로드) |
+
+자세한 내용은 [k6-tests/README.md](k6-tests/README.md)를 참고하세요.
+
+## 보안
+
+- OWASP Top 10 취약점 대응
+- 환경 변수 기반 민감 정보 관리 (하드코딩 없음)
+- JWT 토큰 블랙리스트 (Redis 기반 로그아웃)
+- HTTP-only 쿠키 기반 세션 관리
+- OAuth2 One-Time Authorization Code 방식 (모바일 지원)
 
 ## 서비스 접속
 
 현재 프로젝트는 https://briankim.synology.me/ 에서 제공됩니다.
-
-- 현재 UI가 완성되지 않아 개발용 화면으로 이어집니다.
-- 운영용 데이터가 아직 갖추어지지 않았습니다.
 
 ## 라이선스
 
