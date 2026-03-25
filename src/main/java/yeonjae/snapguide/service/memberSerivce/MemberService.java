@@ -39,6 +39,12 @@ public class MemberService {
     private final MediaRepository mediaRepository;
     private final GuideService guideService;
 
+    @Transactional(readOnly = true)
+    public Member getCurrentMember(String email) {
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+    }
+
     public List<MemberDto> getAllMembers() {
         return memberRepository.findAll().stream()
                 .map(member -> new MemberDto(member.getId(), member.getEmail()))

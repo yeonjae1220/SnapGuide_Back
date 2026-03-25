@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
-//import yeonjae.snapguide.domain.guide.GuideDistanceDto;
-import yeonjae.snapguide.domain.like.GuideLike;
+import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.media.MediaDto;
@@ -27,11 +27,8 @@ import yeonjae.snapguide.repository.locationRepository.GeoUtil;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
-import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,8 +42,8 @@ public class GuideService {
     private final LocationRepository locationRepository;
     private final MediaRepository mediaRepository;
     private final GuideLikeRepository guideLikeRepository;
-
-    private final FileStorageService fileStorageService;
+    private final GuideLikeService guideLikeService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /*
     가이드 생성하고
@@ -156,7 +153,7 @@ public class GuideService {
 
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public GuideResponseDto updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
-        Guide guide = guideRepository.findById(guideId)
+        Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         Member member = memberRepository.findByEmail(userDetails.getUsername())
@@ -182,36 +179,28 @@ public class GuideService {
     }
 
     /**
-     * Guide의 S3 미디어 파일들을 삭제합니다. (MemberService에서도 재사용)
-     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
+     * Guide 미디어 파일 삭제 이벤트 발행. (MemberService에서도 재사용)
+     * 실제 파일 삭제는 DB 커밋 후 MediaFileCleanupListener가 처리.
      */
     public void deleteGuideMediaFiles(Guide guide) {
-        deleteMediaFilesFromStorage(guide);
+        publishMediaDeleteEvent(guide);
     }
 
-    /**
-     * S3에서 Guide의 모든 미디어 파일 삭제 (private 헬퍼 메서드)
-     * @param guide 삭제할 미디어 파일들을 가진 Guide 엔티티
-     */
-    private void deleteMediaFilesFromStorage(Guide guide) {
-        log.info("Starting S3 file deletion for guide: {}", guide.getId());
+    private void publishMediaDeleteEvent(Guide guide) {
+        List<GuideDeletedEvent.MediaFileInfo> fileInfos = guide.getMediaList().stream()
+                .map(m -> new GuideDeletedEvent.MediaFileInfo(
+                        m.getOriginalKey(), m.getWebKey(), m.getThumbnailKey()))
+                .toList();
 
-        for (Media media : guide.getMediaList()) {
-            try {
-                fileStorageService.deleteFile(media.getOriginalKey());
-                fileStorageService.deleteFile(media.getWebKey());
-                fileStorageService.deleteFile(media.getThumbnailKey());
-                log.info("S3 파일 삭제 성공: {}", media.getMediaName());
-            } catch (IOException e) {
-                log.error("S3 파일 삭제 실패: {}", media.getMediaUrl(), e);
-                throw new RuntimeException("S3 파일 삭제 중 오류가 발생했습니다.");
-            }
+        if (!fileInfos.isEmpty()) {
+            log.info("[Guide] 파일 삭제 이벤트 발행: guide={}, 파일={}건", guide.getId(), fileInfos.size());
+            eventPublisher.publishEvent(new GuideDeletedEvent(fileInfos));
         }
     }
 
     @CacheEvict(value = "nearbyGuides", allEntries = true)
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
-        Guide guide = guideRepository.findById(guideId)
+        Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         Member member = memberRepository.findByEmail(userDetails.getUsername())
@@ -223,10 +212,10 @@ public class GuideService {
 
         log.info("Starting deletion for guide: {}", guideId);
 
-        // S3 파일 삭제 (추출한 메서드 호출)
-        deleteMediaFilesFromStorage(guide);
+        // 파일 삭제 이벤트 발행 (DB 커밋 후 MediaFileCleanupListener가 처리)
+        publishMediaDeleteEvent(guide);
 
-        // DB에서 Guide 삭제
+        // DB에서 Guide 삭제 (Cascade로 연관 엔티티 자동 삭제)
         guideRepository.delete(guide);
         log.info("Guide deletion successful for: {}", guideId);
     }
@@ -236,6 +225,7 @@ public class GuideService {
             key = "T(Math).round(#lat * 100) / 100.0 + ':' + T(Math).round(#lng * 100) / 100.0 + ':' + #radius",
             unless = "#result.isEmpty()"
     )
+    @Transactional(readOnly = true)
     public List<GuideResponseDto> findGuidesNear(double lat, double lng, double radius) { // km
         log.info("📍 [findGuidesNear] 요청 위치: lat = {}, lng = {}, radius = {} km", lat, lng, radius);
 
@@ -270,10 +260,10 @@ public class GuideService {
         List<Guide> guides = guideRepository.findByLocationIdInWithFetch(locationIds);
         log.info("📘 Guide 수: {} (Fetch Join 적용)", guides.size());
         guides.forEach(g ->
-                log.info("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
+                log.debug("    ▸ Guide ID = {}, Tip = {}, Location ID = {}",
                         g.getId(),
                         g.getTip(),
-                        g.getLocation().getId())
+                        g.getLocation() != null ? g.getLocation().getId() : null)
         );
 
 //        List<GuideResponseDto> result = guides.stream()
@@ -294,7 +284,7 @@ public class GuideService {
                             .id(guide.getId())
                             .tip(guide.getTip())
                             .author(MemberDto.fromEntity(guide.getAuthor())) // 이 부분이 id만 가져오는게 아니라 객체 전체 가져오는거라 LazyLoading
-                            .locationName(guide.getLocation().getLocationName())
+                            .locationName(guide.getLocation() != null ? guide.getLocation().getLocationName() : "")
                             .media(mediaDto)
                             .likeCount(guide.getLikeCount())
                             .build();
@@ -312,59 +302,13 @@ public class GuideService {
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
 
         boolean userHasLiked = false;
-
-        // 인증된 사용자인 경우에만 좋아요 정보 조회
         if (userDetails != null) {
             Member member = memberRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
-            userHasLiked = guideLikeRepository.findByMemberAndGuide(member, guide).isPresent();
+            userHasLiked = guideLikeService.hasUserLiked(member, guide);
         }
 
         return GuideResponseDto.of(guide, userHasLiked);
-    }
-
-
-
-    /**
-     * 좋아요 토글 (원자적 업데이트로 동시성 문제 해결)
-     *
-     * 최적화 포인트:
-     * 1. existsById 제거 → FK 제약조건이 guideId 유효성 검증
-     * 2. ID 기반 쿼리 사용 → 프록시 초기화 없이 직접 쿼리
-     * 3. @Modifying(flushAutomatically, clearAutomatically) → 영속성 컨텍스트 동기화
-     */
-    @Transactional
-    public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
-        // 인증되지 않은 사용자 체크
-        if (userDetails == null) {
-            throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");
-        }
-
-        Member member = memberRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("사용자 정보를 찾을 수 없습니다."));
-
-        // ID 기반 쿼리로 좋아요 존재 여부 확인 (프록시 초기화 없음)
-        boolean likeExists = guideLikeRepository.existsByMemberIdAndGuideId(member.getId(), guideId);
-
-        if (likeExists) {
-            // 좋아요가 이미 존재하면 -> 좋아요 취소
-            guideLikeRepository.deleteByMemberIdAndGuideId(member.getId(), guideId);
-            guideRepository.decrementLikeCount(guideId);  // 원자적 감소
-            return false;
-        } else {
-            // 좋아요가 없으면 -> 좋아요 추가
-            // getReferenceById: DB 조회 없이 프록시만 생성 (INSERT용 FK 참조)
-            Guide guideRef = guideRepository.getReferenceById(guideId);
-            guideLikeRepository.save(new GuideLike(member, guideRef));
-            guideRepository.incrementLikeCount(guideId);  // 원자적 증가
-            return true;
-        }
-    }
-
-    // 중복 코드를 줄이기 위한 private 메서드
-    private Guide findGuide(Long guideId) {
-        return guideRepository.findById(guideId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + guideId));
     }
 
 

@@ -40,11 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)  throws ServletException, IOException {
 
-        log.info("1️⃣ [doFilterInternal] 요청 URI: {}", request.getRequestURI());
-        log.info("2️⃣ [doFilterInternal] 요청 Method: {}", request.getMethod());
-        log.info("3️⃣ [doFilterInternal] request: class={}, hashCode={}", request.getClass().getSimpleName(), System.identityHashCode(request));
-        log.info("4️⃣ [doFilterInternal] response: class={}, hashCode={}", response.getClass().getSimpleName(), System.identityHashCode(response));
-        log.info("5️⃣ [doFilterInternal] filterChain: class={}, hashCode={}", filterChain.getClass().getSimpleName(), System.identityHashCode(filterChain));
+        log.debug("[JwtAuthenticationFilter] {} {}", request.getMethod(), request.getRequestURI());
 
 
         if (!whiteListMatcher.matches(request)) {
@@ -56,9 +52,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 1. Request Header 로부터 Access Token을 추출한다.
             String token = jwtTokenProvider.resolveToken(request);
-            log.info("1️⃣ 들어온 요청 URI: {}", request.getRequestURI());
-            log.info("🔍 auth 헤더: {}", request.getHeader(AUTHORIZATION_HEADER));
-            log.info("2️⃣ 추출된 토큰: {}", token);
             // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 if (!tokenBlacklistService.isAccessTokenBlacklisted(token)) {
@@ -99,7 +92,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void setErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(errorCode.getStatus().value()); // ErrorCode enum에 정의된 HTTP 상태 코드 사용
-        log.info("[setErrorResponse] : response.setStatus = " + errorCode.getStatus().value());
+        log.info("[setErrorResponse] status={}", errorCode.getStatus().value());
 
         // ObjectMapper를 사용하여 ErrorResponse 객체를 JSON 문자열로 변환
         ObjectMapper objectMapper = new ObjectMapper();

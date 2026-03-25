@@ -16,7 +16,7 @@ import yeonjae.snapguide.service.fileStorageService.AsyncFileProcessingService;
 import yeonjae.snapguide.service.fileStorageService.FileStorageService;
 import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
-import yeonjae.snapguide.service.locationSerivce.LocationServiceGeoImpl;
+import yeonjae.snapguide.service.locationSerivce.LocationService;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
 import java.io.File;
@@ -34,7 +34,7 @@ public class MediaService {
     private final FileStorageService fileStorageService;
     private final AsyncFileProcessingService asyncFileProcessingService;
     private final MediaMetaDataService mediaMetaDataService;
-    private final LocationServiceGeoImpl locationServiceGeoImpl;
+    private final LocationService locationService;
     private final GuideService guideService;
     private final MediaRepository mediaRepository;
 
@@ -46,7 +46,7 @@ public class MediaService {
      */
     public List<Media> saveAllAndGet(List<MultipartFile> files) throws IOException {
         List<Media> savedMediaList = new ArrayList<>();
-        List<AsyncTask> asyncTasks = new ArrayList<>();
+        List<MediaProcessingTask> asyncTasks = new ArrayList<>();
 
         for (MultipartFile file : files) {
             long startTime = System.currentTimeMillis();
@@ -56,7 +56,7 @@ public class MediaService {
 
             // 2. 메타데이터 & 위치 정보 추출
             MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
+            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
 
             // 3. 임시 URL (원본 파일 기반) - 비동기 처리 완료 후 업데이트됨
             String tempUrl = "/media/files/" + savedFile.getBaseFileName() + ".jpg";
@@ -76,7 +76,7 @@ public class MediaService {
             savedMediaList.add(media);
 
             // 5. 비동기 작업 예약
-            asyncTasks.add(new AsyncTask(
+            asyncTasks.add(new MediaProcessingTask(
                     media.getId(),
                     savedFile.getBaseFileName(),
                     savedFile.getOriginalFileBytes()
@@ -87,7 +87,7 @@ public class MediaService {
         }
 
         // 6. 비동기 작업 시작
-        for (AsyncTask task : asyncTasks) {
+        for (MediaProcessingTask task : asyncTasks) {
             asyncFileProcessingService.generateDerivativesAsync(
                     task.mediaId, task.baseFileName, task.originalBytes
             );
@@ -116,7 +116,7 @@ public class MediaService {
             @SuppressWarnings("deprecation")
             UploadFileDto savedFile = fileStorageService.uploadFile(file);
             MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationServiceGeoImpl.extractAndResolveLocation(savedFile.getOriginalFileBytes());
+            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
 
             String webFileName;
             if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {
@@ -143,7 +143,7 @@ public class MediaService {
         return ids;
     }
 
-    private record AsyncTask(Long mediaId, String baseFileName, byte[] originalBytes) {}
+    private record MediaProcessingTask(Long mediaId, String baseFileName, byte[] originalBytes) {}
 
     /**
      * 모든 Media를 DTO로 반환
@@ -154,7 +154,7 @@ public class MediaService {
         return mediaRepository.findAll()
                 .stream()
                 .map(MediaMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 //    public List<Media> getUserMedias() {

@@ -3,6 +3,7 @@ package yeonjae.snapguide.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.Subscription;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PushService {
@@ -98,7 +100,7 @@ public class PushService {
             Notification notification = new Notification(subscription, payload);
             webPushService.send(notification);
         } catch (Exception e) {
-            // 개별 실패는 로그만 남기고 계속 진행
+            log.error("푸시 알림 전송 실패: endpoint={}", pushSubscription.getEndpoint(), e);
         }
     }
 

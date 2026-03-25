@@ -2,6 +2,7 @@ package yeonjae.snapguide.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,8 +57,9 @@ public class AuthController {
     }
 
 
+    @Profile("local")
     @GetMapping("/test")
-    public ResponseEntity<?> test(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<String> test(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok("인증된 사용자: " + userDetails.getUsername());
     }
 

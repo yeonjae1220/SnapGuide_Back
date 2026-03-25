@@ -38,8 +38,8 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
     @Query("""
         SELECT DISTINCT g FROM Guide g
         LEFT JOIN FETCH g.mediaList
-        LEFT JOIN FETCH g.author
-        LEFT JOIN FETCH g.location
+        JOIN FETCH g.author
+        JOIN FETCH g.location
         WHERE g.location.id IN :locationIds
         """)
     List<Guide> findByLocationIdInWithFetch(@Param("locationIds") List<Long> locationIds);

@@ -3,39 +3,37 @@ package yeonjae.snapguide.controller.guideController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
-import yeonjae.snapguide.repository.memberRepository.MemberRepository;
+import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
+import yeonjae.snapguide.service.memberSerivce.MemberService;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * GuideController 단위 테스트
- * @WebMvcTest를 사용하여 Controller 레이어만 테스트
- */
 @WebMvcTest(GuideController.class)
+@DisplayName("GuideController")
 class GuideControllerTest {
 
     @Autowired
@@ -48,22 +46,18 @@ class GuideControllerTest {
     private GuideService guideService;
 
     @MockBean
+    private GuideLikeService guideLikeService;
+
+    @MockBean
     private MediaService mediaService;
 
     @MockBean
-    private MemberRepository memberRepository;
+    private MemberService memberService;
 
-    private UserDetails userDetails;
     private Member testMember;
 
     @BeforeEach
     void setUp() {
-        userDetails = User.builder()
-                .username("test@example.com")
-                .password("password")
-                .roles("USER")
-                .build();
-
         testMember = Member.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -71,261 +65,241 @@ class GuideControllerTest {
                 .build();
     }
 
-    @Test
-    @DisplayName("GET /guide/api/my - 내 가이드 목록 조회")
-    @WithMockUser(username = "test@example.com")
-    void getMyGuides_Success() throws Exception {
-        // given
-        given(memberRepository.findByEmail("test@example.com"))
-                .willReturn(Optional.of(testMember));
+    @Nested
+    @DisplayName("GET /guide/api/my")
+    class GetMyGuides {
 
-        MemberDto authorDto = MemberDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .build();
+        @Test
+        @DisplayName("인증된 사용자는 자신의 가이드 목록을 조회할 수 있다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturnMyGuidesForAuthenticatedUser() throws Exception {
+            // Arrange
+            MemberDto authorDto = MemberDto.builder().id(1L).email("test@example.com").build();
+            List<GuideResponseDto> mockGuides = Arrays.asList(
+                    GuideResponseDto.builder().id(1L).tip("Guide 1").author(authorDto).likeCount(5).build(),
+                    GuideResponseDto.builder().id(2L).tip("Guide 2").author(authorDto).likeCount(10).build()
+            );
 
-        List<GuideResponseDto> mockGuides = Arrays.asList(
-                GuideResponseDto.builder()
-                        .id(1L)
-                        .tip("Test guide 1")
-                        .author(authorDto)
-                        .likeCount(5)
-                        .build(),
-                GuideResponseDto.builder()
-                        .id(2L)
-                        .tip("Test guide 2")
-                        .author(authorDto)
-                        .likeCount(10)
-                        .build()
-        );
+            given(memberService.getCurrentMember("test@example.com")).willReturn(testMember);
+            given(guideService.getMyGuides(1L)).willReturn(mockGuides);
 
-        given(guideService.getMyGuides(1L)).willReturn(mockGuides);
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/my"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(1))
+                    .andExpect(jsonPath("$[0].tip").value("Guide 1"))
+                    .andExpect(jsonPath("$[1].id").value(2))
+                    .andExpect(jsonPath("$[1].tip").value("Guide 2"));
 
-        // when & then
-        mockMvc.perform(get("/guide/api/my"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].tip").value("Test guide 1"))
-                .andExpect(jsonPath("$[1].id").value(2))
-                .andExpect(jsonPath("$[1].tip").value("Test guide 2"));
-
-        verify(guideService, times(1)).getMyGuides(1L);
+            verify(guideService).getMyGuides(1L);
+        }
     }
 
-    @Test
-    @DisplayName("GET /guide/api/{id} - 가이드 상세 조회")
-    @WithMockUser(username = "test@example.com")
-    void getGuide_Success() throws Exception {
-        // given
-        Long guideId = 1L;
-        MemberDto authorDto = MemberDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .build();
+    @Nested
+    @DisplayName("GET /guide/api/{id}")
+    class GetGuide {
 
-        GuideResponseDto mockGuide = GuideResponseDto.builder()
-                .id(guideId)
-                .tip("Test guide detail")
-                .author(authorDto)
-                .likeCount(15)
-                .build();
+        @Test
+        @DisplayName("가이드 ID로 상세 정보를 조회할 수 있다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturnGuideDetail() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            MemberDto authorDto = MemberDto.builder().id(1L).email("test@example.com").build();
+            GuideResponseDto mockGuide = GuideResponseDto.builder()
+                    .id(guideId)
+                    .tip("Test guide detail")
+                    .author(authorDto)
+                    .likeCount(15)
+                    .build();
 
-        given(guideService.findGuideById(eq(guideId), any(UserDetails.class)))
-                .willReturn(mockGuide);
+            given(guideService.findGuideById(eq(guideId), any())).willReturn(mockGuide);
 
-        // when & then
-        mockMvc.perform(get("/guide/api/{id}", guideId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(guideId))
-                .andExpect(jsonPath("$.tip").value("Test guide detail"))
-                .andExpect(jsonPath("$.author.email").value("test@example.com"))
-                .andExpect(jsonPath("$.likeCount").value(15));
-
-        verify(guideService, times(1)).findGuideById(eq(guideId), any(UserDetails.class));
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/{id}", guideId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(guideId))
+                    .andExpect(jsonPath("$.tip").value("Test guide detail"))
+                    .andExpect(jsonPath("$.likeCount").value(15));
+        }
     }
 
-    @Test
-    @DisplayName("PUT /guide/api/update - 가이드 팁 수정")
-    @WithMockUser(username = "test@example.com")
-    void updateTip_Success() throws Exception {
-        // given
-        GuideUpdateRequestDto updateRequest = new GuideUpdateRequestDto(1L, "Updated tip content");
+    @Nested
+    @DisplayName("PATCH /guide/api/{id}")
+    class UpdateTip {
 
-        MemberDto authorDto = MemberDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .build();
+        @Test
+        @DisplayName("유효한 tip으로 가이드를 수정하면 200과 업데이트된 가이드를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturnUpdatedGuideWhenValidTip() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            GuideUpdateRequestDto updateRequest = new GuideUpdateRequestDto("Updated tip content");
+            MemberDto authorDto = MemberDto.builder().id(1L).email("test@example.com").build();
+            GuideResponseDto updatedGuide = GuideResponseDto.builder()
+                    .id(guideId)
+                    .tip("Updated tip content")
+                    .author(authorDto)
+                    .likeCount(5)
+                    .build();
 
-        GuideResponseDto updatedGuide = GuideResponseDto.builder()
-                .id(1L)
-                .tip("Updated tip content")
-                .author(authorDto)
-                .likeCount(5)
-                .build();
+            given(guideService.updateTip(eq(guideId), eq("Updated tip content"), any()))
+                    .willReturn(updatedGuide);
 
-        given(guideService.updateTip(eq(1L), eq("Updated tip content"), any(UserDetails.class)))
-                .willReturn(updatedGuide);
+            // Act & Assert
+            mockMvc.perform(patch("/guide/api/{id}", guideId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updateRequest))
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(guideId))
+                    .andExpect(jsonPath("$.tip").value("Updated tip content"));
 
-        // when & then
-        mockMvc.perform(put("/guide/api/update")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.tip").value("Updated tip content"));
+            verify(guideService).updateTip(eq(guideId), eq("Updated tip content"), any());
+        }
 
-        verify(guideService, times(1)).updateTip(eq(1L), eq("Updated tip content"), any(UserDetails.class));
+        @Test
+        @DisplayName("빈 tip으로 수정 요청하면 400 Bad Request를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturn400WhenTipIsBlank() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            GuideUpdateRequestDto invalidRequest = new GuideUpdateRequestDto("");
+
+            // Act & Assert
+            mockMvc.perform(patch("/guide/api/{id}", guideId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(invalidRequest))
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest());
+
+            verify(guideService, never()).updateTip(any(), any(), any());
+        }
     }
 
-    @Test
-    @DisplayName("DELETE /guide/api/delete/{id} - 가이드 삭제")
-    @WithMockUser(username = "test@example.com")
-    void deleteGuide_Success() throws Exception {
-        // given
-        Long guideId = 1L;
-        doNothing().when(guideService).deleteGuide(eq(guideId), any(UserDetails.class));
+    @Nested
+    @DisplayName("DELETE /guide/api/{id}")
+    class DeleteGuide {
 
-        // when & then
-        mockMvc.perform(delete("/guide/api/delete/{id}", guideId))
-                .andDo(print())
-                .andExpect(status().isOk());
+        @Test
+        @DisplayName("가이드 삭제에 성공하면 204 No Content를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturn204WhenGuideDeleted() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            doNothing().when(guideService).deleteGuide(eq(guideId), any());
 
-        verify(guideService, times(1)).deleteGuide(eq(guideId), any(UserDetails.class));
+            // Act & Assert
+            mockMvc.perform(delete("/guide/api/{id}", guideId)
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isNoContent());
+
+            verify(guideService).deleteGuide(eq(guideId), any());
+        }
     }
 
-    @Test
-    @DisplayName("GET /guide/api/nearby - 근처 가이드 검색")
-    void getNearbyGuides_Success() throws Exception {
-        // given
-        double lat = 37.5665;
-        double lng = 126.9780;
-        double radius = 20.0;
+    @Nested
+    @DisplayName("GET /guide/api/nearby")
+    class GetNearbyGuides {
 
-        MemberDto user1 = MemberDto.builder().id(1L).email("user1@example.com").build();
-        MemberDto user2 = MemberDto.builder().id(2L).email("user2@example.com").build();
+        @Test
+        @DisplayName("위치 파라미터로 근처 가이드 목록을 반환한다")
+        @WithMockUser
+        void shouldReturnNearbyGuides() throws Exception {
+            // Arrange
+            double lat = 37.5665, lng = 126.9780, radius = 20.0;
+            MemberDto user1 = MemberDto.builder().id(1L).email("u1@example.com").build();
+            List<GuideResponseDto> nearbyGuides = Arrays.asList(
+                    GuideResponseDto.builder().id(1L).tip("Nearby 1").author(user1).build(),
+                    GuideResponseDto.builder().id(2L).tip("Nearby 2").author(user1).build()
+            );
 
-        List<GuideResponseDto> nearbyGuides = Arrays.asList(
-                GuideResponseDto.builder()
-                        .id(1L)
-                        .tip("Nearby guide 1")
-                        .author(user1)
-                        .build(),
-                GuideResponseDto.builder()
-                        .id(2L)
-                        .tip("Nearby guide 2")
-                        .author(user2)
-                        .build()
-        );
+            given(guideService.findGuidesNear(lat, lng, radius)).willReturn(nearbyGuides);
 
-        given(guideService.findGuidesNear(lat, lng, radius))
-                .willReturn(nearbyGuides);
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/nearby")
+                            .param("lat", String.valueOf(lat))
+                            .param("lng", String.valueOf(lng))
+                            .param("radius", String.valueOf(radius)))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].tip").value("Nearby 1"))
+                    .andExpect(jsonPath("$[1].tip").value("Nearby 2"));
+        }
 
-        // when & then
-        mockMvc.perform(get("/guide/api/nearby")
-                        .param("lat", String.valueOf(lat))
-                        .param("lng", String.valueOf(lng))
-                        .param("radius", String.valueOf(radius)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].tip").value("Nearby guide 1"))
-                .andExpect(jsonPath("$[1].tip").value("Nearby guide 2"));
+        @Test
+        @DisplayName("radius 파라미터 미입력 시 기본값(20km)으로 검색한다")
+        @WithMockUser
+        void shouldUseDefaultRadiusWhenNotProvided() throws Exception {
+            // Arrange
+            double lat = 37.5665, lng = 126.9780, defaultRadius = 20.0;
+            given(guideService.findGuidesNear(lat, lng, defaultRadius)).willReturn(Collections.emptyList());
 
-        verify(guideService, times(1)).findGuidesNear(lat, lng, radius);
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/nearby")
+                            .param("lat", String.valueOf(lat))
+                            .param("lng", String.valueOf(lng)))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+
+            verify(guideService).findGuidesNear(lat, lng, defaultRadius);
+        }
     }
 
-    @Test
-    @DisplayName("GET /guide/api/nearby - 기본 반경값으로 검색")
-    void getNearbyGuides_WithDefaultRadius() throws Exception {
-        // given
-        double lat = 37.5665;
-        double lng = 126.9780;
-        double defaultRadius = 20.0;
+    @Nested
+    @DisplayName("POST /guide/api/like/{id}")
+    class LikeGuide {
 
-        given(guideService.findGuidesNear(lat, lng, defaultRadius))
-                .willReturn(Collections.emptyList());
+        @Test
+        @DisplayName("좋아요를 추가하면 liked=true와 증가된 likeCount를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturnLikedTrueWhenLikeAdded() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            MemberDto authorDto = MemberDto.builder().id(1L).email("test@example.com").build();
+            GuideResponseDto updatedGuide = GuideResponseDto.builder()
+                    .id(guideId).tip("Test").author(authorDto).likeCount(6).build();
 
-        // when & then
-        mockMvc.perform(get("/guide/api/nearby")
-                        .param("lat", String.valueOf(lat))
-                        .param("lng", String.valueOf(lng)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+            given(guideLikeService.toggleLike(eq(guideId), any())).willReturn(true);
+            given(guideService.findGuideById(eq(guideId), any())).willReturn(updatedGuide);
 
-        verify(guideService, times(1)).findGuidesNear(lat, lng, defaultRadius);
-    }
+            // Act & Assert
+            mockMvc.perform(post("/guide/api/like/{id}", guideId)
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.liked").value(true))
+                    .andExpect(jsonPath("$.likeCount").value(6));
+        }
 
-    @Test
-    @DisplayName("POST /guide/api/like/{id} - 가이드 좋아요 토글")
-    @WithMockUser(username = "test@example.com")
-    void likeGuide_Success() throws Exception {
-        // given
-        Long guideId = 1L;
+        @Test
+        @DisplayName("좋아요를 취소하면 liked=false와 감소된 likeCount를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturnLikedFalseWhenLikeCancelled() throws Exception {
+            // Arrange
+            Long guideId = 1L;
+            MemberDto authorDto = MemberDto.builder().id(1L).email("test@example.com").build();
+            GuideResponseDto updatedGuide = GuideResponseDto.builder()
+                    .id(guideId).tip("Test").author(authorDto).likeCount(4).build();
 
-        given(guideService.toggleLike(eq(guideId), any(UserDetails.class)))
-                .willReturn(true);
+            given(guideLikeService.toggleLike(eq(guideId), any())).willReturn(false);
+            given(guideService.findGuideById(eq(guideId), any())).willReturn(updatedGuide);
 
-        MemberDto authorDto = MemberDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .build();
-
-        GuideResponseDto updatedGuide = GuideResponseDto.builder()
-                .id(guideId)
-                .tip("Test guide")
-                .author(authorDto)
-                .likeCount(6)
-                .build();
-
-        given(guideService.findGuideById(eq(guideId), any(UserDetails.class)))
-                .willReturn(updatedGuide);
-
-        // when & then
-        mockMvc.perform(post("/guide/api/like/{id}", guideId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.liked").value(true))
-                .andExpect(jsonPath("$.likeCount").value(6));
-
-        verify(guideService, times(1)).toggleLike(eq(guideId), any(UserDetails.class));
-        verify(guideService, times(1)).findGuideById(eq(guideId), any(UserDetails.class));
-    }
-
-    @Test
-    @DisplayName("POST /guide/api/like/{id} - 좋아요 취소")
-    @WithMockUser(username = "test@example.com")
-    void unlikeGuide_Success() throws Exception {
-        // given
-        Long guideId = 1L;
-
-        given(guideService.toggleLike(eq(guideId), any(UserDetails.class)))
-                .willReturn(false);
-
-        MemberDto authorDto = MemberDto.builder()
-                .id(1L)
-                .email("test@example.com")
-                .build();
-
-        GuideResponseDto updatedGuide = GuideResponseDto.builder()
-                .id(guideId)
-                .tip("Test guide")
-                .author(authorDto)
-                .likeCount(4)
-                .build();
-
-        given(guideService.findGuideById(eq(guideId), any(UserDetails.class)))
-                .willReturn(updatedGuide);
-
-        // when & then
-        mockMvc.perform(post("/guide/api/like/{id}", guideId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.liked").value(false))
-                .andExpect(jsonPath("$.likeCount").value(4));
+            // Act & Assert
+            mockMvc.perform(post("/guide/api/like/{id}", guideId)
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.liked").value(false))
+                    .andExpect(jsonPath("$.likeCount").value(4));
+        }
     }
 }

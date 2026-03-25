@@ -3,6 +3,7 @@ package yeonjae.snapguide.domain.guide;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+
 import yeonjae.snapguide.domain.comment.Comment;
 import yeonjae.snapguide.domain.like.GuideLike;
 import yeonjae.snapguide.domain.location.Location;
@@ -24,6 +25,9 @@ public class Guide extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(length = 1000) // 최대 길이 지정
     private String tip;

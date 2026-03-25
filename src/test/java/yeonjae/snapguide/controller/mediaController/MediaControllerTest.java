@@ -2,6 +2,7 @@ package yeonjae.snapguide.controller.mediaController;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -10,9 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import yeonjae.snapguide.domain.media.Media;
-import yeonjae.snapguide.service.fileStorageService.FileStorageService;
-import yeonjae.snapguide.service.fileStorageService.MediaResponseDto;
+import yeonjae.snapguide.domain.media.MediaDto;
+import yeonjae.snapguide.service.fileStorageService.FileServingService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 
 import java.util.Arrays;
@@ -26,14 +26,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * MediaController 단위 테스트
- * 미디어 업로드, 조회, 다운로드 기능 테스트
- */
 @WebMvcTest(MediaController.class)
-@TestPropertySource(properties = {
-        "storage.local.base-dir=/tmp/uploads"
-})
+@TestPropertySource(properties = {"storage.local.base-dir=/tmp/uploads"})
+@DisplayName("MediaController")
+@org.springframework.security.test.context.support.WithMockUser
 class MediaControllerTest {
 
     @Autowired
@@ -43,7 +39,7 @@ class MediaControllerTest {
     private MediaService mediaService;
 
     @MockBean
-    private FileStorageService fileStorageService;
+    private FileServingService fileServingService;
 
     private MockMultipartFile mockImageFile;
 
@@ -57,100 +53,87 @@ class MediaControllerTest {
         );
     }
 
-    @Test
-    @DisplayName("POST /media/upload - 파일 업로드 성공")
-    void upload_Success() throws Exception {
-        // given
-        List<Long> savedIds = Arrays.asList(1L, 2L);
-        given(mediaService.saveAll(anyList())).willReturn(savedIds);
+    @Nested
+    @DisplayName("POST /media/upload")
+    class Upload {
 
-        MockMultipartFile file1 = new MockMultipartFile(
-                "files",
-                "image1.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "image1 content".getBytes()
-        );
+        @Test
+        @DisplayName("파일 업로드에 성공하면 저장된 미디어 ID 목록을 반환한다")
+        void shouldReturnSavedMediaIdsWhenUploadSucceeds() throws Exception {
+            // Arrange
+            List<Long> savedIds = Arrays.asList(1L, 2L);
+            given(mediaService.saveAll(anyList())).willReturn(savedIds);
 
-        MockMultipartFile file2 = new MockMultipartFile(
-                "files",
-                "image2.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "image2 content".getBytes()
-        );
+            MockMultipartFile file1 = new MockMultipartFile("files", "image1.jpg",
+                    MediaType.IMAGE_JPEG_VALUE, "image1 content".getBytes());
+            MockMultipartFile file2 = new MockMultipartFile("files", "image2.jpg",
+                    MediaType.IMAGE_JPEG_VALUE, "image2 content".getBytes());
 
-        // when & then
-        mockMvc.perform(multipart("/media/upload")
-                        .file(file1)
-                        .file(file2)
-                        .param("tip", "Test tip")
-                        .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0]").value(1))
-                .andExpect(jsonPath("$[1]").value(2));
+            // Act & Assert
+            mockMvc.perform(multipart("/media/upload")
+                            .file(file1)
+                            .file(file2)
+                            .param("tip", "Test tip")
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0]").value(1))
+                    .andExpect(jsonPath("$[1]").value(2));
 
-        verify(mediaService, times(1)).saveAll(anyList());
+            verify(mediaService).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("tip 없이 파일만 업로드해도 성공한다")
+        void shouldSucceedWhenUploadingWithoutTip() throws Exception {
+            // Arrange
+            given(mediaService.saveAll(anyList())).willReturn(List.of(1L));
+
+            // Act & Assert
+            mockMvc.perform(multipart("/media/upload")
+                            .file(mockImageFile)
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1));
+        }
     }
 
-    @Test
-    @DisplayName("POST /media/upload - tip 없이 파일만 업로드")
-    void upload_WithoutTip_Success() throws Exception {
-        // given
-        List<Long> savedIds = Arrays.asList(1L);
-        given(mediaService.saveAll(anyList())).willReturn(savedIds);
+    @Nested
+    @DisplayName("GET /media/list")
+    class ListMedia {
 
-        // when & then
-        mockMvc.perform(multipart("/media/upload")
-                        .file(mockImageFile)
-                        .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+        @Test
+        @DisplayName("미디어 목록을 URL 형태로 반환한다")
+        void shouldReturnMediaListWithUrls() throws Exception {
+            // Arrange
+            List<MediaDto> mediaDtoList = Arrays.asList(
+                    new MediaDto("test1.jpg", "/media/files/test1.jpg"),
+                    new MediaDto("test2.jpg", "/media/files/test2.jpg")
+            );
+            given(mediaService.getAllMedia()).willReturn(mediaDtoList);
 
-        verify(mediaService, times(1)).saveAll(anyList());
-    }
+            // Act & Assert
+            mockMvc.perform(get("/media/list"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2));
 
-    @Test
-    @DisplayName("GET /media/list - 미디어 목록 조회")
-    void list_Success() throws Exception {
-        // given
-        Media media1 = Media.builder()
-                .id(1L)
-                .mediaUrl("/media/files/test1.jpg")
-                .build();
+            verify(mediaService).getAllMedia();
+        }
 
-        Media media2 = Media.builder()
-                .id(2L)
-                .mediaUrl("/media/files/test2.jpg")
-                .build();
+        @Test
+        @DisplayName("미디어가 없을 때 빈 배열을 반환한다")
+        void shouldReturnEmptyListWhenNoMedia() throws Exception {
+            // Arrange
+            given(mediaService.getAllMedia()).willReturn(List.of());
 
-        List<Media> mediaList = Arrays.asList(media1, media2);
-        given(mediaService.getAllMedia()).willReturn(mediaList);
-
-        // when & then
-        mockMvc.perform(get("/media/list"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].mediaUrl").value("/media/files/test1.jpg"))
-                .andExpect(jsonPath("$[1].mediaUrl").value("/media/files/test2.jpg"));
-
-        verify(mediaService, times(1)).getAllMedia();
-    }
-
-    @Test
-    @DisplayName("GET /media/list - 미디어가 없을 때")
-    void list_Empty() throws Exception {
-        // given
-        given(mediaService.getAllMedia()).willReturn(Arrays.asList());
-
-        // when & then
-        mockMvc.perform(get("/media/list"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-
-        verify(mediaService, times(1)).getAllMedia();
+            // Act & Assert
+            mockMvc.perform(get("/media/list"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
     }
 }

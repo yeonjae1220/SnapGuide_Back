@@ -1,5 +1,6 @@
 package yeonjae.snapguide.controller.pushController;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,49 +27,36 @@ public class PushController {
     }
 
     @PostMapping("/subscribe")
-    public ResponseEntity<?> subscribe(
+    public ResponseEntity<Void> subscribe(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, Object> body) {
-
+            @RequestBody @Valid PushSubscribeRequest request) {
         Member member = getMember(userDetails);
-
-        String endpoint = (String) body.get("endpoint");
-        @SuppressWarnings("unchecked")
-        Map<String, String> keys = (Map<String, String>) body.get("keys");
-        String auth = keys.get("auth");
-        String p256dh = keys.get("p256dh");
-
-        pushService.subscribe(member, endpoint, auth, p256dh);
-        return ResponseEntity.ok(Map.of("message", "구독 완료"));
+        pushService.subscribe(member, request.endpoint(), request.keys().auth(), request.keys().p256dh());
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/unsubscribe")
-    public ResponseEntity<?> unsubscribe(
+    public ResponseEntity<Void> unsubscribe(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> body) {
-
-        String endpoint = body.get("endpoint");
-        pushService.unsubscribe(endpoint);
-        return ResponseEntity.ok(Map.of("message", "구독 해제 완료"));
+        pushService.unsubscribe(body.get("endpoint"));
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/test")
-    public ResponseEntity<?> testNotification(
+    public ResponseEntity<Void> testNotification(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody(required = false) Map<String, String> body) {
-
         Member member = getMember(userDetails);
         String title = body != null ? body.getOrDefault("title", "SnapGuide 테스트 알림") : "SnapGuide 테스트 알림";
         String message = body != null ? body.getOrDefault("body", "푸시 알림이 정상 동작합니다!") : "푸시 알림이 정상 동작합니다!";
         String url = body != null ? body.getOrDefault("url", "/") : "/";
-
         pushService.sendToMember(member.getId(), title, message, url);
-        return ResponseEntity.ok(Map.of("message", "테스트 알림 전송 완료"));
+        return ResponseEntity.noContent().build();
     }
 
     private Member getMember(UserDetails userDetails) {
-        String email = userDetails.getUsername();
-        return memberRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("no member: " + email));
+        return memberRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("no member: " + userDetails.getUsername()));
     }
 }

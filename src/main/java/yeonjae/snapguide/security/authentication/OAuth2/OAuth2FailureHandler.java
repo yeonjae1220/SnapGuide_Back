@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import yeonjae.snapguide.infrastructure.cookie.CookieUtil;
 
 import java.io.IOException;
+import java.util.Set;
 
 import static yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;
 
@@ -32,6 +34,12 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
      */
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
+    @Value("${spring.myapp.frontend-redirect-url}")
+    private String frontendRedirectUrl;
+
+    @Value("${spring.myapp.app-redirect-uri}")
+    private String appRedirectUri;
+
     /**
      * 인증 실패 시 Spring Security에 의해 호출되는 메소드.
      *
@@ -48,11 +56,18 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
         // 이 URI는 웹일 수도 있고, 앱의 커스텀 스킴일 수도 있습니다.
         String targetUrl = CookieUtil.getCookie(request, REDIRECT_URI_PARAM_COOKIE_NAME)
                 .map(Cookie::getValue)
-                .orElse(("/")); // 쿠키가 없을 경우를 대비한 기본값 (루트 경로)
+                .orElse(frontendRedirectUrl);
 
-        // 3. 가져온 targetUrl에 에러 메시지를 쿼리 파라미터로 추가하여 최종 리디렉션 URL을 생성합니다.
+        // 오픈 리다이렉트 방지: 허용된 URI만 사용
+        Set<String> allowedUris = Set.of(frontendRedirectUrl, appRedirectUri);
+        if (!allowedUris.contains(targetUrl)) {
+            log.warn("허용되지 않은 redirect_uri 시도: {}", targetUrl);
+            targetUrl = frontendRedirectUrl;
+        }
+
+        // 예외 메시지 URL 노출 방지: 제네릭 에러 코드만 전달
         String finalRedirectUrl = UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("error", exception.getLocalizedMessage())
+                .queryParam("error", "authentication_failed")
                 .build().toUriString();
 
         // 4. (가장 중요) 인증 과정에서 사용된 모든 임시 쿠키를 삭제합니다.

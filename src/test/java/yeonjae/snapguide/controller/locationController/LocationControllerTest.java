@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 위치 저장 및 Google Places API 프록시 기능 테스트
  */
 @WebMvcTest(LocationController.class)
+@org.springframework.security.test.context.support.WithMockUser
 class LocationControllerTest {
 
     @Autowired

@@ -8,20 +8,15 @@ spring:
     frontend-redirect-url: http://localhost:8082
     app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
-  # datasource와 redis 정보는 docker-compose.yml에서 환경 변수로 주입되므로 여기서는 생략 가능
-  # 하지만 명시적으로 적어두면 어떤 변수가 필요한지 알기 쉬움
-
   datasource:
     driver-class-name: org.postgresql.Driver
     hikari:
-      # Connection Pool 설정
-      maximum-pool-size: 15          # CPU 78%에서 안전한 증가 (10 → 30)
-      minimum-idle: 10               # 최소 유지 커넥션
-      connection-timeout: 20000      # 커넥션 대기 시간 (20초)
-      idle-timeout: 600000           # 유휴 커넥션 유지 시간 (10분)
-      max-lifetime: 1800000          # 커넥션 최대 생명 주기 (30분)
+      maximum-pool-size: 15
+      minimum-idle: 10
+      connection-timeout: 20000
+      idle-timeout: 600000
+      max-lifetime: 1800000
       pool-name: SnapguideHikariPool
-      # PreparedStatement 캐싱 (Native Query에는 영향 적지만, JPQL 쿼리를 위해 유지)
       data-source-properties:
         cachePrepStmts: true
         prepStmtCacheSize: 250
@@ -51,6 +46,9 @@ spring:
         - classpath:/static/
         - file:/app/uploads/
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8082}
+
 jwt:
   access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
   refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
@@ -66,14 +64,13 @@ storage:
   local:
     base-dir: /app/uploads/
 
-# 성능 최적화: 로깅 최소화
 logging:
   level:
     root: INFO
-    yeonjae.snapguide.service: WARN           # Service 계층 로깅 최소화
-    yeonjae.snapguide.repository: ERROR       # Repository 로깅 최소화
+    yeonjae.snapguide.service: WARN
+    yeonjae.snapguide.repository: ERROR
     yeonjae.snapguide.controller: INFO
-    org.hibernate.SQL: ERROR                  # SQL 로깅 끄기
+    org.hibernate.SQL: ERROR
     org.springframework.web: WARN
 
 cloud:
@@ -88,13 +85,11 @@ cloud:
     stack:
       auto: false
 
-# Server configuration (최상위 레벨)
 server:
-  forward-headers-strategy: framework # 리버스 프록시 헤더 처리
+  forward-headers-strategy: framework
   tomcat:
     threads:
-      max: 150                       # 최대 워커 스레드 (150 VUs 대응)
-      min-spare: 30                  # 최소 유지 스레드 (HikariCP와 비율 맞춤)
-    accept-count: 100                # 대기 큐 크기 (순간 폭증 대응)
-    connection-timeout: 20000        # 연결 타임아웃 (20초)
-
+      max: 150
+      min-spare: 30
+    accept-count: 100
+    connection-timeout: 20000

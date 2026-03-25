@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -226,11 +227,12 @@ public class S3FileStorageService implements FileStorageService {
         }
     }
 
-    public String generatePresignedUrl(String filename) {
+    @Override
+    public Optional<String> generatePresignedUrl(String filename) {
         String objectKey = resolveS3Key(filename);
         if (objectKey == null) {
             log.warn("S3에 존재하지 않는 파일에 대한 URL 생성 시도: {}", filename);
-            return null;
+            return Optional.empty();
         }
 
         Date expiration = new Date();
@@ -242,17 +244,16 @@ public class S3FileStorageService implements FileStorageService {
                             .withMethod(HttpMethod.GET)
                             .withExpiration(expiration);
             URL url = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
-            return url.toString();
+            return Optional.of(url.toString());
         } catch (Exception e) {
             log.error("Presigned URL 생성 중 오류 발생: {}", e.getMessage());
-            return null;
+            return Optional.empty();
         }
     }
 
     @Override
     public Resource downloadFile(String filePath) throws IOException {
-        // TODO: S3에서 파일 다운로드 로직 구현
-        return null;
+        throw new UnsupportedOperationException("S3 파일 다운로드는 presigned URL을 사용하세요.");
     }
 
     @Override
@@ -269,8 +270,7 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public String generatePublicUrl(String filePath) {
-        // TODO: S3 파일의 public URL 생성 로직 구현
-        return null;
+        return amazonS3.getUrl(bucketName, filePath).toString();
     }
 
     // images/web/ → images/thumbnails/ 순서로 존재 여부 확인 후 key 반환

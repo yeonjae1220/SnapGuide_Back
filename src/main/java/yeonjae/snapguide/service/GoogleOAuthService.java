@@ -44,8 +44,8 @@ public class GoogleOAuthService {
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String googleWebClientSecret;
 
-    // iOS Client ID (앱에서 사용)
-    private static final String GOOGLE_IOS_CLIENT_ID = "1054453650839-jae2hnasojd3b6lkrl2ki3au2vve6hut.apps.googleusercontent.com";
+    @Value("${spring.myapp.app-redirect-uri}")
+    private String appRedirectUri;
 
     // Google OAuth endpoints
     private static final String GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -94,8 +94,7 @@ public class GoogleOAuthService {
     private String getGoogleAccessToken(String code) {
         try {
             // 요청 파라미터 구성
-            // Web Client ID와 Secret 사용 (앱에서 받은 code와 일치해야 함)
-            String redirectUri = "com.yeonjae.snapguide://oauth/callback";
+            String redirectUri = appRedirectUri;
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("code", code);

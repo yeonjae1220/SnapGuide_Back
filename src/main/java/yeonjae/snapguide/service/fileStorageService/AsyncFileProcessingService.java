@@ -22,6 +22,9 @@ import java.nio.file.StandardCopyOption;
 @Slf4j
 public class AsyncFileProcessingService {
 
+    private static final int THUMBNAIL_SIZE = 1080;
+    private static final double THUMBNAIL_QUALITY = 0.7;
+
     private final MediaRepository mediaRepository;
 
     // S3용 (optional - Local 환경에서는 null)
@@ -85,8 +88,8 @@ public class AsyncFileProcessingService {
         log.info("[Async-S3] Creating thumbnail...");
         ByteArrayOutputStream thumbOutputStream = new ByteArrayOutputStream();
         Thumbnails.of(new ByteArrayInputStream(webBytes))
-                .size(1080, 1080)
-                .outputQuality(0.7)
+                .size(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+                .outputQuality(THUMBNAIL_QUALITY)
                 .toOutputStream(thumbOutputStream);
         byte[] thumbBytes = thumbOutputStream.toByteArray();
 
@@ -113,8 +116,8 @@ public class AsyncFileProcessingService {
         log.info("[Async-Local] Creating thumbnail...");
         ByteArrayOutputStream thumbOutputStream = new ByteArrayOutputStream();
         Thumbnails.of(new ByteArrayInputStream(originalBytes))
-                .size(1080, 1080)
-                .outputQuality(0.7)
+                .size(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+                .outputQuality(THUMBNAIL_QUALITY)
                 .toOutputStream(thumbOutputStream);
         byte[] thumbBytes = thumbOutputStream.toByteArray();
 

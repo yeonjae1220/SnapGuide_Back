@@ -33,7 +33,7 @@ public final class SecurityConstants {
 		 */
 		public static final String[] DEV_TOOL = {"/.well-known/**", "/favicon.ico", "/css/**", "/js/**", "/images/**"};
 
-		public static final String[] FILE_IO = {"/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/**", "/uploads/**", "/media/**"};
+		public static final String[] FILE_IO = {"/uploads/**", "/media/**"};
 
 		public static final String[] ACTUATOR = {"/actuator/**"};
 
