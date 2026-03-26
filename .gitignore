@@ -71,3 +71,6 @@ k6/data/*.csv
 *.csv
 
 k6-tests/results
+
+### k8s ###
+k8s/secret.yaml
