@@ -1247,7 +1247,7 @@
             if (!apiKey) throw new Error("API key is missing.");
             const script = document.createElement("script");
             // loading=async 파라미터 추가, callback 제거 (NotLoadingAPIFromGoogleMapsError 방지)
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
             script.async = true;
             script.defer = true;
             script.onload = () => initMap();
