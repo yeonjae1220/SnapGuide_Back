@@ -29,8 +29,8 @@ spec:
         project: snapguide
       containers:
         - name: backend
-          image: snapguide-backend:latest
-          imagePullPolicy: Never
+          image: ghcr.io/yeonjae1220/snapguide_back:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:

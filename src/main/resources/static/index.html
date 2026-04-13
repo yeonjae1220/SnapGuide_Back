@@ -1246,9 +1246,15 @@
             const apiKey = data.apiKey;
             if (!apiKey) throw new Error("API key is missing.");
             const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+            // loading=async 파라미터 추가, callback 제거 (NotLoadingAPIFromGoogleMapsError 방지)
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
             script.async = true;
             script.defer = true;
+            script.onload = () => initMap();
+            script.onerror = () => {
+              console.error("Google Maps script failed to load.");
+              document.getElementById("map").textContent = "지도를 불러오는 데 실패했습니다. API 설정을 확인해주세요.";
+            };
             document.head.appendChild(script);
           })
           .catch(err => {
