@@ -20,7 +20,7 @@ public class TokenBlacklistService {
      * access 토큰 블랙리스트 처리
      */
     public void blacklistAccessToken(String token, long expirationMillis) {
-        log.info("블랙리스트 된 엑세스 토큰 : {}", token);
+        log.info("Access token blacklisted");
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
                 "blacklisted",
@@ -33,7 +33,7 @@ public class TokenBlacklistService {
      * refresh 토큰 블랙리스트 처리
      */
     public void blacklistRefreshToken(String token, long expirationMillis) {
-        log.info("블랙리스트 된 리프레시 토큰 : {}", token);
+        log.info("Refresh token blacklisted");
         redisTemplate.opsForValue().set(
                 REFRESH_PREFIX + token,
                 "blacklisted",
@@ -52,7 +52,7 @@ public class TokenBlacklistService {
 
         if (Boolean.TRUE.equals(hasKey)) {
             String blacklistedToken = (String) redisTemplate.opsForValue().get(key);
-            log.warn("🔒 블랙리스트에 등록된 토큰 감지: {}", blacklistedToken);
+            log.warn("Blacklisted token access attempt detected");
         } else {
             log.info("✅ 블랙리스트에 없음");
         }

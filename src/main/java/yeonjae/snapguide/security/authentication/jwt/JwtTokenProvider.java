@@ -119,7 +119,7 @@ public class JwtTokenProvider {
     public Authentication getAuthentication(String token) {
         // 토큰의 Payload에 저장된 Claim들을 추출한다. (토큰 복호화)
         Claims claims = parseClaims(token);
-        log.info("token authorities : " + claims.toString());
+        log.debug("claims extracted");
 
         if (claims.get(AUTHORIZATION_HEADER) == null) {
             log.info("권한 정보 없는 토큰");
@@ -136,7 +136,7 @@ public class JwtTokenProvider {
                 .map(String::trim)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
-        log.info("복원된 권한들: {}", authorities);
+        log.debug("authorities restored: count={}", authorities.size());
 
         // Claim에 저장된 사용자 아이디를 통해 UserDetails 객체를 생성해서
         UserDetails principal = new User(claims.getSubject(), "", authorities);
@@ -231,7 +231,7 @@ public class JwtTokenProvider {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
 
         // TODO : 이부분 코드 해석 한번더
-        log.info("bearertoken : {}", bearerToken);
+        log.debug("Authorization header received");
         if (StringUtils.hasText(bearerToken)) {
             if (bearerToken.startsWith(BEARER_PREFIX) && bearerToken.length() > 7) {
                 int tokenStartIndex = 7;

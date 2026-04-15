@@ -50,6 +50,11 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private List<Authority> authority = new ArrayList<>();
 
+    public void updateAuthority(List<Authority> newAuthority) {
+        this.authority.clear();
+        this.authority.addAll(newAuthority);
+    }
+
 
 //
 //    @Enumerated(value = EnumType.STRING)
