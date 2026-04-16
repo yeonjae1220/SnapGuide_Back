@@ -27,6 +27,11 @@ public enum ErrorCode {
     MISSING_AUTH_HEADER(HttpStatus.UNAUTHORIZED, "Authorization 헤더가 존재하지 않습니다."),
     OAUTH_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "OAuth 로그인에 실패했습니다."),
 
+    // 리소스
+    GUIDE_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
+    LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "위치를 찾을 수 없습니다."),
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
+
     // 기타
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근이 거부되었습니다.");
 

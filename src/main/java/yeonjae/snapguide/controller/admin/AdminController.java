@@ -8,9 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import yeonjae.snapguide.controller.admin.dto.AdminMemberResponse;
-import yeonjae.snapguide.controller.admin.dto.AdminRoleUpdateRequest;
-import yeonjae.snapguide.controller.admin.dto.AdminStatsResponse;
+import yeonjae.snapguide.controller.admin.dto.*;
 import yeonjae.snapguide.service.admin.AdminService;
 
 @RestController
@@ -20,18 +18,12 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    /**
-     * 전체 회원 목록 조회 (페이지네이션)
-     */
     @GetMapping("/members")
     public ResponseEntity<Page<AdminMemberResponse>> getMembers(
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.getMembers(pageable));
     }
 
-    /**
-     * 회원 역할 변경 (MEMBER ↔ ADMIN)
-     */
     @PatchMapping("/members/{id}/role")
     public ResponseEntity<AdminMemberResponse> updateMemberRole(
             @PathVariable Long id,
@@ -39,11 +31,44 @@ public class AdminController {
         return ResponseEntity.ok(adminService.updateMemberRole(id, request));
     }
 
-    /**
-     * 전체 통계 조회
-     */
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsResponse> getStats() {
         return ResponseEntity.ok(adminService.getStats());
+    }
+
+    @GetMapping("/guides")
+    public ResponseEntity<Page<AdminGuideResponse>> getGuides(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.getGuides(pageable));
+    }
+
+    @DeleteMapping("/guides/{id}")
+    public ResponseEntity<Void> deleteGuide(@PathVariable Long id) {
+        adminService.deleteGuide(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/locations")
+    public ResponseEntity<Page<AdminLocationResponse>> getLocations(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.getLocations(pageable));
+    }
+
+    @DeleteMapping("/locations/{id}")
+    public ResponseEntity<Void> deleteLocation(@PathVariable Long id) {
+        adminService.deleteLocation(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/comments")
+    public ResponseEntity<Page<AdminCommentResponse>> getComments(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.getComments(pageable));
+    }
+
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
+        adminService.deleteComment(id);
+        return ResponseEntity.noContent().build();
     }
 }
