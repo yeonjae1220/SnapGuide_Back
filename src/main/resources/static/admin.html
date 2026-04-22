@@ -525,19 +525,29 @@
 
     // ── INIT: 인증 및 관리자 권한 확인 ──
     if (!token) {
-        alert('로그인이 필요합니다.');
         window.location.href = '/';
     }
 
     async function verifyAdminAccess() {
         try {
-            await api('/api/admin/stats');
+            const res = await fetch('/api/admin/stats', { headers: headers() });
+            if (res.status === 401) {
+                // 토큰 만료/무효 → 토큰 삭제 후 로그인 페이지로
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/';
+                return;
+            }
+            if (!res.ok) {
+                // 403 등 권한 없음 → 토큰 유지, 메인으로만 이동
+                window.location.href = '/';
+                return;
+            }
             document.body.style.visibility = 'visible';
             loadStats();
         } catch (e) {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            window.location.href = '/?reason=unauthorized';
+            // 네트워크 오류 → 토큰 유지
+            window.location.href = '/';
         }
     }
     verifyAdminAccess();
