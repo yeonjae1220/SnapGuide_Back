@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snapguide 관리자 페이지</title>
     <style>
+        body { visibility: hidden; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
@@ -531,12 +532,12 @@
     async function verifyAdminAccess() {
         try {
             await api('/api/admin/stats');
+            document.body.style.visibility = 'visible';
             loadStats();
         } catch (e) {
-            alert('관리자 권한이 없습니다.');
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
-            window.location.href = '/';
+            window.location.href = '/?reason=unauthorized';
         }
     }
     verifyAdminAccess();
