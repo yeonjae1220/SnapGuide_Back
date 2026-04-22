@@ -379,8 +379,7 @@
             <div class="header-sub" id="headerSub">전체 현황을 확인하세요</div>
         </div>
         <div class="token-section">
-            <input type="password" id="tokenInput" placeholder="Access Token 입력" />
-            <button onclick="setToken()">토큰 설정</button>
+            <button class="ghost" onclick="adminLogout()">로그아웃</button>
         </div>
     </header>
 
@@ -411,7 +410,7 @@
                 </div>
             </div>
             <div style="color: var(--text-secondary); font-size: 13px; padding: 8px 0;">
-                ※ 토큰을 설정한 후 각 메뉴에서 데이터를 확인하세요.
+                ※ 좌측 메뉴에서 데이터를 확인하세요.
             </div>
         </div>
 
@@ -422,7 +421,7 @@
                     <div class="table-title">회원 목록</div>
                     <button class="ghost sm" onclick="loadMembers(0)">새로고침</button>
                 </div>
-                <div id="members-body"><div class="loading">토큰을 설정하고 데이터를 불러오세요.</div></div>
+                <div id="members-body"><div class="loading">데이터를 불러오는 중...</div></div>
                 <div class="pagination" id="members-pagination" style="display:none">
                     <div class="pagination-info" id="members-page-info"></div>
                     <div class="pagination-btns">
@@ -440,7 +439,7 @@
                     <div class="table-title">게시글 목록</div>
                     <button class="ghost sm" onclick="loadGuides(0)">새로고침</button>
                 </div>
-                <div id="guides-body"><div class="loading">토큰을 설정하고 데이터를 불러오세요.</div></div>
+                <div id="guides-body"><div class="loading">데이터를 불러오는 중...</div></div>
                 <div class="pagination" id="guides-pagination" style="display:none">
                     <div class="pagination-info" id="guides-page-info"></div>
                     <div class="pagination-btns">
@@ -458,7 +457,7 @@
                     <div class="table-title">댓글(게시판) 목록</div>
                     <button class="ghost sm" onclick="loadComments(0)">새로고침</button>
                 </div>
-                <div id="comments-body"><div class="loading">토큰을 설정하고 데이터를 불러오세요.</div></div>
+                <div id="comments-body"><div class="loading">데이터를 불러오는 중...</div></div>
                 <div class="pagination" id="comments-pagination" style="display:none">
                     <div class="pagination-info" id="comments-page-info"></div>
                     <div class="pagination-btns">
@@ -476,7 +475,7 @@
                     <div class="table-title">위치 데이터 목록</div>
                     <button class="ghost sm" onclick="loadLocations(0)">새로고침</button>
                 </div>
-                <div id="locations-body"><div class="loading">토큰을 설정하고 데이터를 불러오세요.</div></div>
+                <div id="locations-body"><div class="loading">데이터를 불러오는 중...</div></div>
                 <div class="pagination" id="locations-pagination" style="display:none">
                     <div class="pagination-info" id="locations-page-info"></div>
                     <div class="pagination-btns">
@@ -511,7 +510,7 @@
 
 <script>
     // ── STATE ──
-    let token = localStorage.getItem('adminToken') || '';
+    let token = localStorage.getItem('accessToken') || '';
     let membersPage = 0, guidesPage = 0, commentsPage = 0, locationsPage = 0;
     let membersTotal = 0, guidesTotal = 0, commentsTotal = 0, locationsTotal = 0;
     let roleTargetId = null;
@@ -520,11 +519,42 @@
 
     const headers = () => ({
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
+        'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '')
     });
 
-    // ── INIT ──
-    if (token) document.getElementById('tokenInput').value = '••••••••••••';
+    // ── INIT: 인증 및 관리자 권한 확인 ──
+    if (!token) {
+        alert('로그인이 필요합니다.');
+        window.location.href = '/';
+    }
+
+    async function verifyAdminAccess() {
+        try {
+            await api('/api/admin/stats');
+            loadStats();
+        } catch (e) {
+            alert('관리자 권한이 없습니다.');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            window.location.href = '/';
+        }
+    }
+    verifyAdminAccess();
+
+    function adminLogout() {
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+            body: JSON.stringify({ accessToken, refreshToken })
+        }).finally(() => {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userEmail');
+            window.location.href = '/';
+        });
+    }
 
     // ── NAVIGATION ──
     const pageHeaders = {
@@ -549,17 +579,6 @@
         if (name === 'guides')    loadGuides(0);
         if (name === 'comments')  loadComments(0);
         if (name === 'locations') loadLocations(0);
-    }
-
-    // ── TOKEN ──
-    function setToken() {
-        const val = document.getElementById('tokenInput').value.trim();
-        if (!val || val === '••••••••••••') return;
-        token = val;
-        localStorage.setItem('adminToken', token);
-        toast('토큰이 설정되었습니다.', 'success');
-        document.getElementById('tokenInput').value = '••••••••••••';
-        loadStats();
     }
 
     // ── API HELPER ──
@@ -855,8 +874,6 @@
         if (e.target === this) closeRoleModal();
     });
 
-    // Initial load
-    if (token) loadStats();
 </script>
 </body>
 </html>
