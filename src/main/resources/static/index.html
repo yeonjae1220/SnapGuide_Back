@@ -833,7 +833,7 @@
           <div class="search-float">
             <div id="searchBox">
               <span class="search-icon-inner">🔍</span>
-              <input id="locationSearchInput" placeholder="장소, 주소 검색 (예: 창원 시청)" />
+              <input id="locationSearchInput" placeholder="장소, 주소 검색 (예: 서울 시청)" />
               <div id="autocompleteResults"></div>
             </div>
           </div>
@@ -1239,11 +1239,7 @@
 
       // ===================== Google Maps =====================
       function loadGoogleMapsScript() {
-        if (window.google && window.google.maps) {
-          // Maps가 이미 로드된 경우 현재 위치만 재요청
-          handleGetCurrentLocation();
-          return;
-        }
+        if (window.google && window.google.maps) return;
         fetch(`${API_BASE_URL}/api/maps/key`)
           .then(res => res.ok ? res.json() : Promise.reject("Could not fetch map API key."))
           .then(data => {
@@ -1362,34 +1358,25 @@
         fetchGuides(coords.lat, coords.lng, radius);
       }
 
-      const SEOUL_CITY_HALL = { lat: 37.5663, lng: 126.9779 };
-
-      function handleGetCurrentLocation(retryCount = 0) {
-        if (!navigator.geolocation) {
-          updateMapAndSearch(SEOUL_CITY_HALL, "서울 시청(기본값)");
-          return;
+      function handleGetCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+              // 현재 위치는 zoom을 높여서 명확하게 표시
+              map.setCenter(coords);
+              map.setZoom(16);
+              updateMapAndSearch(coords, "내 현재 위치");
+            },
+            err => {
+              console.warn("위치 가져오기 실패:", err.code, err.message);
+              updateMapAndSearch({ lat: 37.5663, lng: 126.9779 }, "서울 시청(기본값)");
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          );
+        } else {
+          updateMapAndSearch({ lat: 37.5663, lng: 126.9779 }, "서울 시청(기본값)");
         }
-        const MAX_RETRIES = 3;
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-            map.setCenter(coords);
-            map.setZoom(16);
-            updateMapAndSearch(coords, "내 현재 위치");
-          },
-          err => {
-            console.warn(`위치 가져오기 실패 (시도 ${retryCount + 1}/${MAX_RETRIES + 1}):`, err.code, err.message);
-            // POSITION_UNAVAILABLE(2): CoreLocation 초기화 대기 후 재시도
-            if (err.code === 2 && retryCount < MAX_RETRIES) {
-              const delay = (retryCount + 1) * 1500;
-              console.log(`${delay}ms 후 재시도...`);
-              setTimeout(() => handleGetCurrentLocation(retryCount + 1), delay);
-            } else {
-              updateMapAndSearch(SEOUL_CITY_HALL, "서울 시청(기본값)");
-            }
-          },
-          { enableHighAccuracy: retryCount === 0, timeout: 10000, maximumAge: retryCount > 0 ? 30000 : 0 },
-        );
       }
 
       function handleRadiusChange() {
