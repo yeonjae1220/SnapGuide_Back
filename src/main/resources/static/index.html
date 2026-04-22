@@ -871,6 +871,30 @@
         }
       }
 
+      function parseJwtPayload(jwt) {
+        if (!jwt) return null;
+        try {
+          const [, payload] = jwt.split(".");
+          if (!payload) return null;
+          const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+          const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, "=");
+          return JSON.parse(atob(padded));
+        } catch {
+          return null;
+        }
+      }
+
+      function syncUserEmailFromToken(accessToken) {
+        const payload = parseJwtPayload(accessToken);
+        const email = payload?.sub;
+        if (email) {
+          localStorage.setItem("userEmail", email);
+          return email;
+        }
+        localStorage.removeItem("userEmail");
+        return "";
+      }
+
       async function validateToken() {
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/test`, {
@@ -943,6 +967,7 @@
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
             token = data.accessToken;
+            syncUserEmailFromToken(data.accessToken);
             window.history.replaceState({}, document.title, window.location.pathname);
             alert("구글 로그인 성공!");
             subscribeToPush();
@@ -959,6 +984,7 @@
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", refreshToken);
           token = accessToken;
+          syncUserEmailFromToken(accessToken);
           window.history.replaceState({}, document.title, window.location.pathname);
           alert("구글 로그인 성공!");
         }
