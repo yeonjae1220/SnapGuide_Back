@@ -1239,7 +1239,11 @@
 
       // ===================== Google Maps =====================
       function loadGoogleMapsScript() {
-        if (window.google && window.google.maps) return;
+        if (window.google && window.google.maps) {
+          // Maps가 이미 로드된 경우 현재 위치만 재요청
+          handleGetCurrentLocation();
+          return;
+        }
         fetch(`${API_BASE_URL}/api/maps/key`)
           .then(res => res.ok ? res.json() : Promise.reject("Could not fetch map API key."))
           .then(data => {
@@ -1360,11 +1364,12 @@
 
       const SEOUL_CITY_HALL = { lat: 37.5663, lng: 126.9779 };
 
-      function handleGetCurrentLocation() {
+      function handleGetCurrentLocation(retryCount = 0) {
         if (!navigator.geolocation) {
           updateMapAndSearch(SEOUL_CITY_HALL, "서울 시청(기본값)");
           return;
         }
+        const MAX_RETRIES = 3;
         navigator.geolocation.getCurrentPosition(
           position => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -1373,27 +1378,17 @@
             updateMapAndSearch(coords, "내 현재 위치");
           },
           err => {
-            console.warn("위치 가져오기 실패 (고정밀):", err.code, err.message);
-            // POSITION_UNAVAILABLE(2) 시 저정밀로 재시도
-            if (err.code === 2) {
-              navigator.geolocation.getCurrentPosition(
-                position => {
-                  const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-                  map.setCenter(coords);
-                  map.setZoom(16);
-                  updateMapAndSearch(coords, "내 현재 위치");
-                },
-                err2 => {
-                  console.warn("위치 가져오기 실패 (저정밀):", err2.code, err2.message);
-                  updateMapAndSearch(SEOUL_CITY_HALL, "서울 시청(기본값)");
-                },
-                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-              );
+            console.warn(`위치 가져오기 실패 (시도 ${retryCount + 1}/${MAX_RETRIES + 1}):`, err.code, err.message);
+            // POSITION_UNAVAILABLE(2): CoreLocation 초기화 대기 후 재시도
+            if (err.code === 2 && retryCount < MAX_RETRIES) {
+              const delay = (retryCount + 1) * 1500;
+              console.log(`${delay}ms 후 재시도...`);
+              setTimeout(() => handleGetCurrentLocation(retryCount + 1), delay);
             } else {
               updateMapAndSearch(SEOUL_CITY_HALL, "서울 시청(기본값)");
             }
           },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          { enableHighAccuracy: retryCount === 0, timeout: 10000, maximumAge: retryCount > 0 ? 30000 : 0 },
         );
       }
 
