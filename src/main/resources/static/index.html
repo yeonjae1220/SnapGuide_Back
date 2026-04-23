@@ -237,6 +237,7 @@
       }
       .btn-primary:hover { background: #1877f2; }
       .btn-primary:active { transform: scale(.98); }
+      .btn-primary:disabled { background: #a0c4f1; cursor: not-allowed; transform: none; }
 
       .auth-div {
         text-align: center; color: var(--gray); font-size: 13px;
@@ -566,6 +567,7 @@
       #tip {
         width: 100%; margin: 0;
         min-height: 96px;
+        max-height: 240px;
         padding: 12px 14px;
         border: 1px solid var(--border); border-radius: 8px;
         font-size: 14px; line-height: 1.55;
@@ -674,7 +676,7 @@
 
       .button-group { display: flex; gap: 6px; margin-top: 10px; }
       .button-group button {
-        flex: 1; padding: 7px;
+        flex: 1; min-width: 60px; padding: 7px;
         background: #f5f5f5; border: none; border-radius: 6px;
         font-size: 12px; color: var(--text); font-weight: 500;
         cursor: pointer; transition: var(--t);
@@ -722,6 +724,13 @@
 
 
       /* ========== Responsive ========== */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .la { width: 360px; padding: 48px 32px; }
+        .lh { padding: 60px 36px; }
+        .lh-logo { font-size: 44px; }
+        .lh-tag { font-size: 16px; margin-bottom: 36px; }
+      }
+
       @media (max-width: 768px) {
         .landing-wrap { flex-direction: column; }
         .lh { padding: 80px 28px 36px; min-height: 45vh; }
@@ -1078,7 +1087,7 @@
         } else {
           noticeEl.style.display = "none";
         }
-        document.getElementById("landing-view").style.display = "flex";
+        document.getElementById("landing-view").style.display = "block";
         document.getElementById("main-view").style.display = "none";
       }
 
