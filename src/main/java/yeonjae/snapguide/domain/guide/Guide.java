@@ -45,7 +45,7 @@ public class Guide extends BaseEntity {
     @JoinColumn(name = "location_id")
     private Location location;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default true")
     @Builder.Default
     private boolean locationPublic = true;
 

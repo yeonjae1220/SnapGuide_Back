@@ -248,6 +248,11 @@ public class GuideService {
 
         log.info("🧭 조회할 Location ID 목록: {}", locationIds);
 
+        if (locationIds.isEmpty()) {
+            log.info("✅ 최종 반환 GuideDto 수: 0");
+            return List.of();
+        }
+
         List<Guide> guides = guideRepository.findByLocationIdInWithFetch(locationIds);
         log.info("📘 Guide 수: {} (Fetch Join 적용)", guides.size());
         guides.forEach(g ->
