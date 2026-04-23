@@ -2,6 +2,7 @@ package yeonjae.snapguide.security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.catalina.connector.Connector;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
@@ -27,6 +28,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
+import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2AuthorizationRequestResolver;
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
@@ -63,6 +65,7 @@ public class SecurityConfig {
 
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final CustomOauth2UserService customOauth2UserService;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -127,6 +130,7 @@ public class SecurityConfig {
                         .authorizationEndpoint(config -> config
                                 .baseUri("/oauth2/authorization")
                                 .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
+                                .authorizationRequestResolver(new CustomOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization"))
                         )
                         .redirectionEndpoint(config -> config
                                 .baseUri("/login/oauth2/code/*")

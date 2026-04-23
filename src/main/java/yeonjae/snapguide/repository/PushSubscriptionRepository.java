@@ -13,4 +13,6 @@ public interface PushSubscriptionRepository extends JpaRepository<PushSubscripti
     List<PushSubscription> findAllByMemberIdAndActiveTrue(Long memberId);
 
     List<PushSubscription> findAllByActiveTrue();
+
+    void deleteByMemberId(Long memberId);
 }

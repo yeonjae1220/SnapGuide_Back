@@ -11,6 +11,8 @@ import yeonjae.snapguide.domain.member.dto.MemberDto;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
+import yeonjae.snapguide.repository.CommentRepository;
+import yeonjae.snapguide.repository.PushSubscriptionRepository;
 import yeonjae.snapguide.repository.guideRepository.GuideRepository;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
@@ -38,6 +40,8 @@ public class MemberService {
     private final GuideRepository guideRepository;
     private final MediaRepository mediaRepository;
     private final GuideService guideService;
+    private final CommentRepository commentRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
 
     @Transactional(readOnly = true)
     public Member getCurrentMember(String email) {
@@ -59,14 +63,16 @@ public class MemberService {
 
         log.info("Starting deletion for member: {}", email);
 
-        // 2. GuideService를 활용하여 각 Guide의 S3 파일 삭제
-        // DB 삭제는 JPA cascade가 처리하므로, S3 파일 삭제에만 집중합니다.
+        // 2. cascade 미설정 연관 데이터 먼저 삭제 (FK 제약 위반 방지)
+        commentRepository.deleteByAuthorId(member.getId());
+        pushSubscriptionRepository.deleteByMemberId(member.getId());
+
+        // 3. GuideService를 활용하여 각 Guide의 S3 파일 삭제
         for (Guide guide : member.getGuides()) {
-            guideService.deleteGuideMediaFiles(guide); // GuideService의 삭제 로직 재사용
+            guideService.deleteGuideMediaFiles(guide);
         }
 
-        // 3. Member만 삭제
-        // cascade 설정에 따라 이 Member와 연관된 모든 Guide, Media, Location 등이 DB에서 자동으로 삭제됩니다.
+        // 4. Member 삭제 (cascade로 Guide, Media, GuideLike 자동 삭제)
         memberRepository.delete(member);
         log.info("Member deletion successful for: {}", email);
     }
