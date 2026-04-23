@@ -45,6 +45,10 @@ public class Guide extends BaseEntity {
     @JoinColumn(name = "location_id")
     private Location location;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean locationPublic = true;
+
 
     // NOTE : 화면에서 Guide 객체 하나로 그 안에 있는 Photo 목록을 자주 순회 할 듯 하여 양방향 설정
     // TODO : 관계 유지 코드 (동기화) 작성 필요
@@ -88,6 +92,10 @@ public class Guide extends BaseEntity {
 
     public void updateTip (String newTip) {
         this.tip = newTip;
+    }
+
+    public void updateLocationVisibility(boolean locationPublic) {
+        this.locationPublic = locationPublic;
     }
 
 

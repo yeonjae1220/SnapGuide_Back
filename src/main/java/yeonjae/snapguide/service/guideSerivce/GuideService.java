@@ -15,12 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.domain.guide.Guide;
+import yeonjae.snapguide.domain.guide.GuideMapper;
 import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
 import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
-import yeonjae.snapguide.domain.media.MediaDto;
 import yeonjae.snapguide.domain.member.Member;
-import yeonjae.snapguide.domain.member.dto.MemberDto;
 import yeonjae.snapguide.repository.guideLikeRepository.GuideLikeRepository;
 import yeonjae.snapguide.repository.guideRepository.GuideRepository;
 import yeonjae.snapguide.repository.locationRepository.GeoUtil;
@@ -68,7 +67,7 @@ public class GuideService {
      * DB 조회 최소화: Media 엔티티를 직접 받아서 처리
      */
     @CacheEvict(value = "nearbyGuides", allEntries = true)
-    public Long createGuideWithMedia(Member author, String tip, List<Media> mediaList) {
+    public Long createGuideWithMedia(Member author, String tip, List<Media> mediaList, boolean locationPublic) {
         // 1. 전달받은 Media 엔티티는 이전 트랜잭션에서 저장 후 detached 상태임.
         //    현재 트랜잭션의 영속성 컨텍스트에서 재조회하여 managed 상태로 만든다.
         //    (Guide.mediaList의 CascadeType.ALL이 detached 엔티티에 PERSIST를 시도하는 문제 방지)
@@ -87,6 +86,7 @@ public class GuideService {
                 .tip(tip)
                 .author(author)
                 .location(location)
+                .locationPublic(locationPublic)
                 .build();
 
         guideRepository.save(guide);
@@ -166,16 +166,7 @@ public class GuideService {
 //        guideRepository.save(guide); // 변경감지로 자동 반영되지만 save로 명시해도 OK
         // DTO로 변환해서 반환
 //        return new GuideResponseDto(guide.getId(), guide.getTip());
-        return GuideResponseDto.builder()
-                .id(guide.getId())
-                .tip(guide.getTip())
-                .author(MemberDto.fromEntity(guide.getAuthor())) // NOTE : 이거 Member 조회에 성능 많이 먹는지 확인
-                // NOTE : 아래 두개는 일단 보류.. locationName은 딱히 중요하지 않은 것 같고, media도 필요한가? 리소스만 쓰는거 같음
-                .locationName("") //
-                .media(guide.getMediaList().stream()
-                        .map(media -> new MediaDto(media.getMediaName(), media.getMediaUrl()))
-                        .toList())
-                .build();
+        return GuideMapper.toResponseDto(guide, guideLikeService.hasUserLiked(member, guide));
     }
 
     /**
@@ -272,23 +263,7 @@ public class GuideService {
 
         // 3. guides 목록을 DTO로 변환합니다.
         List<GuideResponseDto> result = guides.stream()
-                .map(guide -> {
-                    // 미디어 리스트 변환
-                    List<MediaDto> mediaDto = guide.getMediaList()
-                            .stream()
-                            .map(MediaDto::fromEntity)
-                            .toList();
-
-                    // 5. Builder를 사용해 모든 정보를 담아 DTO를 생성합니다.
-                    return GuideResponseDto.builder()
-                            .id(guide.getId())
-                            .tip(guide.getTip())
-                            .author(MemberDto.fromEntity(guide.getAuthor())) // 이 부분이 id만 가져오는게 아니라 객체 전체 가져오는거라 LazyLoading
-                            .locationName(guide.getLocation() != null ? guide.getLocation().getLocationName() : "")
-                            .media(mediaDto)
-                            .likeCount(guide.getLikeCount())
-                            .build();
-                })
+                .map(GuideMapper::toResponseDto)
                 .toList();
 
         log.info("✅ 최종 반환 GuideDto 수: {}", result.size());

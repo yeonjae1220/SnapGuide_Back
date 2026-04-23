@@ -31,7 +31,8 @@ public class MediaMapper {
 
         return new MediaDto(
                 entity.getMediaName(),
-                entity.getMediaUrl()
+                entity.getMediaUrl(),
+                MediaExifDto.fromEntity(entity)
         );
     }
 
@@ -47,7 +48,8 @@ public class MediaMapper {
 
         MediaDto dto = new MediaDto(
                 entity.getMediaName(),
-                entity.getMediaUrl()
+                entity.getMediaUrl(),
+                MediaExifDto.fromEntity(entity)
         );
         // 추후 필요 시 fileSize, createdAt 등 추가 필드 설정
         return dto;

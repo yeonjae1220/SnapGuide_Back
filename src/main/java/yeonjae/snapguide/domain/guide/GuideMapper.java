@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * LocationMapper 패턴을 따라 일관성 있는 변환 로직 제공
  */
 public class GuideMapper {
+    private static final String PRIVATE_LOCATION_LABEL = "비공개";
 
     /**
      * Guide Entity → GuideResponseDto 변환
@@ -46,7 +47,8 @@ public class GuideMapper {
                 .id(entity.getId())
                 .tip(entity.getTip())
                 .author(authorDto)
-                .locationName(locationName)
+                .locationName(entity.isLocationPublic() ? locationName : PRIVATE_LOCATION_LABEL)
+                .locationPublic(entity.isLocationPublic())
                 .media(mediaDtos)
                 .likeCount(entity.getLikeCount())
                 .userHasLiked(userHasLiked)

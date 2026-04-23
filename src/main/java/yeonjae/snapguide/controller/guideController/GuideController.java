@@ -42,7 +42,8 @@ public class GuideController {
     public ResponseEntity<Long> createGuideWithMedia(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
-            @RequestParam(value = "tip", required = false) String tip)
+            @RequestParam(value = "tip", required = false) String tip,
+            @RequestParam(value = "locationPublic", defaultValue = "true") boolean locationPublic)
             throws IOException {
 
         boolean hasNoFiles = (files == null || files.length == 0);
@@ -58,7 +59,7 @@ public class GuideController {
                 ? List.of()
                 : mediaService.saveAllAndGet(Arrays.asList(files));
 
-        Long guideId = guideService.createGuideWithMedia(member, tip, mediaList);
+        Long guideId = guideService.createGuideWithMedia(member, tip, mediaList, locationPublic);
 
         URI location = URI.create("/guide/api/" + guideId);
         return ResponseEntity.created(location).body(guideId);

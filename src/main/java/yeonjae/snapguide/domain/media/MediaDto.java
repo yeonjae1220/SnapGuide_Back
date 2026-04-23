@@ -14,6 +14,12 @@ import lombok.NoArgsConstructor;
 public class MediaDto {
     private String fileName;
     private String url;
+    private MediaExifDto exif;
+
+    public MediaDto(String fileName, String url) {
+        this.fileName = fileName;
+        this.url = url;
+    }
 
     /**
      * @deprecated MediaMapper.toDto()를 사용하세요

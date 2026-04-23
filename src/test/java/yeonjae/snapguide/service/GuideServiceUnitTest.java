@@ -220,7 +220,7 @@ class GuideServiceUnitTest {
         @DisplayName("미디어 없이 팁만으로 가이드를 생성하면 guideRepository.save가 호출된다")
         void shouldSaveGuideAndCallRepository() {
             // Act
-            guideService.createGuideWithMedia(testMember, "New tip", List.of());
+            guideService.createGuideWithMedia(testMember, "New tip", List.of(), true);
 
             // Assert
             verify(guideRepository).save(argThat(g ->

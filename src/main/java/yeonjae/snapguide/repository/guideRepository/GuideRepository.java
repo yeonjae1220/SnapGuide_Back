@@ -37,7 +37,9 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
      */
     @Query("""
         SELECT DISTINCT g FROM Guide g
-        LEFT JOIN FETCH g.mediaList
+        LEFT JOIN FETCH g.mediaList m
+        LEFT JOIN FETCH m.mediaMetaData md
+        LEFT JOIN FETCH md.cameraModel
         JOIN FETCH g.author
         JOIN FETCH g.location
         WHERE g.location.id IN :locationIds
@@ -48,8 +50,10 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
      * Guide 단건 조회 시 연관 엔티티 함께 조회
      */
     @Query("""
-        SELECT g FROM Guide g
-        LEFT JOIN FETCH g.mediaList
+        SELECT DISTINCT g FROM Guide g
+        LEFT JOIN FETCH g.mediaList m
+        LEFT JOIN FETCH m.mediaMetaData md
+        LEFT JOIN FETCH md.cameraModel
         LEFT JOIN FETCH g.author
         LEFT JOIN FETCH g.location
         WHERE g.id = :id
