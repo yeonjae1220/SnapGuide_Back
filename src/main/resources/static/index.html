@@ -31,15 +31,22 @@
 
       /* ========== Reset ========== */
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html {
+        width: 100%;
+        overflow-x: hidden;
+      }
       body {
         font-family: var(--f);
         background: var(--bg);
         color: var(--text);
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
+        width: 100%;
+        overflow-x: hidden;
       }
       input, textarea, select, button { font-family: var(--f); }
       a { text-decoration: none; }
+      img { max-width: 100%; }
 
       /* ========== Shared ========== */
       .ig-text {
@@ -119,6 +126,7 @@
       }
       .lh-feats { list-style: none; display: flex; flex-direction: column; gap: 28px; }
       .lh-feat { display: flex; align-items: flex-start; gap: 18px; }
+      .lh-feat > div { min-width: 0; }
       .lh-ico {
         width: 48px; height: 48px;
         border-radius: 14px;
@@ -211,6 +219,12 @@
       }
       .form-group input:focus { border-color: #a0a0a0; background: var(--white); }
       .form-group input::placeholder { color: #bbb; }
+      .form-group input,
+      #locationSearchInput,
+      #tip,
+      #radiusSelect {
+        font-size: 16px;
+      }
 
       .btn-primary {
         width: 100%; margin-top: 8px;
@@ -240,6 +254,7 @@
         cursor: pointer;
         display: flex; align-items: center; justify-content: center; gap: 10px;
         transition: var(--t);
+        text-align: center;
       }
       .btn-google:hover { background: #f5f5f5; }
       .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
@@ -267,7 +282,13 @@
         background-clip: text;
         margin-right: 28px; flex-shrink: 0;
       }
-      .nav-tabs { display: flex; align-items: center; flex: 1; gap: 2px; }
+      .nav-tabs {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: 2px;
+        min-width: 0;
+      }
 
       .tab-btn {
         display: flex; align-items: center; gap: 6px;
@@ -279,6 +300,7 @@
         border-radius: 8px;
         transition: var(--t);
         white-space: nowrap;
+        min-width: 0;
       }
       .tab-btn:hover { background: rgba(0,0,0,.04); color: var(--text); }
       .tab-btn.active { background: rgba(0,0,0,.06); color: var(--text); font-weight: 600; }
@@ -287,6 +309,7 @@
         margin-left: auto;
         display: flex; align-items: center; gap: 10px;
         flex-shrink: 0;
+        min-width: 0;
       }
       #nav-user-email { font-size: 13px; color: var(--gray); display: none; }
       #nav-login-btn {
@@ -326,6 +349,7 @@
       #map {
         width: 100%;
         height: 480px;
+        max-height: 60vh;
         background: #e8eaed;
         display: block;
       }
@@ -387,6 +411,8 @@
         border-bottom: 1px solid #f5f5f5;
         transition: var(--t);
         margin: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
       #autocompleteResults div:last-child { border-bottom: none; }
       #autocompleteResults div:hover { background: #f8f9fa; }
@@ -494,6 +520,7 @@
       .guides-header {
         display: flex; align-items: center; justify-content: space-between;
         margin-bottom: 16px;
+        gap: 12px;
       }
       .btn-load {
         padding: 7px 16px;
@@ -580,6 +607,12 @@
         padding-bottom: 28px;
         border-bottom: 1px solid var(--border);
       }
+      .profile-info { min-width: 0; }
+      .profile-info h2,
+      #profileEmail {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
       .profile-avatar {
         width: 80px; height: 80px; border-radius: 50%;
         background: var(--ig);
@@ -611,14 +644,137 @@
         .la { width: 100%; padding: 32px 24px 52px; }
         .lh-logo { font-size: 38px; }
         .lh-tag { font-size: 15px; margin-bottom: 32px; }
+        .btn-google {
+          white-space: normal;
+        }
 
-        .app-nav { padding: 0 14px; }
-        .nav-brand { margin-right: 14px; font-size: 18px; }
-        .tab-btn { padding: 6px 10px; font-size: 12px; }
+        #landing-return-notice {
+          top: 12px;
+          left: 12px;
+          right: 12px;
+          width: auto;
+          flex-wrap: wrap;
+        }
+        .btn-back-map,
+        #landing-notice-msg {
+          max-width: 100%;
+        }
+
+        .app-nav {
+          height: auto;
+          padding: 12px 14px;
+          gap: 10px;
+          align-items: stretch;
+          flex-wrap: wrap;
+        }
+        .nav-brand {
+          margin-right: 0;
+          font-size: 18px;
+        }
+        .nav-tabs {
+          order: 3;
+          width: 100%;
+          gap: 8px;
+        }
+        .tab-btn {
+          flex: 1 1 0;
+          justify-content: center;
+          padding: 9px 8px;
+          font-size: 12px;
+          white-space: normal;
+          word-break: keep-all;
+          text-align: center;
+        }
+        .nav-user-area {
+          margin-left: auto;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .search-float {
+          top: 12px;
+          width: calc(100% - 24px);
+        }
+        .search-strip {
+          padding: 12px 14px;
+          align-items: stretch;
+        }
+        #searchStatus {
+          width: 100%;
+          flex-basis: 100%;
+        }
+        #currentLocationBtn,
+        #radiusSelect {
+          width: 100%;
+          justify-content: center;
+        }
+        #map {
+          height: 52vh;
+          min-height: 320px;
+        }
 
         #guideNear { padding: 14px; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
         #guideWrap { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
         #tab-guide, #tab-profile { padding: 20px 14px; }
+        .upload-card { padding: 18px 14px; }
+        .guides-header {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .btn-load { width: 100%; }
+        .profile-head {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 14px;
+        }
+        .button-group button {
+          min-width: 0;
+          white-space: normal;
+          word-break: keep-all;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .lh {
+          padding: 72px 18px 28px;
+        }
+        .la {
+          padding: 24px 16px 40px;
+        }
+        .lh-feat {
+          gap: 12px;
+        }
+        .lh-ico {
+          width: 42px;
+          height: 42px;
+          font-size: 18px;
+        }
+        .auth-div {
+          gap: 8px;
+        }
+        .auth-tabs {
+          gap: 6px;
+          border-bottom: none;
+        }
+        .auth-tab-btn {
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          margin-bottom: 0;
+        }
+        .auth-tab-btn.active {
+          border-color: var(--text);
+        }
+        .button-group {
+          flex-direction: column;
+        }
+        #guideNear,
+        #guideWrap {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        #map {
+          height: 44vh;
+          min-height: 260px;
+        }
       }
     </style>
   </head>
