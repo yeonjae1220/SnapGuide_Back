@@ -491,6 +491,17 @@
       }
       .file-zone-label { color: var(--gray); font-size: 14px; pointer-events: none; }
       .file-zone-label strong { display: block; color: var(--blue); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+      .file-zone.has-files { border-color: var(--blue); background: rgba(0,149,246,.04); }
+      #imagePreview {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        margin-bottom: 14px;
+      }
+      #imagePreview img {
+        width: 72px; height: 72px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid var(--border);
+      }
 
       #tip {
         width: 100%; margin: 0;
@@ -928,15 +939,16 @@
       <section id="tab-guide" class="tab-section">
         <h2 class="sec-title">가이드 업로드</h2>
         <div class="upload-card">
-          <div class="file-zone">
-            <input type="file" id="imageFile" name="file" multiple />
-            <div class="file-zone-label">
+          <div class="file-zone" id="fileZone">
+            <input type="file" id="imageFile" name="file" multiple onchange="handleFileSelect(this)" />
+            <div class="file-zone-label" id="fileZoneLabel">
               <strong>📷 사진 선택</strong>
               클릭하거나 파일을 드래그하세요
             </div>
           </div>
+          <div id="imagePreview"></div>
           <textarea id="tip" placeholder="여행 팁을 입력하세요... 이 장소에 대한 정보를 공유해보세요!"></textarea>
-          <button class="btn-upload" onclick="upload()">업로드</button>
+          <button class="btn-upload" id="uploadBtn" onclick="upload()">업로드</button>
         </div>
 
         <div class="guides-header">
@@ -1329,7 +1341,8 @@
         predictions.forEach(prediction => {
           const item = document.createElement("div");
           item.textContent = prediction.description;
-          item.onclick = async () => {
+          const selectItem = async (e) => {
+            e.preventDefault();
             document.getElementById("locationSearchInput").value = prediction.description;
             resultsContainer.innerHTML = "";
             const details = await fetchPlaceDetails(prediction.place_id);
@@ -1340,6 +1353,8 @@
               alert("장소의 좌표를 가져오는 데 실패했습니다.");
             }
           };
+          item.addEventListener("touchstart", selectItem, { passive: false });
+          item.addEventListener("click", selectItem);
           resultsContainer.appendChild(item);
         });
       }
@@ -1407,10 +1422,35 @@
       }
 
       // ===================== Guide Functions =====================
+      function handleFileSelect(input) {
+        const files = input.files;
+        const zone = document.getElementById("fileZone");
+        const label = document.getElementById("fileZoneLabel");
+        const preview = document.getElementById("imagePreview");
+        preview.innerHTML = "";
+        if (files.length === 0) {
+          zone.classList.remove("has-files");
+          label.innerHTML = "<strong>📷 사진 선택</strong>클릭하거나 파일을 드래그하세요";
+          return;
+        }
+        zone.classList.add("has-files");
+        label.innerHTML = `<strong>📷 ${files.length}장 선택됨</strong>`;
+        for (const file of files) {
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          preview.appendChild(img);
+        }
+      }
+
       function upload() {
         if (!token) return alert("로그인이 필요합니다.");
         const files = document.getElementById("imageFile").files;
         const tip = document.getElementById("tip").value;
+        if (files.length === 0 && !tip.trim()) return alert("사진 또는 팁을 입력해주세요.");
+        const btn = document.getElementById("uploadBtn");
+        btn.disabled = true;
+        btn.textContent = "업로드 중...";
         const formData = new FormData();
         for (const file of files) formData.append("files", file);
         formData.append("tip", tip);
@@ -1420,8 +1460,17 @@
           body: formData,
         })
           .then(res => { if (!res.ok) throw new Error("업로드 실패"); return res.json(); })
-          .then(() => alert("업로드 성공"))
-          .catch(err => alert(err.message));
+          .then(() => {
+            alert("업로드 성공");
+            document.getElementById("imageFile").value = "";
+            document.getElementById("tip").value = "";
+            handleFileSelect(document.getElementById("imageFile"));
+          })
+          .catch(err => alert(err.message))
+          .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "업로드";
+          });
       }
 
       function toggleLike(guideId, likeBtn, likeCountSpan) {
@@ -1531,12 +1580,12 @@
       }
 
       function deleteGuide(id) {
-        fetch(`${API_BASE_URL}/guide/api/delete/${id}`, {
+        fetch(`${API_BASE_URL}/guide/api/${id}`, {
           method: "DELETE",
           headers: { Authorization: "Bearer " + token },
         })
-          .then(() => { alert("삭제 완료"); loadUserGuides(); })
-          .catch(err => { alert("삭제 실패"); console.error(err); });
+          .then(res => { if (!res.ok) throw new Error("삭제 실패"); alert("삭제 완료"); loadUserGuides(); })
+          .catch(err => { alert(err.message); console.error(err); });
       }
 
       // ===================== PWA: Service Worker Registration =====================
