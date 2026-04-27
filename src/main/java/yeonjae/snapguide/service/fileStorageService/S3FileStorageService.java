@@ -40,45 +40,41 @@ public class S3FileStorageService implements FileStorageService {
 
     /**
      * 원본 파일만 S3에 업로드 (동기 - 빠른 응답용)
-     * 웹용/썸네일은 AsyncFileProcessingService.generateDerivativesAsync()로 비동기 처리
+     * rawBytes를 외부에서 받아 이중 읽기를 방지
      */
     @Override
-    public UploadFileDto uploadOriginalOnly(MultipartFile file) throws IOException {
-        String originalFileName = file.getOriginalFilename();
-        if (originalFileName == null || originalFileName.isEmpty()) {
+    public UploadFileDto uploadOriginalOnly(byte[] rawBytes, String originalFilename) throws IOException {
+        if (originalFilename == null || originalFilename.isEmpty()) {
             throw new IOException("파일 이름이 없습니다.");
         }
 
-        log.info("[Fast Upload] Starting for: {}, Size: {} bytes", originalFileName, file.getSize());
+        log.info("[Fast Upload] Starting for: {}, Size: {} bytes", originalFilename, rawBytes.length);
         long startTime = System.currentTimeMillis();
 
         try {
-            // 1. Tika로 실제 파일 타입 감지
             Tika tika = new Tika();
-            String mimeType = tika.detect(file.getInputStream());
+            String mimeType = tika.detect(rawBytes);
 
-            byte[] fileBytes = file.getBytes();
-            String extension = getExtension(originalFileName);
+            byte[] fileBytes = rawBytes;
+            String extension = getExtension(originalFilename);
 
-            // 2. HEIC/HEIF인 경우 JPG 변환 (원본 저장 전에 필요)
             if ("image/heic".equals(mimeType) || "image/heif".equals(mimeType)) {
                 log.info("[Fast Upload] HEIC detected, converting...");
                 fileBytes = convertHeicToJpg(fileBytes);
                 extension = "jpg";
+                mimeType = "image/jpeg";
             }
 
             String baseFileName = UUID.randomUUID().toString();
             String originalKey = "images/originals/" + baseFileName + "." + extension;
 
-            // 3. 원본 파일만 S3 업로드 (1회만!)
-            ObjectMetadata metadata = createMetadata(file.getContentType(), fileBytes.length);
+            ObjectMetadata metadata = createMetadata(mimeType, fileBytes.length);
             amazonS3.putObject(bucketName, originalKey, new ByteArrayInputStream(fileBytes), metadata);
             String originalUrl = amazonS3.getUrl(bucketName, originalKey).toString();
 
             long elapsed = System.currentTimeMillis() - startTime;
             log.info("[Fast Upload] Completed in {}ms. Original: {}", elapsed, originalKey);
 
-            // 4. 원본 정보만 반환 (웹용/썸네일은 비동기로 나중에)
             return UploadFileDto.builder()
                     .originalFileBytes(fileBytes)
                     .originalDir(originalUrl)
@@ -89,8 +85,8 @@ public class S3FileStorageService implements FileStorageService {
                     .build();
 
         } catch (Exception e) {
-            log.error("[Fast Upload] Failed for: {}", originalFileName, e);
-            throw new IOException("파일 업로드 중 오류가 발생했습니다: " + originalFileName, e);
+            log.error("[Fast Upload] Failed for: {}", originalFilename, e);
+            throw new IOException("파일 업로드 중 오류가 발생했습니다: " + originalFilename, e);
         }
     }
 

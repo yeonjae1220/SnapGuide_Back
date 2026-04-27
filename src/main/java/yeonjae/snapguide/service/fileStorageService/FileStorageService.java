@@ -16,10 +16,12 @@ public interface FileStorageService {
     /**
      * 원본 파일만 업로드 (동기 - 빠른 응답)
      * 썸네일/웹용 파일은 generateDerivativesAsync()로 비동기 생성
+     * rawBytes를 외부에서 전달받아 이중 읽기를 방지
      */
+    UploadFileDto uploadOriginalOnly(byte[] rawBytes, String originalFilename) throws IOException;
+
     default UploadFileDto uploadOriginalOnly(MultipartFile file) throws IOException {
-        // 기본 구현은 기존 uploadFile() 호출 (하위 호환성)
-        return uploadFile(file);
+        return uploadOriginalOnly(file.getBytes(), file.getOriginalFilename());
     }
 
     /**

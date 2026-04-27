@@ -47,20 +47,18 @@ public class LocalFileStorageService implements FileStorageService {
 
     /**
      * 원본 파일만 로컬에 저장 (동기 - 빠른 응답용)
-     * 썸네일은 AsyncFileProcessingService.generateDerivativesAsync()로 비동기 처리
+     * rawBytes를 외부에서 받아 이중 읽기를 방지
      */
     @Override
-    public UploadFileDto uploadOriginalOnly(MultipartFile multipartFile) throws IOException {
-        log.info("[Fast Upload-Local] Starting for: {}", multipartFile.getOriginalFilename());
+    public UploadFileDto uploadOriginalOnly(byte[] rawBytes, String originalFilename) throws IOException {
+        log.info("[Fast Upload-Local] Starting for: {}", originalFilename);
         long startTime = System.currentTimeMillis();
 
         String baseFileName = UUID.randomUUID().toString();
         String originalFileNameWithExt = baseFileName + ".jpg";
 
-        // 1. 이미지를 JPG로 변환
-        byte[] originalJpgBytes = convertToJpg(multipartFile);
+        byte[] originalJpgBytes = convertToJpg(rawBytes);
 
-        // 2. 원본만 저장 (썸네일은 비동기로 나중에)
         Path originalPath = uploadOriginalDir.resolve(originalFileNameWithExt);
         Files.createDirectories(originalPath.getParent());
         Files.copy(new ByteArrayInputStream(originalJpgBytes), originalPath, StandardCopyOption.REPLACE_EXISTING);
@@ -73,7 +71,7 @@ public class LocalFileStorageService implements FileStorageService {
                 .originalDir(originalPath.toString())
                 .originalKey(originalPath.toString())
                 .baseFileName(baseFileName)
-                .thumbnailDir(null)  // 아직 생성 안 됨
+                .thumbnailDir(null)
                 .build();
     }
 
@@ -87,8 +85,7 @@ public class LocalFileStorageService implements FileStorageService {
         String originalFileNameWithExt = baseFileName + ".jpg";
         String thumbnailFileNameWithExt = baseFileName + "_thumb.jpg";
 
-        // 1. 이미지를 메모리에서 고화질 JPG 바이트 배열로 변환
-        byte[] originalJpgBytes = convertToJpg(multipartFile);
+        byte[] originalJpgBytes = convertToJpg(multipartFile.getBytes());
 
         // 2. 변환된 JPG 바이트 배열을 사용해 썸네일 생성
         ByteArrayOutputStream thumbnailOutputStream = new ByteArrayOutputStream();
@@ -129,23 +126,12 @@ public class LocalFileStorageService implements FileStorageService {
         return fileName.substring(lastDot + 1).toLowerCase();
     }
 
-    private byte[] convertToJpg(MultipartFile multipartFile) throws IOException {
-        // 1. 스트림을 딱 한 번만 읽어 byte[] 배열에 저장합니다. (매우 중요)
-        byte[] imageBytes = multipartFile.getBytes();
-
-        // 2. Tika를 사용해 실제 파일 형식을 감지합니다.
+    private byte[] convertToJpg(byte[] imageBytes) throws IOException {
         String mimeType = FileTypeDetector.detectMimeType(new ByteArrayInputStream(imageBytes));
-
-        // 3. 파일 확장자가 아닌, MIME 타입을 기준으로 분기합니다.
-        // HEIC/HEIF 형식은 "image/heic", "image/heif" MIME 타입을 가집니다.
         if ("image/heic".equalsIgnoreCase(mimeType) || "image/heif".equalsIgnoreCase(mimeType)) {
-            // heicConverter는 새로운 스트림을 받아 처리합니다.
             return heicConverter.convertToJpgBytes(new ByteArrayInputStream(imageBytes));
         }
-
-        // 4. 그 외 이미지(JPG, PNG 등)는 Thumbnails를 이용해 JPG로 통일합니다.
         ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream();
-        // Thumbnails도 새로운 스트림을 받아 처리합니다.
         Thumbnails.of(new ByteArrayInputStream(imageBytes))
                 .scale(1.0)
                 .outputFormat("jpg")

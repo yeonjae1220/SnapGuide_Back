@@ -43,7 +43,9 @@ public class GuideController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "tip", required = false) String tip,
-            @RequestParam(value = "locationPublic", defaultValue = "true") boolean locationPublic)
+            @RequestParam(value = "locationPublic", defaultValue = "true") boolean locationPublic,
+            @RequestParam(value = "latitude", required = false) Double latitude,
+            @RequestParam(value = "longitude", required = false) Double longitude)
             throws IOException {
 
         boolean hasNoFiles = (files == null || files.length == 0);
@@ -52,12 +54,17 @@ public class GuideController {
         if (hasNoFiles && hasNoTip) {
             throw new IllegalArgumentException("사진 또는 팁 중 하나는 필수입니다.");
         }
+        if (latitude != null && longitude != null) {
+            if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                throw new IllegalArgumentException("유효하지 않은 좌표값입니다.");
+            }
+        }
 
         Member member = memberService.getCurrentMember(userDetails.getUsername());
 
         List<Media> mediaList = hasNoFiles
                 ? List.of()
-                : mediaService.saveAllAndGet(Arrays.asList(files));
+                : mediaService.saveAllAndGet(Arrays.asList(files), latitude, longitude);
 
         Long guideId = guideService.createGuideWithMedia(member, tip, mediaList, locationPublic);
 

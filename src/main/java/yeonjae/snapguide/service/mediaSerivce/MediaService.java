@@ -45,18 +45,38 @@ public class MediaService {
      * @return 저장된 Media 엔티티 리스트 (Guide 연결용)
      */
     public List<Media> saveAllAndGet(List<MultipartFile> files) throws IOException {
+        return saveAllAndGet(files, null, null);
+    }
+
+    public List<Media> saveAllAndGet(List<MultipartFile> files, Double fallbackLat, Double fallbackLng) throws IOException {
         List<Media> savedMediaList = new ArrayList<>();
         List<MediaProcessingTask> asyncTasks = new ArrayList<>();
 
         for (MultipartFile file : files) {
             long startTime = System.currentTimeMillis();
 
-            // 1. 원본만 빠르게 업로드 (동기)
-            UploadFileDto savedFile = fileStorageService.uploadOriginalOnly(file);
+            // Thumbnailator가 JPG 재인코딩 시 GPS EXIF를 제거하므로 변환 전에 먼저 읽어둠
+            // rawBytes를 직접 전달해 uploadOriginalOnly 내부의 이중 읽기를 방지
+            byte[] rawBytes = file.getBytes();
 
-            // 2. 메타데이터 & 위치 정보 추출
-            MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
+            // 1. 원본만 빠르게 업로드 (동기)
+            UploadFileDto savedFile = fileStorageService.uploadOriginalOnly(rawBytes, file.getOriginalFilename());
+
+            // 2. 메타데이터 & 위치 정보 추출 (EXIF GPS 없으면 브라우저 좌표 fallback)
+            MediaMetaData metaData = mediaMetaDataService.extractAndSave(rawBytes);
+            Location location = locationService.extractAndResolveLocation(rawBytes)
+                    .orElseGet(() -> {
+                        if (fallbackLat != null && fallbackLng != null) {
+                            try {
+                                return locationService.saveLocation(fallbackLat, fallbackLng);
+                            } catch (Exception e) {
+                                log.warn("[Upload] Fallback reverse geocoding failed ({}, {}): {}",
+                                        fallbackLat, fallbackLng, e.getMessage());
+                                return null;
+                            }
+                        }
+                        return null;
+                    });
 
             // 3. 임시 URL (원본 파일 기반) - 비동기 처리 완료 후 업데이트됨
             String tempUrl = "/media/files/" + savedFile.getBaseFileName() + ".jpg";
@@ -113,10 +133,11 @@ public class MediaService {
     public List<Long> saveAllSync(List<MultipartFile> files) throws IOException {
         List<Long> ids = new ArrayList<>();
         for (MultipartFile file : files) {
+            byte[] rawBytes = file.getBytes();
             @SuppressWarnings("deprecation")
             UploadFileDto savedFile = fileStorageService.uploadFile(file);
-            MediaMetaData metaData = mediaMetaDataService.extractAndSave(savedFile.getOriginalFileBytes());
-            Location location = locationService.extractAndResolveLocation(savedFile.getOriginalFileBytes()).orElse(null);
+            MediaMetaData metaData = mediaMetaDataService.extractAndSave(rawBytes);
+            Location location = locationService.extractAndResolveLocation(rawBytes).orElse(null);
 
             String webFileName;
             if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {

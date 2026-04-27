@@ -9,14 +9,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -28,15 +26,24 @@ public class NasFileStorageService implements FileStorageService{
     private final Path nasBaseDir = Paths.get("/mnt/nas/snapguide");
 
     @Override
-    public UploadFileDto uploadFile(MultipartFile file) throws IOException {
-        Path targetPath = nasBaseDir.resolve(file.getOriginalFilename());
+    public UploadFileDto uploadOriginalOnly(byte[] rawBytes, String originalFilename) throws IOException {
+        String baseFileName = UUID.randomUUID().toString();
+        Path targetPath = nasBaseDir.resolve(baseFileName + ".jpg");
         Files.createDirectories(targetPath.getParent());
         try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
-            fos.write(file.getBytes());
+            fos.write(rawBytes);
         }
-
         return UploadFileDto.builder()
+                .originalFileBytes(rawBytes)
+                .originalKey(targetPath.toString())
+                .baseFileName(baseFileName)
                 .build();
+    }
+
+    @Override
+    @Deprecated
+    public UploadFileDto uploadFile(MultipartFile file) throws IOException {
+        return uploadOriginalOnly(file.getBytes(), file.getOriginalFilename());
     }
 
     @Override
