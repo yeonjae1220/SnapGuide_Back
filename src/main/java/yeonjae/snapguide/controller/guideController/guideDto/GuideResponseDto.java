@@ -22,7 +22,9 @@ public class GuideResponseDto {
     private Long id;
     private String tip;
     private MemberDto author;
-    private String locationName;   // ex) "서울 성동구…"
+    private String locationName;
+    private Double latitude;
+    private Double longitude;
     private boolean locationPublic;
     private List<MediaDto> media;
     private int likeCount;

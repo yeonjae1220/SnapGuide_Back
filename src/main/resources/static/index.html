@@ -1646,8 +1646,14 @@
 
       function formatLocationText(guide) {
         if (guide.locationPublic === false) return "위치 비공개";
-        if (guide.locationName) return `위치 ${guide.locationName}`;
-        return "위치 정보 없음";
+        const name = guide.locationName;
+        const hasCoord = guide.latitude != null && guide.longitude != null;
+        if (!name && !hasCoord) return "위치 정보 없음";
+        const coordStr = hasCoord
+          ? `${guide.latitude.toFixed(4)}°N, ${guide.longitude.toFixed(4)}°E`
+          : "";
+        if (name && coordStr) return `${name} (${coordStr})`;
+        return name || coordStr;
       }
 
       function formatExifSummary(media) {

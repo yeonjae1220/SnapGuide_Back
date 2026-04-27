@@ -1,6 +1,8 @@
 package yeonjae.snapguide.domain.guide;
 
+import org.locationtech.jts.geom.Point;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
+import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.MediaDto;
 import yeonjae.snapguide.domain.media.MediaMapper;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
@@ -38,21 +40,42 @@ public class GuideMapper {
         // Author 변환
         MemberDto authorDto = MemberMapper.toDto(entity.getAuthor());
 
-        // Location 이름 추출 (null-safe)
-        String locationName = entity.getLocation() != null
-                ? entity.getLocation().getLocationName()
-                : null;
+        // Location 이름 + 좌표 추출 (null-safe, 구형 레코드 fallback 포함)
+        String locationName = null;
+        Double latitude = null, longitude = null;
+        if (entity.getLocation() != null) {
+            locationName = deriveLocationName(entity.getLocation());
+            Point coord = entity.getLocation().getCoordinate();
+            if (coord != null) {
+                latitude  = coord.getY();
+                longitude = coord.getX();
+            }
+        }
 
+        boolean pub = entity.isLocationPublic();
         return GuideResponseDto.builder()
                 .id(entity.getId())
                 .tip(entity.getTip())
                 .author(authorDto)
-                .locationName(entity.isLocationPublic() ? locationName : PRIVATE_LOCATION_LABEL)
-                .locationPublic(entity.isLocationPublic())
+                .locationName(pub ? locationName : PRIVATE_LOCATION_LABEL)
+                .latitude(pub ? latitude : null)
+                .longitude(pub ? longitude : null)
+                .locationPublic(pub)
                 .media(mediaDtos)
                 .likeCount(entity.getLikeCount())
                 .userHasLiked(userHasLiked)
                 .build();
+    }
+
+    private static String deriveLocationName(Location loc) {
+        if (loc.getLocationName() != null) return loc.getLocationName();
+        String sub = loc.getSubRegion(), city = loc.getCity(),
+               dis = loc.getDistrict(), reg  = loc.getRegion();
+        if (sub  != null && city != null) return sub  + ", " + city;
+        if (dis  != null && city != null) return dis  + ", " + city;
+        if (city != null && reg  != null) return city + ", " + reg;
+        if (reg  != null) return reg;
+        return loc.getFormattedAddress();
     }
 
     /**
