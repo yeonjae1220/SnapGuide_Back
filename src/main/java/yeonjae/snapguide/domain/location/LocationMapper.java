@@ -29,6 +29,7 @@ public class LocationMapper {
 //                .latitude(dto.getLatitude())
 //                .longitude(dto.getLongitude())
                 .coordinate(dto.getCoordinate())
+                .locationName(dto.getLocationName())
                 .countryCode(dto.getCountryCode())
                 .formattedAddress(dto.getFormattedAddress())
                 .country(dto.getCountry())

@@ -77,6 +77,7 @@ public class ReverseGeocodingService {
     private LocationDto buildDtoFromResult(GeocodingResultDto result, double lat, double lng) {
         LocationDto.LocationDtoBuilder builder = LocationDto.builder()
                 .formattedAddress(result.getFormattedAddress())
+                .locationName(result.getFormattedAddress())
 //                .latitude(lat)
 //                .longitude(lng)
                 .coordinate(GeometryUtils.createPoint(lat, lng))
