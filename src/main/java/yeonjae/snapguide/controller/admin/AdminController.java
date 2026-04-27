@@ -71,4 +71,10 @@ public class AdminController {
         adminService.deleteComment(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/locations/migrate")
+    public ResponseEntity<String> migrateCoordinateOnlyLocations() {
+        int updated = adminService.migrateCoordinateOnlyLocations();
+        return ResponseEntity.ok("Updated " + updated + " location(s)");
+    }
 }

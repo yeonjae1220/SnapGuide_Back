@@ -70,5 +70,13 @@ public interface LocationRepository extends JpaRepository<Location, Long>,  Loca
             @Param("maxLon") double maxLon
     );
 
+    @Query(value = """
+    SELECT * FROM location
+    WHERE coordinate IS NOT NULL
+      AND city IS NULL
+      AND sub_region IS NULL
+      AND formatted_address IS NULL
+    """, nativeQuery = true)
+    List<Location> findCoordinateOnlyLocations();
 
 }

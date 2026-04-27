@@ -25,13 +25,13 @@ public class LocationServiceGeoImpl implements LocationService {
     public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
         Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
         if (coordinate.isEmpty()) {
-            return Optional.empty();  // EXIF 좌표 없음 → 정상 케이스
+            return Optional.empty();
         }
         double[] latLng = coordinate.get();
 
         List<Location> existing = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
         if (!existing.isEmpty()) {
-            return Optional.of(existing.get(0));
+            return Optional.of(resolveOrRefresh(existing.get(0), latLng[0], latLng[1]));
         }
 
         Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
@@ -41,14 +41,10 @@ public class LocationServiceGeoImpl implements LocationService {
         return Optional.of(locationRepository.save(location));
     }
 
-    // 사용자가 지정한 좌표 값을 받아 location 저장, google map api
     public Location saveLocation(Double lat, Double lng) {
-        // Location이 존재할경우 처리
-
         List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(lat, lng);
-
         if (!locationByCoordinate.isEmpty()) {
-            return locationByCoordinate.get(0); // NOTE : 일단 첫번째 데이터를 반환하는 걸로 해뒀는데,, 일단 어색하다.
+            return resolveOrRefresh(locationByCoordinate.get(0), lat, lng);
         }
 
         Location location = reverseGeocodingService.reverseGeocode(lat, lng).block();
@@ -56,6 +52,37 @@ public class LocationServiceGeoImpl implements LocationService {
             throw new IllegalStateException("Reverse geocoding failed for lat=" + lat + ", lng=" + lng);
         }
         return locationRepository.save(location);
+    }
+
+    // 좌표만 있는 캐시 레코드이면 재역지오코딩하여 in-place 업데이트
+    private Location resolveOrRefresh(Location cached, double lat, double lng) {
+        if (hasAddressData(cached)) return cached;
+
+        Location fresh = reverseGeocodingService.reverseGeocode(lat, lng).block();
+        if (fresh == null) return cached;
+
+        Location updated = cached.toBuilder()
+                .locationName(fresh.getLocationName())
+                .formattedAddress(fresh.getFormattedAddress())
+                .country(fresh.getCountry())
+                .countryCode(fresh.getCountryCode())
+                .region(fresh.getRegion())
+                .city(fresh.getCity())
+                .subRegion(fresh.getSubRegion())
+                .district(fresh.getDistrict())
+                .street(fresh.getStreet())
+                .streetNumber(fresh.getStreetNumber())
+                .buildingName(fresh.getBuildingName())
+                .subPremise(fresh.getSubPremise())
+                .postalCode(fresh.getPostalCode())
+                .rawJson(fresh.getRawJson())
+                .provider(fresh.getProvider())
+                .build();
+        return locationRepository.save(updated);
+    }
+
+    private boolean hasAddressData(Location loc) {
+        return loc.getCity() != null || loc.getSubRegion() != null || loc.getFormattedAddress() != null;
     }
 
 }

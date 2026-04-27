@@ -46,13 +46,15 @@ public class ReverseGeocodingService {
 
                         // google geocoding api 사용량 초과 응답을 받을 경우 좌표 정보만 저장
                         String status = response.getStatus();
+                        log.info("[ReverseGeocodingService] API status: {}, results count: {}",
+                                status, response.getResults() == null ? 0 : response.getResults().size());
 
-                        if ("OVER_QUERY_LIMIT".equals(status) || CollectionUtils.isEmpty(response.getResults())) {
-                            log.warn("Geocoding API quota exceeded or no results returned. Storing coordinates only.");
+                        if (!"OK".equals(status) || CollectionUtils.isEmpty(response.getResults())) {
+                            log.warn("[ReverseGeocodingService] API returned non-OK status or empty results: {}. Storing coordinates only.", status);
                             return Location.builder()
                                     .coordinate(GeometryUtils.createPoint(lat, lng))
                                     .build();
-                        }// 주소 없이 좌표만 저장
+                        }
 
 
                         return response.getResults().stream()
