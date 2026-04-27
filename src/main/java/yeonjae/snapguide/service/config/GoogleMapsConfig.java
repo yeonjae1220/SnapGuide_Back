@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "google.maps.api")
 public class GoogleMapsConfig {
     private String key;
+    private String geocodingKey;
 }
 
 /**

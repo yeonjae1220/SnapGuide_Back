@@ -31,7 +31,7 @@ public class ReverseGeocodingService {
                 .uri(uriBuilder -> uriBuilder
                         .path("/maps/api/geocode/json")
                         .queryParam("latlng", lat + "," + lng)
-                        .queryParam("key", googleMapsConfig.getKey())
+                        .queryParam("key", googleMapsConfig.getGeocodingKey())
                         .queryParam("language", "en")
                         .build())
                 .retrieve()
