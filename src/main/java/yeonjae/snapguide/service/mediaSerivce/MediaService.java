@@ -1,6 +1,5 @@
 package yeonjae.snapguide.service.mediaSerivce;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
@@ -24,16 +23,24 @@ import java.util.concurrent.Executor;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 @Slf4j
 public class MediaService {
 
     private final AsyncFileProcessingService asyncFileProcessingService;
     private final MediaRepository mediaRepository;
     private final MediaSingleFileProcessor singleFileProcessor;
-
-    @Qualifier("uploadProcessingExecutor")
     private final Executor uploadProcessingExecutor;
+
+    public MediaService(
+            AsyncFileProcessingService asyncFileProcessingService,
+            MediaRepository mediaRepository,
+            MediaSingleFileProcessor singleFileProcessor,
+            @Qualifier("uploadProcessingExecutor") Executor uploadProcessingExecutor) {
+        this.asyncFileProcessingService = asyncFileProcessingService;
+        this.mediaRepository = mediaRepository;
+        this.singleFileProcessor = singleFileProcessor;
+        this.uploadProcessingExecutor = uploadProcessingExecutor;
+    }
 
     /**
      * 여러 파일을 병렬로 업로드한다.
