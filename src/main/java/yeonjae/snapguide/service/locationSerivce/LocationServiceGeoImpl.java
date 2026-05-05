@@ -12,14 +12,38 @@ import yeonjae.snapguide.service.ReverseGeocodingService;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-@Primary  // LocationService 빈 충돌 시 기본(Geo 버전) 선택
+@Primary
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class LocationServiceGeoImpl implements LocationService {
+
     private final LocationRepository locationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
+    private final LocationSavingService locationSavingService;
+
+    /**
+     * 동일 좌표 중복 API 호출 방지를 위한 in-memory 캐시 (애플리케이션 생명주기 동안 유지).
+     * DB에 이미 저장된 좌표라면 애플리케이션 재시작 후 첫 조회 시 DB에서 로딩되어 캐시에 적재된다.
+     */
+    private final ConcurrentHashMap<String, Location> inMemoryCache = new ConcurrentHashMap<>();
+
+    /**
+     * 좌표별 lock 객체. 동일 좌표에 대한 Google API 중복 호출을 막는다.
+     * synchronized 블록 내에서 LocationSavingService(REQUIRES_NEW)를 호출하므로
+     * lock 해제 전 커밋이 완료되어 다른 스레드에서 DB 조회 가능.
+     */
+    private final ConcurrentHashMap<String, Object> coordinateLocks = new ConcurrentHashMap<>();
+
+    /**
+     * 소수점 4자리 반올림 키 (약 11m 정밀도).
+     * 같은 장소에서 찍은 사진들이 동일 키로 매핑되어 중복 API 호출을 방지한다.
+     */
+    private String coordinateKey(double lat, double lng) {
+        return Math.round(lat * 10000) + "," + Math.round(lng * 10000);
+    }
 
     @Override
     public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
@@ -28,30 +52,51 @@ public class LocationServiceGeoImpl implements LocationService {
             return Optional.empty();
         }
         double[] latLng = coordinate.get();
-
-        List<Location> existing = locationRepository.findLocationByCoordinateNative(latLng[0], latLng[1]);
-        if (!existing.isEmpty()) {
-            return Optional.of(resolveOrRefresh(existing.get(0), latLng[0], latLng[1]));
-        }
-
-        Location location = reverseGeocodingService.reverseGeocode(latLng[0], latLng[1]).block();
-        if (location == null) {
-            throw new IllegalStateException("Reverse geocoding failed for lat=" + latLng[0] + ", lng=" + latLng[1]);
-        }
-        return Optional.of(locationRepository.save(location));
+        return Optional.of(resolveWithDedup(latLng[0], latLng[1]));
     }
 
+    @Override
     public Location saveLocation(Double lat, Double lng) {
-        List<Location> locationByCoordinate = locationRepository.findLocationByCoordinateNative(lat, lng);
-        if (!locationByCoordinate.isEmpty()) {
-            return resolveOrRefresh(locationByCoordinate.get(0), lat, lng);
+        return resolveWithDedup(lat, lng);
+    }
+
+    /**
+     * 중복 제거 위치 조회/저장.
+     * 1차) in-memory 캐시 (lock 없이 빠른 경로)
+     * 2차) per-coordinate lock → double-check → DB 조회 → 없으면 LocationSavingService(REQUIRES_NEW) 위임
+     */
+    private Location resolveWithDedup(double lat, double lng) {
+        String key = coordinateKey(lat, lng);
+
+        // 1차: in-memory 캐시 빠른 경로
+        Location cached = inMemoryCache.get(key);
+        if (cached != null) {
+            return cached;
         }
 
-        Location location = reverseGeocodingService.reverseGeocode(lat, lng).block();
-        if (location == null) {
-            throw new IllegalStateException("Reverse geocoding failed for lat=" + lat + ", lng=" + lng);
+        // 2차: per-coordinate lock 후 double-check
+        Object lock = coordinateLocks.computeIfAbsent(key, k -> new Object());
+        synchronized (lock) {
+            // lock 대기 중 다른 스레드가 처리 완료했을 수 있음
+            cached = inMemoryCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+
+            // DB 조회 (다른 스레드의 REQUIRES_NEW 커밋이 완료되어 있으면 여기서 발견됨)
+            List<Location> existing = locationRepository.findLocationByCoordinateNative(lat, lng);
+            if (!existing.isEmpty()) {
+                Location resolved = resolveOrRefresh(existing.get(0), lat, lng);
+                inMemoryCache.put(key, resolved);
+                return resolved;
+            }
+
+            // Google API 호출 — LocationSavingService(REQUIRES_NEW)가 즉시 커밋
+            // → synchronized 블록 내에서 커밋 완료 → lock 해제 전 다른 스레드에 DB 가시적
+            Location saved = locationSavingService.saveNewLocation(lat, lng);
+            inMemoryCache.put(key, saved);
+            return saved;
         }
-        return locationRepository.save(location);
     }
 
     // 좌표만 있는 캐시 레코드이면 재역지오코딩하여 in-place 업데이트
@@ -84,21 +129,4 @@ public class LocationServiceGeoImpl implements LocationService {
     private boolean hasAddressData(Location loc) {
         return loc.getCity() != null || loc.getSubRegion() != null || loc.getFormattedAddress() != null;
     }
-
 }
-/**
- * TODO
- * 🔎 block()의 위험성 간단 정리
- * 	•	block()은 Reactive 흐름을 막고 동기식으로 대기합니다.
- * 	•	테스트나 초기 개발 단계에서는 괜찮지만, 웹 요청 처리 쓰레드에서 사용할 경우 성능 저하 및 deadlock 위험이 있습니다.
- * 	•	서비스 계층에서는 가능하면 비동기로 .subscribe()나 .flatMap() 등을 사용하는 것이 더 안전합니다.
- *
- * 단, 지금처럼 단발성 위치 조회를 동기 흐름에서 처리하는 것은 제한적으로 block() 사용이 허용됩니다. 하지만 나중에 병렬 업로드나 Reactive 체계를 도입한다면 반드시 제거해야 합니다.
- */
-
-/**
- *     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST) // PERSIST: 새 Location일 경우 자동 저장
- *     @JoinColumn(name = "location_id")
- *     private Location location;
- *     Media Entity에서 위 코드를 통해 저장됨
- */

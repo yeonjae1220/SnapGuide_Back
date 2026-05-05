@@ -5,6 +5,7 @@ import lombok.*;
 import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.domain.media.ProcessingStatus;
 
 @Entity
 @Getter
@@ -41,6 +42,11 @@ public class Media {
     @Column(nullable = false)
     private Long fileSize; // bytes
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ProcessingStatus processingStatus = ProcessingStatus.PENDING;
+
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "member_id", nullable = false)
 //    private Member member;
@@ -68,19 +74,19 @@ public class Media {
     }
 
     /**
-     * 비동기 처리 완료 후 파생 파일 URL 업데이트 (S3용)
+     * 비동기 파생 파일 생성 완료 (S3: webKey+thumbnailKey, Local: thumbnailKey만)
      */
-    public void updateDerivativeUrls(String webKey, String thumbnailKey, String mediaUrl) {
+    public void markProcessingCompleted(String webKey, String thumbnailKey, String mediaUrl) {
         this.webKey = webKey;
         this.thumbnailKey = thumbnailKey;
         this.mediaUrl = mediaUrl;
+        this.processingStatus = ProcessingStatus.COMPLETED;
     }
 
     /**
-     * 비동기 처리 완료 후 썸네일 URL 업데이트 (Local용)
+     * 비동기 파생 파일 생성 실패 — webKey/thumbnailKey는 null 유지
      */
-    public void updateThumbnailUrl(String thumbnailKey, String mediaUrl) {
-        this.thumbnailKey = thumbnailKey;
-        this.mediaUrl = mediaUrl;
+    public void markProcessingFailed() {
+        this.processingStatus = ProcessingStatus.FAILED;
     }
 }

@@ -8,17 +8,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.LikeResponse;
-import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
+import yeonjae.snapguide.service.mediaSerivce.BatchUploadResult;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -28,25 +28,28 @@ import java.util.List;
 @RequestMapping("/guide/api")
 @Slf4j
 public class GuideController {
+
     private final GuideService guideService;
     private final GuideLikeService guideLikeService;
     private final MediaService mediaService;
     private final MemberService memberService;
 
     /**
-     * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리
-     * - 원본만 빠르게 업로드 (동기)
-     * - 썸네일/웹용은 백그라운드에서 비동기 생성
+     * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리.
+     *
+     * 변경 사항:
+     * - 반환 타입: Long → GuideCreateResponseDto (스킵된 파일 정보 포함) ⚠️ Breaking Change
+     * - throws IOException 제거: 파일별 IOException 이 내부에서 catch 되어 skippedFiles 에 기록됨
+     * - 업로드 후 전체 실패 + 팁 없음: 400 에러 반환
      */
     @PostMapping("/upload")
-    public ResponseEntity<Long> createGuideWithMedia(
+    public ResponseEntity<GuideCreateResponseDto> createGuideWithMedia(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "tip", required = false) String tip,
             @RequestParam(value = "locationPublic", defaultValue = "true") boolean locationPublic,
             @RequestParam(value = "latitude", required = false) Double latitude,
-            @RequestParam(value = "longitude", required = false) Double longitude)
-            throws IOException {
+            @RequestParam(value = "longitude", required = false) Double longitude) {
 
         boolean hasNoFiles = (files == null || files.length == 0);
         boolean hasNoTip = (tip == null || tip.trim().isEmpty());
@@ -62,14 +65,33 @@ public class GuideController {
 
         Member member = memberService.getCurrentMember(userDetails.getUsername());
 
-        List<Media> mediaList = hasNoFiles
-                ? List.of()
+        BatchUploadResult uploadResult = hasNoFiles
+                ? new BatchUploadResult(List.of(), List.of())
                 : mediaService.saveAllAndGet(Arrays.asList(files), latitude, longitude);
 
-        Long guideId = guideService.createGuideWithMedia(member, tip, mediaList, locationPublic);
+        // 업로드 후 전체 실패 + 팁 없음: 빈 Guide가 생성되는 것을 방지
+        if (uploadResult.savedMedia().isEmpty() && hasNoTip) {
+            throw new IllegalArgumentException(
+                    "모든 파일 업로드에 실패했습니다. 팁을 작성하거나 다른 파일로 다시 시도해주세요. " +
+                    "실패 파일: " + String.join(", ", uploadResult.skippedFileNames()));
+        }
+
+        Long guideId = guideService.createGuideWithMedia(
+                member, tip, uploadResult.savedMedia(), locationPublic);
+
+        int totalFiles = hasNoFiles ? 0 : files.length;
+        int savedFiles = uploadResult.savedMedia().size();
+        List<String> skippedFiles = uploadResult.skippedFileNames();
+
+        String message = skippedFiles.isEmpty()
+                ? "업로드 성공"
+                : skippedFiles.size() + "개 파일 업로드 실패: " + String.join(", ", skippedFiles);
+
+        GuideCreateResponseDto response = new GuideCreateResponseDto(
+                guideId, totalFiles, savedFiles, skippedFiles, message);
 
         URI location = URI.create("/guide/api/" + guideId);
-        return ResponseEntity.created(location).body(guideId);
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping("/my")

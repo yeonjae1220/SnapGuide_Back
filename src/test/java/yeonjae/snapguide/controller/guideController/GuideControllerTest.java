@@ -11,12 +11,17 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
+import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
 import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
+import yeonjae.snapguide.service.mediaSerivce.BatchUploadResult;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
@@ -63,6 +68,109 @@ class GuideControllerTest {
                 .email("test@example.com")
                 .nickname("testUser")
                 .build();
+    }
+
+    @Nested
+    @DisplayName("POST /guide/api/upload")
+    class CreateGuideWithMedia {
+
+        @Test
+        @DisplayName("파일과 팁 업로드 성공 시 201과 GuideCreateResponseDto를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturn201WithResponseDtoWhenUploadSucceeds() throws Exception {
+            // Arrange
+            MockMultipartFile file = new MockMultipartFile(
+                    "files", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "img".getBytes());
+
+            Media mockMedia = Media.builder()
+                    .id(10L).mediaName("photo.jpg").mediaUrl("/media/files/uuid.jpg")
+                    .fileSize(100L).build();
+
+            BatchUploadResult batchResult = new BatchUploadResult(List.of(mockMedia), List.of());
+
+            given(memberService.getCurrentMember("test@example.com")).willReturn(testMember);
+            given(mediaService.saveAllAndGet(anyList(), isNull(), isNull())).willReturn(batchResult);
+            given(guideService.createGuideWithMedia(any(), any(), anyList(), anyBoolean())).willReturn(42L);
+
+            // Act & Assert
+            mockMvc.perform(multipart("/guide/api/upload")
+                            .file(file)
+                            .param("tip", "멋진 장소")
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.guideId").value(42))
+                    .andExpect(jsonPath("$.totalFiles").value(1))
+                    .andExpect(jsonPath("$.savedFiles").value(1))
+                    .andExpect(jsonPath("$.skippedFiles").isEmpty())
+                    .andExpect(jsonPath("$.message").value("업로드 성공"));
+        }
+
+        @Test
+        @DisplayName("일부 파일 스킵 시 skippedFiles 목록과 함께 201을 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldIncludeSkippedFilesInResponseWhenSomeFilesFail() throws Exception {
+            // Arrange
+            MockMultipartFile good = new MockMultipartFile(
+                    "files", "good.jpg", MediaType.IMAGE_JPEG_VALUE, "ok".getBytes());
+            MockMultipartFile bad = new MockMultipartFile(
+                    "files", "broken.jpg", MediaType.IMAGE_JPEG_VALUE, "bad".getBytes());
+
+            Media mockMedia = Media.builder()
+                    .id(10L).mediaName("good.jpg").mediaUrl("/media/files/uuid.jpg")
+                    .fileSize(100L).build();
+
+            BatchUploadResult batchResult = new BatchUploadResult(
+                    List.of(mockMedia), List.of("broken.jpg"));
+
+            given(memberService.getCurrentMember("test@example.com")).willReturn(testMember);
+            given(mediaService.saveAllAndGet(anyList(), isNull(), isNull())).willReturn(batchResult);
+            given(guideService.createGuideWithMedia(any(), any(), anyList(), anyBoolean())).willReturn(42L);
+
+            // Act & Assert
+            mockMvc.perform(multipart("/guide/api/upload")
+                            .file(good)
+                            .file(bad)
+                            .param("tip", "일부 실패")
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.guideId").value(42))
+                    .andExpect(jsonPath("$.totalFiles").value(2))
+                    .andExpect(jsonPath("$.savedFiles").value(1))
+                    .andExpect(jsonPath("$.skippedFiles[0]").value("broken.jpg"))
+                    .andExpect(jsonPath("$.message").value("1개 파일 업로드 실패: broken.jpg"));
+        }
+
+        @Test
+        @DisplayName("파일도 팁도 없으면 400 Bad Request를 반환한다")
+        @WithMockUser(username = "test@example.com")
+        void shouldReturn400WhenNeitherFilesNorTipProvided() throws Exception {
+            mockMvc.perform(multipart("/guide/api/upload")
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isNotFound()); // IllegalArgumentException → 404 (GlobalExceptionHandler)
+        }
+
+        @Test
+        @DisplayName("파일 없이 팁만 있으면 Guide가 생성된다")
+        @WithMockUser(username = "test@example.com")
+        void shouldCreateGuideWithTipOnlyWhenNoFiles() throws Exception {
+            // Arrange
+            given(memberService.getCurrentMember("test@example.com")).willReturn(testMember);
+            given(guideService.createGuideWithMedia(any(), eq("팁만 작성"), anyList(), anyBoolean())).willReturn(99L);
+
+            // Act & Assert
+            mockMvc.perform(multipart("/guide/api/upload")
+                            .param("tip", "팁만 작성")
+                            .with(csrf()))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.guideId").value(99))
+                    .andExpect(jsonPath("$.totalFiles").value(0))
+                    .andExpect(jsonPath("$.savedFiles").value(0))
+                    .andExpect(jsonPath("$.skippedFiles").isEmpty());
+        }
     }
 
     @Nested

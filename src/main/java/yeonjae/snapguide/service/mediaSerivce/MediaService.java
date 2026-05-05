@@ -2,174 +2,131 @@ package yeonjae.snapguide.service.mediaSerivce;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.media.MediaDto;
 import yeonjae.snapguide.domain.media.MediaMapper;
-import yeonjae.snapguide.domain.mediaMetaData.MediaMetaData;
 import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.service.fileStorageService.AsyncFileProcessingService;
-import yeonjae.snapguide.service.fileStorageService.FileStorageService;
-import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
-import yeonjae.snapguide.service.guideSerivce.GuideService;
-import yeonjae.snapguide.service.locationSerivce.LocationService;
-import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
+import yeonjae.snapguide.service.mediaSerivce.MediaSingleFileProcessor.FileProcessResult;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class MediaService {
-    private final FileStorageService fileStorageService;
+
     private final AsyncFileProcessingService asyncFileProcessingService;
-    private final MediaMetaDataService mediaMetaDataService;
-    private final LocationService locationService;
-    private final GuideService guideService;
     private final MediaRepository mediaRepository;
+    private final MediaSingleFileProcessor singleFileProcessor;
+
+    @Qualifier("uploadProcessingExecutor")
+    private final Executor uploadProcessingExecutor;
 
     /**
-     * 빠른 업로드: 원본만 저장 후 즉시 응답, 썸네일/웹용은 비동기 처리
-     * Guide와 함께 사용 시 내부적으로 Media 엔티티 생성 및 연결
+     * 여러 파일을 병렬로 업로드한다.
      *
-     * @return 저장된 Media 엔티티 리스트 (Guide 연결용)
+     * - 각 파일은 독립된 REQUIRES_NEW 트랜잭션(MediaSingleFileProcessor)으로 처리되므로
+     *   한 파일 실패가 다른 파일 저장에 영향을 주지 않는다.
+     * - 비동기 파생 파일 생성(썸네일/웹용)은 각 파일 처리 완료 즉시 CompletableFuture 내부에서
+     *   dispatch하여 originalBytes 참조를 가능한 빨리 해제한다.
+     * - NOT_SUPPORTED: 클래스 레벨 @Transactional 이 열어 놓는 빈 outer 트랜잭션을 방지.
+     *   실제 DB 작업은 모두 별도 스레드의 REQUIRES_NEW 트랜잭션에서 수행된다.
+     *
+     * @param files       업로드 파일 목록
+     * @param fallbackLat GPS EXIF 없을 때 사용할 위도 (nullable)
+     * @param fallbackLng GPS EXIF 없을 때 사용할 경도 (nullable)
+     * @return 저장 성공 Media 목록 + 스킵된 파일명 목록
      */
-    public List<Media> saveAllAndGet(List<MultipartFile> files) throws IOException {
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BatchUploadResult saveAllAndGet(List<MultipartFile> files, Double fallbackLat, Double fallbackLng) {
+        List<String> skippedFiles = new CopyOnWriteArrayList<>();
+
+        List<CompletableFuture<Optional<Media>>> futures = files.stream()
+                .map(file -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        FileProcessResult result =
+                                singleFileProcessor.processFile(file, fallbackLat, fallbackLng);
+
+                        // 파일 처리 즉시 async dispatch (Problem E: 바이트 참조 조기 해제)
+                        asyncFileProcessingService.generateDerivativesAsync(
+                                result.media().getId(),
+                                result.baseFileName(),
+                                result.originalBytes()
+                        );
+
+                        return Optional.of(result.media());
+                    } catch (Exception e) {
+                        String fileName = (file.getOriginalFilename() != null)
+                                ? file.getOriginalFilename() : "unknown";
+                        log.warn("[Upload] Skipping '{}': {}", fileName, e.getMessage());
+                        skippedFiles.add(fileName);
+                        return Optional.<Media>empty();
+                    }
+                }, uploadProcessingExecutor))
+                .toList();
+
+        // 모든 파일 처리 완료 대기
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        List<Media> savedMedia = futures.stream()
+                .map(CompletableFuture::join)
+                .flatMap(Optional::stream)
+                .toList();
+
+        if (!skippedFiles.isEmpty()) {
+            log.warn("[Upload] Batch complete — saved: {}/{}, skipped: {}",
+                    savedMedia.size(), files.size(), skippedFiles);
+        } else {
+            log.info("[Upload] Batch complete — all {} file(s) saved successfully", savedMedia.size());
+        }
+
+        return new BatchUploadResult(savedMedia, List.copyOf(skippedFiles));
+    }
+
+    /**
+     * 위치 fallback 없이 업로드 (파일명만 반환).
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BatchUploadResult saveAllAndGet(List<MultipartFile> files) {
         return saveAllAndGet(files, null, null);
     }
 
-    public List<Media> saveAllAndGet(List<MultipartFile> files, Double fallbackLat, Double fallbackLng) throws IOException {
-        List<Media> savedMediaList = new ArrayList<>();
-        List<MediaProcessingTask> asyncTasks = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            long startTime = System.currentTimeMillis();
-
-            // Thumbnailator가 JPG 재인코딩 시 GPS EXIF를 제거하므로 변환 전에 먼저 읽어둠
-            // rawBytes를 직접 전달해 uploadOriginalOnly 내부의 이중 읽기를 방지
-            byte[] rawBytes = file.getBytes();
-
-            // 1. 원본만 빠르게 업로드 (동기)
-            UploadFileDto savedFile = fileStorageService.uploadOriginalOnly(rawBytes, file.getOriginalFilename());
-
-            // 2. 메타데이터 & 위치 정보 추출 (EXIF GPS 없으면 브라우저 좌표 fallback)
-            MediaMetaData metaData = mediaMetaDataService.extractAndSave(rawBytes);
-            Location location = locationService.extractAndResolveLocation(rawBytes)
-                    .orElseGet(() -> {
-                        if (fallbackLat != null && fallbackLng != null) {
-                            try {
-                                return locationService.saveLocation(fallbackLat, fallbackLng);
-                            } catch (Exception e) {
-                                log.warn("[Upload] Fallback reverse geocoding failed ({}, {}): {}",
-                                        fallbackLat, fallbackLng, e.getMessage());
-                                return null;
-                            }
-                        }
-                        return null;
-                    });
-
-            // 3. 임시 URL (원본 파일 기반) - 비동기 처리 완료 후 업데이트됨
-            String tempUrl = "/media/files/" + savedFile.getBaseFileName() + ".jpg";
-
-            // 4. Media 엔티티 저장
-            Media media = Media.builder()
-                    .mediaName(file.getOriginalFilename())
-                    .mediaUrl(tempUrl)
-                    .originalKey(savedFile.getOriginalKey())
-                    .webKey(null)        // 비동기 처리 후 업데이트
-                    .thumbnailKey(null)  // 비동기 처리 후 업데이트
-                    .fileSize(file.getSize())
-                    .build();
-
-            media.assignMedia(metaData, location);
-            mediaRepository.save(media);
-            savedMediaList.add(media);
-
-            // 5. 비동기 작업 예약
-            asyncTasks.add(new MediaProcessingTask(
-                    media.getId(),
-                    savedFile.getBaseFileName(),
-                    savedFile.getOriginalFileBytes()
-            ));
-
-            long elapsed = System.currentTimeMillis() - startTime;
-            log.info("[Upload] Media {} saved in {}ms (async derivatives pending)", media.getId(), elapsed);
-        }
-
-        // 6. 비동기 작업 시작
-        for (MediaProcessingTask task : asyncTasks) {
-            asyncFileProcessingService.generateDerivativesAsync(
-                    task.mediaId, task.baseFileName, task.originalBytes
-            );
-        }
-
-        return savedMediaList;
-    }
-
     /**
-     * 빠른 업로드 (ID만 반환) - 테스트/레거시 호환용
+     * 업로드 후 Media ID 목록만 반환 (MediaController 호환용).
      */
-    public List<Long> saveAll(List<MultipartFile> files) throws IOException {
-        return saveAllAndGet(files).stream()
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<Long> saveAll(List<MultipartFile> files) {
+        return saveAllAndGet(files, null, null).savedMedia().stream()
                 .map(Media::getId)
                 .toList();
     }
 
     /**
-     * 동기 업로드 (레거시 호환용)
+     * 동기 업로드 (레거시 호환용) — 내부적으로 비동기 방식으로 처리됨
+     *
      * @deprecated 성능 이슈로 saveAll() 사용 권장
      */
     @Deprecated
-    public List<Long> saveAllSync(List<MultipartFile> files) throws IOException {
-        List<Long> ids = new ArrayList<>();
-        for (MultipartFile file : files) {
-            byte[] rawBytes = file.getBytes();
-            @SuppressWarnings("deprecation")
-            UploadFileDto savedFile = fileStorageService.uploadFile(file);
-            MediaMetaData metaData = mediaMetaDataService.extractAndSave(rawBytes);
-            Location location = locationService.extractAndResolveLocation(rawBytes).orElse(null);
-
-            String webFileName;
-            if (savedFile.getWebDir() != null && !savedFile.getWebDir().isEmpty()) {
-                webFileName = Paths.get(savedFile.getWebDir()).getFileName().toString();
-            } else {
-                webFileName = Paths.get(savedFile.getThumbnailDir()).getFileName().toString();
-            }
-
-            String publicUrl = "/media/files/" + webFileName;
-
-            Media media = Media.builder()
-                    .mediaName(file.getOriginalFilename())
-                    .mediaUrl(publicUrl)
-                    .originalKey(savedFile.getOriginalDir())
-                    .webKey(savedFile.getWebDir())
-                    .thumbnailKey(savedFile.getThumbnailDir())
-                    .fileSize(file.getSize())
-                    .build();
-
-            media.assignMedia(metaData, location);
-            mediaRepository.save(media);
-            ids.add(media.getId());
-        }
-        return ids;
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<Long> saveAllSync(List<MultipartFile> files) {
+        return saveAll(files);
     }
-
-    private record MediaProcessingTask(Long mediaId, String baseFileName, byte[] originalBytes) {}
 
     /**
      * 모든 Media를 DTO로 반환
-     * Entity를 직접 반환하지 않고 DTO로 변환하여 Lazy Loading 이슈 방지
-     * @return MediaDto 리스트
      */
     public List<MediaDto> getAllMedia() {
         return mediaRepository.findAll()
@@ -178,23 +135,15 @@ public class MediaService {
                 .toList();
     }
 
-//    public List<Media> getUserMedias() {
-//
-//    }
-
     public String getPublicUrl(File savedFile) {
-        // 외부 uploads 디렉토리는 루트에 그대로 매핑되므로 `/uuid.jpg` 형태면 됨
         return "/" + savedFile.getName();
     }
 
     /**
-     * 가이드 저장할 때 locationId 값 임시로 저장하기 위한 메서드
+     * Guide 저장 시 대표 locationId 조회 (첫 번째 Media 기준)
      */
     public Long getOneLocationId(List<Long> mediaIds) {
         List<Long> locationIds = mediaRepository.findFirstLocationIdByMediaIds(mediaIds, PageRequest.of(0, 1));
-//        return locationIds.stream().findFirst()
-//                .orElseThrow(() -> new EntityNotFoundException("No media with location found"));
         return locationIds.stream().findFirst().orElse(null);
     }
-
 }
