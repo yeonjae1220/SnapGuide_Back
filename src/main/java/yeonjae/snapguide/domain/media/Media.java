@@ -43,7 +43,7 @@ public class Media {
     private Long fileSize; // bytes
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'PENDING'")
     @Builder.Default
     private ProcessingStatus processingStatus = ProcessingStatus.PENDING;
 
