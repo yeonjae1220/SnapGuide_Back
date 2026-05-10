@@ -1409,7 +1409,7 @@
           try {
             const res = await fetch(`${API_BASE_URL}/api/auth/oauth/token`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
               body: JSON.stringify({ code }),
             });
             if (!res.ok) throw new Error("토큰 교환 실패");
@@ -1427,14 +1427,6 @@
           return;
         }
 
-        const accessToken = urlParams.get("accessToken");
-        if (accessToken) {
-          localStorage.setItem("accessToken", accessToken);
-          token = accessToken;
-          syncUserEmailFromToken(accessToken);
-          window.history.replaceState({}, document.title, window.location.pathname);
-          alert("구글 로그인 성공!");
-        }
       }
 
       // ===================== Auth Functions =====================
@@ -1466,7 +1458,7 @@
         }
         fetch(`${API_BASE_URL}/api/auth/signup`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify({
             email: document.getElementById("email").value,
             password: document.getElementById("password").value,
@@ -1485,7 +1477,7 @@
         const password = document.getElementById("loginPassword").value;
         fetch(`${API_BASE_URL}/api/auth/login`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify({ email, password }),
         })
           .then(res => {
@@ -1508,7 +1500,7 @@
         if (!accessToken) return alert("로그인이 필요합니다.");
         fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest", Authorization: "Bearer " + accessToken },
           body: JSON.stringify({ accessToken }),
           credentials: "include",
         })

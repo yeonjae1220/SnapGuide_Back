@@ -555,7 +555,7 @@
         const accessToken = localStorage.getItem('accessToken');
         fetch('/api/auth/logout', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Authorization': 'Bearer ' + accessToken },
             body: JSON.stringify({ accessToken }),
             credentials: 'include',
         }).finally(() => {

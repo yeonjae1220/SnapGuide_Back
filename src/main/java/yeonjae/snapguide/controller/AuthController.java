@@ -5,7 +5,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +31,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final MemberService memberService;
-    private final RedisTemplate<String, String> redisTemplate;
     private final GoogleOAuthService googleOAuthService;
     private final Environment environment;
 
@@ -57,13 +55,14 @@ public class AuthController {
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String cookieRefreshToken,
             @RequestBody Map<String, String> body,
             HttpServletResponse response) {
+        if (cookieRefreshToken == null || cookieRefreshToken.isBlank()) {
+            return ResponseEntity.status(401).body(Map.of("message", "Refresh token is missing"));
+        }
         TokenRequestDto dto = new TokenRequestDto();
         dto.setAccessToken(body.get("accessToken"));
         dto.setRefreshToken(cookieRefreshToken);
         JwtToken token = authService.reissue(dto);
-        if (token.getRefreshToken() != null) {
-            addRefreshCookie(response, token.getRefreshToken());
-        }
+        addRefreshCookie(response, token.getRefreshToken() != null ? token.getRefreshToken() : cookieRefreshToken);
         return ResponseEntity.ok(Map.of(
                 "grantType", token.getGrantType(),
                 "accessToken", token.getAccessToken(),
@@ -139,7 +138,7 @@ public class AuthController {
     private void addRefreshCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(isProd())
+                .secure(isSecureCookieRequired())
                 .sameSite("Lax")
                 .maxAge(REFRESH_COOKIE_MAX_AGE)
                 .path("/api/auth")
@@ -150,7 +149,7 @@ public class AuthController {
     private void clearRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(isProd())
+                .secure(isSecureCookieRequired())
                 .sameSite("Lax")
                 .maxAge(0)
                 .path("/api/auth")
@@ -158,8 +157,8 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
-    private boolean isProd() {
+    private boolean isSecureCookieRequired() {
         return Arrays.stream(environment.getActiveProfiles())
-                .anyMatch(p -> p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"));
+                .noneMatch(p -> p.equalsIgnoreCase("local") || p.equalsIgnoreCase("test"));
     }
 }

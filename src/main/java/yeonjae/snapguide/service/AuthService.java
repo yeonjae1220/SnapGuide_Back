@@ -163,12 +163,13 @@ public class AuthService {
     public String logout(TokenRequestDto tokenRequestDto) {
         String accessToken = tokenRequestDto.getAccessToken();
 
-        if (!jwtTokenProvider.validateToken(accessToken)) {
+        Claims claims;
+        try {
+            claims = jwtTokenProvider.parseExpiredToken(accessToken);
+        } catch (Exception e) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
-
-        Authentication authentication = jwtTokenProvider.getAuthentication(accessToken);
-        String email = authentication.getName();
+        String email = claims.getSubject();
 
         // 1. AccessToken 블랙리스트 등록 (만료 시각까지 TTL 설정)
         long accessTokenExpiration = jwtTokenProvider.getExpiration(accessToken);
