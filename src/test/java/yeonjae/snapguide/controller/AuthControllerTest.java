@@ -23,6 +23,7 @@ import yeonjae.snapguide.service.AuthService;
 import yeonjae.snapguide.service.GoogleOAuthService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
+import jakarta.servlet.http.Cookie;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -121,7 +122,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.grantType").value("Bearer"))
                 .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .andExpect(jsonPath("$.refreshToken").doesNotExist());
 
         verify(authService, times(1)).login(any(MemberRequestDto.class));
     }
@@ -130,28 +131,27 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/reissue - 토큰 재발급 성공")
     void reissue_Success() throws Exception {
         // given
-        TokenRequestDto tokenRequest = new TokenRequestDto();
-        tokenRequest.setAccessToken("expired-access-token");
-        tokenRequest.setRefreshToken("valid-refresh-token");
-
         JwtToken newToken = JwtToken.builder()
                 .grantType("Bearer")
                 .accessToken("new-access-token")
-                .refreshToken("new-refresh-token")
+                .refreshToken(null)
                 .build();
 
         given(authService.reissue(any(TokenRequestDto.class)))
                 .willReturn(newToken);
 
+        Map<String, String> body = Map.of("accessToken", "expired-access-token");
+
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
+                        .cookie(new Cookie("refresh_token", "valid-refresh-token"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenRequest)))
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("new-access-token"))
-                .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"));
+                .andExpect(jsonPath("$.refreshToken").doesNotExist());
 
         verify(authService, times(1)).reissue(any(TokenRequestDto.class));
     }
@@ -160,20 +160,17 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/logout - 로그아웃 성공")
     void logout_Success() throws Exception {
         // given
-        TokenRequestDto tokenRequest = new TokenRequestDto();
-        tokenRequest.setAccessToken("valid-access-token");
-        tokenRequest.setRefreshToken("valid-refresh-token");
-
-        // AuthService.logout()은 void가 아닌 String(email)을 반환하지만,
-        // logout 엔드포인트는 반환값을 사용하지 않으므로 doNothing() 대신 아무 값이나 반환하도록 설정
         given(authService.logout(any(TokenRequestDto.class)))
                 .willReturn("test@example.com");
+
+        Map<String, String> body = Map.of("accessToken", "valid-access-token");
 
         // when & then
         mockMvc.perform(post("/api/auth/logout")
                         .with(csrf())
+                        .cookie(new Cookie("refresh_token", "valid-refresh-token"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenRequest)))
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string("로그아웃 되었습니다."));
@@ -185,21 +182,20 @@ class AuthControllerTest {
     @DisplayName("DELETE /api/auth/delete - 회원탈퇴 성공")
     void deleteMember_Success() throws Exception {
         // given
-        TokenRequestDto tokenRequest = new TokenRequestDto();
-        tokenRequest.setAccessToken("valid-access-token");
-        tokenRequest.setRefreshToken("valid-refresh-token");
-
         String email = "test@example.com";
         given(authService.logout(any(TokenRequestDto.class)))
                 .willReturn(email);
 
         doNothing().when(memberService).deleteMember(email);
 
+        Map<String, String> body = Map.of("accessToken", "valid-access-token");
+
         // when & then
         mockMvc.perform(delete("/api/auth/delete")
                         .with(csrf())
+                        .cookie(new Cookie("refresh_token", "valid-refresh-token"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenRequest)))
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string("탈퇴 처리 되었습니다."));
@@ -238,7 +234,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.grantType").value("Bearer"))
                 .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .andExpect(jsonPath("$.refreshToken").doesNotExist());
 
         verify(googleOAuthService, times(1)).exchangeCodeForToken("google-auth-code-12345");
     }
@@ -395,20 +391,19 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/reissue - 유효하지 않은 토큰으로 재발급 실패")
     void reissue_InvalidToken_ThrowsException() throws Exception {
         // given
-        TokenRequestDto tokenRequest = new TokenRequestDto();
-        tokenRequest.setAccessToken("invalid-access-token");
-        tokenRequest.setRefreshToken("invalid-refresh-token");
-
         given(authService.reissue(any(TokenRequestDto.class)))
                 .willThrow(new yeonjae.snapguide.exception.CustomException(
                         yeonjae.snapguide.exception.ErrorCode.INVALID_TOKEN
                 ));
 
+        Map<String, String> body = Map.of("accessToken", "invalid-access-token");
+
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
+                        .cookie(new Cookie("refresh_token", "invalid-refresh-token"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenRequest)))
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
@@ -420,20 +415,19 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/reissue - 만료된 리프레시 토큰으로 재발급 실패")
     void reissue_ExpiredRefreshToken_ThrowsException() throws Exception {
         // given
-        TokenRequestDto tokenRequest = new TokenRequestDto();
-        tokenRequest.setAccessToken("expired-access-token");
-        tokenRequest.setRefreshToken("expired-refresh-token");
-
         given(authService.reissue(any(TokenRequestDto.class)))
                 .willThrow(new yeonjae.snapguide.exception.CustomException(
                         yeonjae.snapguide.exception.ErrorCode.REFRESH_TOKEN_EXPIRED
                 ));
 
+        Map<String, String> body = Map.of("accessToken", "expired-access-token");
+
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
+                        .cookie(new Cookie("refresh_token", "expired-refresh-token"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenRequest)))
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Refresh Token이 만료되었습니다."));

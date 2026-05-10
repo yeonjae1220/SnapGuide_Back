@@ -1360,7 +1360,6 @@
           const valid = await validateToken();
           if (!valid) {
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
             localStorage.removeItem("userEmail");
           }
         }
@@ -1416,7 +1415,6 @@
             if (!res.ok) throw new Error("토큰 교환 실패");
             const data = await res.json();
             localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
             token = data.accessToken;
             syncUserEmailFromToken(data.accessToken);
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -1430,10 +1428,8 @@
         }
 
         const accessToken = urlParams.get("accessToken");
-        const refreshToken = urlParams.get("refreshToken");
-        if (accessToken && refreshToken) {
+        if (accessToken) {
           localStorage.setItem("accessToken", accessToken);
-          localStorage.setItem("refreshToken", refreshToken);
           token = accessToken;
           syncUserEmailFromToken(accessToken);
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -1498,7 +1494,6 @@
           })
           .then(data => {
             localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
             localStorage.setItem("userEmail", email);
             token = data.accessToken;
             showMainView();
@@ -1510,17 +1505,16 @@
 
       function logout() {
         const accessToken = localStorage.getItem("accessToken");
-        const refreshToken = localStorage.getItem("refreshToken");
         if (!accessToken) return alert("로그인이 필요합니다.");
         fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
-          body: JSON.stringify({ accessToken, refreshToken }),
+          body: JSON.stringify({ accessToken }),
+          credentials: "include",
         })
           .then(res => {
             if (!res.ok) throw new Error("로그아웃 실패");
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
             localStorage.removeItem("userEmail");
             token = null;
             alert("로그아웃 되었습니다.");
@@ -1544,7 +1538,6 @@
           .then(res => {
             if (!res.ok) return res.text().then(text => { throw new Error(`회원 탈퇴 실패: ${text || res.status}`); });
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
             localStorage.removeItem("userEmail");
             token = null;
             alert("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");

@@ -9,7 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
 
-@RedisHash(value = "MemberToken", timeToLive = 60 * 60 * 24 * 7) // 리프레시토큰과 expiretime 일치
+@RedisHash(value = "MemberToken", timeToLive = 60 * 60 * 24 * 30) // 30 days
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
