@@ -66,19 +66,17 @@ jobs:
 
   deploy:
     name: Deploy to Lenovo Server
-    runs-on: ubuntu-latest
+    # self-hosted runner가 lenovo에서 직접 실행 — SSH 불필요
+    runs-on: [self-hosted, homelab]
     needs: build-and-push
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.LENOVO_HOST }}
-          port: ${{ secrets.LENOVO_PORT }}
-          username: ${{ secrets.LENOVO_USER }}
-          key: ${{ secrets.LENOVO_SSH_KEY }}
-          script: |
-            # imagePullPolicy: Always 이므로 rollout restart 시 자동으로 latest pull
-            sudo k3s kubectl rollout restart deployment/backend -n snapguide
-            sudo k3s kubectl rollout status deployment/backend -n snapguide --timeout=300s
+      - name: Deploy image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # imagePullPolicy: Always → rollout restart 시 자동으로 latest pull
+          sudo kubectl rollout restart deployment/backend -n snapguide
+          sudo kubectl rollout status deployment/backend -n snapguide --timeout=300s
