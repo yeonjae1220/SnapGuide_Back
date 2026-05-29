@@ -2,8 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -21,19 +20,9 @@ export default function UploadPage() {
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  if (!accessToken) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center">
-        <p className="text-gray-500">{t('nav.login')}</p>
-        <button
-          onClick={() => router.replace('/')}
-          className="ig-bg rounded-xl px-6 py-2 text-sm font-semibold text-white"
-        >
-          {t('nav.login')}
-        </button>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (accessToken === null) router.replace('/')
+  }, [accessToken, router])
 
   const handleSubmit = async () => {
     if (!files.length) return setError(t('upload.fileHint'))
@@ -65,6 +54,8 @@ export default function UploadPage() {
       setLoading(false)
     }
   }
+
+  if (!accessToken) return null
 
   return (
     <div className="mx-auto max-w-lg p-6">

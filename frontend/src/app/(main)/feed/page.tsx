@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic'
 
-
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { api } from '@/lib/api'
@@ -56,14 +55,14 @@ export default function FeedPage() {
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return
     const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat, lng },
+      center: { lat: DEFAULT_LAT, lng: DEFAULT_LNG },
       zoom: 13,
       disableDefaultUI: true,
       zoomControl: true,
     })
     googleMapRef.current = map
-    fetchGuides(lat, lng, radius)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+  }, [fetchGuides])
 
   useEffect(() => {
     if (mapsReady) initMap()

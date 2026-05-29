@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { parseJwtEmail } from '@/lib/jwt'
 
 function InitAuthInner() {
   const { setTokens, accessToken, clearTokens } = useAuthStore()
@@ -21,7 +22,8 @@ function InitAuthInner() {
       api
         .post('/api/auth/oauth/token', { code })
         .then(({ data }) => {
-          setTokens(data.accessToken, data.email)
+          const email = parseJwtEmail(data.accessToken)
+          setTokens(data.accessToken, email ?? undefined)
           router.replace('/feed')
         })
         .catch(() => router.replace('/'))
@@ -32,14 +34,8 @@ function InitAuthInner() {
       api
         .post('/api/auth/reissue', { accessToken: '' })
         .then(({ data }) => {
-          setTokens(data.accessToken)
-          api
-            .get('/api/auth/test')
-            .then((r) => {
-              const email = r.data?.replace('인증된 사용자: ', '') ?? ''
-              setTokens(data.accessToken, email)
-            })
-            .catch(() => {})
+          const email = parseJwtEmail(data.accessToken)
+          setTokens(data.accessToken, email ?? undefined)
         })
         .catch(() => clearTokens())
     }

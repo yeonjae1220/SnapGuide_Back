@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -14,19 +14,9 @@ export default function ProfilePage() {
   const router = useRouter()
   const { accessToken, email, clearTokens } = useAuthStore()
 
-  if (!accessToken) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-gray-500">{t('nav.login')}</p>
-        <button
-          onClick={() => router.replace('/')}
-          className="ig-bg rounded-xl px-6 py-2 text-sm font-semibold text-white"
-        >
-          {t('nav.login')}
-        </button>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (accessToken === null) router.replace('/')
+  }, [accessToken, router])
 
   const handleLogout = async () => {
     try {
@@ -47,6 +37,8 @@ export default function ProfilePage() {
       alert(t('common.error'))
     }
   }
+
+  if (!accessToken) return null
 
   return (
     <div className="mx-auto max-w-sm p-6">
@@ -81,7 +73,6 @@ export default function ProfilePage() {
           </select>
         </div>
 
-        {/* logout */}
         <button
           onClick={handleLogout}
           className="w-full rounded-2xl border border-gray-100 bg-white p-4 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
@@ -89,7 +80,6 @@ export default function ProfilePage() {
           {t('nav.logout')}
         </button>
 
-        {/* delete */}
         <button
           onClick={handleDelete}
           className="w-full rounded-2xl border border-red-100 bg-white p-4 text-left text-sm font-medium text-red-500 hover:bg-red-50 transition"

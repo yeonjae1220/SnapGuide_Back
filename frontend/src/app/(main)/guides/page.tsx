@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic'
 
-
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -18,11 +17,12 @@ export default function GuidesPage() {
   const router = useRouter()
   const [guides, setGuides] = useState<Guide[]>([])
   const [selected, setSelected] = useState<Guide | null>(null)
+
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!accessToken) {
-      setLoading(false)
+    if (accessToken === null) {
+      router.replace('/')
       return
     }
     api
@@ -30,21 +30,9 @@ export default function GuidesPage() {
       .then(({ data }) => setGuides(data))
       .catch(() => setGuides([]))
       .finally(() => setLoading(false))
-  }, [accessToken])
+  }, [accessToken, router])
 
-  if (!accessToken) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-gray-500">{t('nav.login')}</p>
-        <button
-          onClick={() => router.replace('/')}
-          className="ig-bg rounded-xl px-6 py-2 text-sm font-semibold text-white"
-        >
-          {t('nav.login')}
-        </button>
-      </div>
-    )
-  }
+  if (!accessToken) return null
 
   return (
     <div className="p-4">

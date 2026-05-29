@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useI18n } from '@/i18n/I18nProvider'
 import { SUPPORTED_UI_LANGUAGES } from '@/i18n/messages'
+import { parseJwtEmail } from '@/lib/jwt'
 
 export function AuthPanel() {
   const { t, language, setLanguage } = useI18n()
@@ -31,7 +32,7 @@ export function AuthPanel() {
     setLoading(true)
     try {
       const { data } = await api.post('/api/auth/login', { email, password })
-      setTokens(data.accessToken, email)
+      setTokens(data.accessToken, parseJwtEmail(data.accessToken) ?? email)
       router.replace('/feed')
     } catch {
       setError(t('common.error'))

@@ -39,35 +39,47 @@ type Props = {
 
 export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
   const { t } = useI18n()
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const { accessToken, email } = useAuthStore()
   const [guide, setGuide] = useState(initial)
+  const [actionError, setActionError] = useState('')
+
+  const isOwner = !!accessToken && !!guide.author?.email && guide.author.email === email
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!accessToken) return alert(t('guide.likeLoginRequired'))
+    setActionError('')
     try {
       const { data } = await api.post(`/guide/api/like/${guide.id}`)
       setGuide((g) => ({ ...g, userHasLiked: data.liked, likeCount: data.likeCount }))
-    } catch {}
+    } catch {
+      setActionError(t('common.error'))
+    }
   }
 
   const handleEdit = async (e: React.MouseEvent) => {
     e.stopPropagation()
     const newTip = prompt(t('guide.editPrompt'), guide.tip)
     if (!newTip) return
+    setActionError('')
     try {
       await api.put(`/guide/api/${guide.id}`, { tip: newTip })
       setGuide((g) => ({ ...g, tip: newTip }))
-    } catch {}
+    } catch {
+      setActionError(t('common.error'))
+    }
   }
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm(t('guide.deleteConfirm'))) return
+    setActionError('')
     try {
       await api.delete(`/guide/api/${guide.id}`)
       onDeleted?.(guide.id)
-    } catch {}
+    } catch {
+      setActionError(t('common.error'))
+    }
   }
 
   const firstImg = guide.media?.[0]?.url
@@ -102,6 +114,9 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
         {guide.locationPublic === false && (
           <p className="mb-2 text-xs text-gray-400">{t('guide.locationPrivate')}</p>
         )}
+        {actionError && (
+          <p className="mb-1 text-xs text-red-500">{actionError}</p>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
             {t('guide.views')} {guide.viewCount ?? 0}
@@ -114,7 +129,7 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
               {guide.userHasLiked ? '❤️' : '🤍'}
               <span className="text-xs text-gray-500">{guide.likeCount ?? 0}</span>
             </button>
-            {accessToken && (
+            {isOwner && (
               <>
                 <button
                   onClick={handleEdit}

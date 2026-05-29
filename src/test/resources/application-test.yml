@@ -73,5 +73,5 @@ cloud:
 pwa:
   vapid:
     public-key: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U
-    private-key: test-vapid-private-key-placeholder
+    private-key: 3T1DcXIAWWdFkLFxkHfmJXVvnLJQa3vfq1k5VBcX1mo=
     subject: mailto:test@example.com
