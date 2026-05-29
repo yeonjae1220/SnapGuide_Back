@@ -5,6 +5,7 @@ import org.apache.catalina.connector.Connector;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -224,17 +225,20 @@ public class SecurityConfig {
         final RequestMatcher matcher =
                 new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
 
-        final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, matcher, tokenBlacklistService);
+        return new JwtAuthenticationFilter(jwtTokenProvider, matcher, tokenBlacklistService);
+    }
 
-        // 선택: 인증 실패 시 동작 처리
-//        filter.setAuthenticationFailureHandler(
-//                new AuthenticationEntryPointFailureHandler(jwtAuthenticationEntryPoint)
-//        );
-
-        // 선택: 별도 ProviderManager가 필요할 경우
-        // filter.setAuthenticationManager(new ProviderManager(authenticationProvider));
-
-        return filter;
+    /**
+     * JwtAuthenticationFilter는 @Bean이므로 Spring Boot가 서블릿 필터로 자동 등록한다.
+     * 자동 등록을 막아 Security FilterChain 안에서만 동작하도록 한다.
+     * 이렇게 하지 않으면 /admin/** 요청에도 JWT 필터가 먼저 실행되어 admin 체인이 무력화된다.
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> reg = new FilterRegistrationBean<>(filter);
+        reg.setEnabled(false);
+        return reg;
     }
 
     // HTTPS 커넥터 설정 - 로컬 개발 환경에서는 비활성화
