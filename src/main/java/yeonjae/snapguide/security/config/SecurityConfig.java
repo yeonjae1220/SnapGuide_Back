@@ -93,7 +93,49 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+    /**
+     * Admin 전용 Security chain (세션 기반).
+     * /admin/** 경로만 담당하며 formLogin + httpOnly 세션 쿠키로 인증한다.
+     * JWT 필터를 걸지 않아 accessToken XSS 탈취 위협과 완전히 분리된다.
+     */
     @Bean
+    @org.springframework.core.annotation.Order(1)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/admin/**")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/login").permitAll()
+                        .anyRequest().hasAuthority("ADMIN")
+                )
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .defaultSuccessUrl("/admin/dashboard", true)
+                        .failureUrl("/admin/login?error")
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/admin/logout")
+                        .logoutSuccessUrl("/admin/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1)
+                )
+                .csrf(csrf -> {}) // CSRF 활성화 (Thymeleaf가 토큰 자동 삽입)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"))
+                        .frameOptions(f -> f.deny())
+                )
+                .build();
+    }
+
+    @Bean
+    @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 // 조건 별 요청 허용 or 제한 설정

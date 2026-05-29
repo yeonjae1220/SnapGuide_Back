@@ -19,10 +19,54 @@ spec:
     - host: snapguide.mungji.com
       http:
         paths:
-          - path: /
+          # Spring Boot: API, OAuth, Admin, 정적 에셋
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: backend
                 port:
                   number: 8080
+          - path: /guide/api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /login
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          # Next.js: 그 외 모든 경로
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000

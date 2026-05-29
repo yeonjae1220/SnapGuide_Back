@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapGuide Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e8eaf0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2e3350;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .logo { font-size: 20px; font-weight: 700; color: #6c63ff; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #9ba3c0; margin-bottom: 32px; }
+    label { display: block; font-size: 12px; color: #9ba3c0; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      background: #22263a;
+      border: 1px solid #2e3350;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #e8eaf0;
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #6c63ff; }
+    button {
+      width: 100%;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #5a52d5; }
+    .error {
+      background: rgba(224, 82, 82, 0.15);
+      border: 1px solid rgba(224, 82, 82, 0.4);
+      border-radius: 10px;
+      color: #e05252;
+      font-size: 13px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">SnapGuide</div>
+  <div class="subtitle">관리자 로그인</div>
+
+  <div th:if="${param.error}" class="error">
+    이메일 또는 비밀번호가 올바르지 않습니다.
+  </div>
+  <div th:if="${param.logout}" class="error" style="color:#4caf7d; background: rgba(76,175,125,.12); border-color: rgba(76,175,125,.3);">
+    로그아웃되었습니다.
+  </div>
+
+  <form th:action="@{/admin/login}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <label for="username">이메일</label>
+    <input id="username" type="email" name="username" autocomplete="username" required/>
+    <label for="password">비밀번호</label>
+    <input id="password" type="password" name="password" autocomplete="current-password" required/>
+    <button type="submit">로그인</button>
+  </form>
+</div>
+</body>
+</html>

@@ -11,20 +11,16 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/yeonjae1220/snapguide_back
+  BACKEND_IMAGE: ghcr.io/yeonjae1220/snapguide_back
+  FRONTEND_IMAGE: ghcr.io/yeonjae1220/snapguide_front
 
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image
+  # ─── PR / push 모두 실행 ───────────────────────────────────
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    permissions:
-      contents: read
-      packages: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -36,8 +32,39 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build JAR (skip tests)
-        run: ./gradlew bootJar -x test --no-daemon
+      - name: Run Java tests
+        run: ./gradlew test --no-daemon
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend type check
+        working-directory: frontend
+        run: npm run typecheck
+
+  # ─── push / dispatch 만 실행 ──────────────────────────────
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -46,37 +73,66 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
+      - name: Extract metadata (backend)
+        id: meta-back
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.BACKEND_IMAGE }}
           tags: |
             type=raw,value=latest
             type=sha,format=short
 
-      - name: Build and push Docker image
+      - name: Extract metadata (frontend)
+        id: meta-front
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-back.outputs.tags }}
+          labels: ${{ steps.meta-back.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-front.outputs.tags }}
+          labels: ${{ steps.meta-front.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── 배포 ────────────────────────────────────────────────
   deploy:
     name: Deploy to Lenovo Server
-    # self-hosted runner가 lenovo에서 직접 실행 — SSH 불필요
     runs-on: [self-hosted, homelab]
     needs: build-and-push
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Deploy image
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Apply k8s manifests
         run: |
-          set -e
-          # imagePullPolicy: Always → rollout restart 시 자동으로 latest pull
+          sudo kubectl apply -f k8s/frontend.yaml -n snapguide
+
+      - name: Deploy backend
+        run: |
           sudo kubectl rollout restart deployment/backend -n snapguide
           sudo kubectl rollout status deployment/backend -n snapguide --timeout=300s
+
+      - name: Deploy frontend
+        run: |
+          sudo kubectl rollout restart deployment/frontend -n snapguide
+          sudo kubectl rollout status deployment/frontend -n snapguide --timeout=300s
