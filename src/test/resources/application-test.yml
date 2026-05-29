@@ -1,0 +1,77 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6370  # 실제 Redis와 겹치지 않는 포트 — EmbeddedRedis 또는 mock으로 대체
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope: profile, email
+
+  myapp:
+    frontend-redirect-url: http://localhost:3000
+    app-redirect-uri: com.yeonjae.snapguide://oauth/callback
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+cors:
+  allowed-origins: http://localhost:3000
+
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cw==
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+google:
+  maps:
+    api:
+      key: test-maps-key
+      geocoding-key: test-geocoding-key
+
+storage:
+  type: local
+  local:
+    base-dir: /tmp/snapguide-test-uploads
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    s3:
+      bucket: test-bucket
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
+pwa:
+  vapid:
+    public-key: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U
+    private-key: test-vapid-private-key-placeholder
+    subject: mailto:test@example.com

@@ -1,14 +1,18 @@
 package yeonjae.snapguide.repository.locationRepository;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.domain.location.Location;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+@Disabled("Requires PostgreSQL+PostGIS or external API — skipped in CI")
+@ActiveProfiles("test")
 @SpringBootTest
 @Transactional
 class LocationRepositoryCustomImplTest {
