@@ -32,6 +32,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import yeonjae.snapguide.security.authentication.AdminUserDetailsService;
+import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2AuthorizationRequestResolver;
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
@@ -72,10 +73,28 @@ public class SecurityConfig {
     private final CustomOauth2UserService customOauth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
+    /**
+     * Admin SSR 전용 AuthenticationManager.
+     * AdminUserDetailsService(ADMIN + password != null 필터) 사용.
+     */
     @Bean
     public AuthenticationManager adminAuthenticationManager() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(adminUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return new ProviderManager(provider);
+    }
+
+    /**
+     * API(JWT) 로그인 전용 AuthenticationManager.
+     * CustomUserDetailsService(일반 회원) 사용.
+     * AuthService에서 직접 주입받아 사용 — AuthenticationManagerBuilder 충돌 방지.
+     */
+    @Bean
+    public AuthenticationManager apiAuthenticationManager(
+            CustomUserDetailsService customUserDetailsService) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(provider);
     }
