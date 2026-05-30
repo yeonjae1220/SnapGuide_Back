@@ -166,6 +166,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                        .sessionFixation().changeSessionId()
                         .maximumSessions(1)
                 )
                 .csrf(Customizer.withDefaults())

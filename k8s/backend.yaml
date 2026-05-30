@@ -119,7 +119,8 @@ spec:
             - name: uploads
               mountPath: /app/uploads
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/readiness
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 15
@@ -142,10 +143,9 @@ metadata:
   name: backend
   namespace: snapguide
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: backend
   ports:
     - port: 8080
       targetPort: 8080
-      nodePort: 30082
