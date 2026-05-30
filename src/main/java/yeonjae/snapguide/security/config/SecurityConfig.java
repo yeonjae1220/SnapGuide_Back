@@ -88,9 +88,10 @@ public class SecurityConfig {
     /**
      * API(JWT) 로그인 전용 AuthenticationManager.
      * CustomUserDetailsService(일반 회원) 사용.
-     * AuthService에서 직접 주입받아 사용 — AuthenticationManagerBuilder 충돌 방지.
+     * @Primary: AuthService가 @Qualifier 없이 주입 가능 (Lombok @RequiredArgsConstructor 호환).
      */
     @Bean
+    @Primary
     public AuthenticationManager apiAuthenticationManager(
             CustomUserDetailsService customUserDetailsService) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();

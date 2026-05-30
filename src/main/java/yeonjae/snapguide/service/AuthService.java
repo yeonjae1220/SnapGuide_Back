@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -46,8 +45,7 @@ import org.springframework.security.core.GrantedAuthority;
 @RequiredArgsConstructor
 
 public class AuthService {
-    @Qualifier("apiAuthenticationManager")
-    private final AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager; // @Primary apiAuthenticationManager 주입
     private final MemberRepository memberRepository;
 //    private final MemberService memberService; // NOTE : 나중에 멤버 서비스 쪽으로 다 옮겨야 하나? 역할이 좀 분산되네
     private final JwtTokenProvider jwtTokenProvider;
