@@ -1,87 +1,49 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{admin/layout :: layout(~{::body}, 'dashboard')}"
       lang="ko">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SnapGuide Admin</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
-      --border: #2e3350; --accent: #6c63ff; --danger: #e05252;
-      --success: #4caf7d; --text: #e8eaf0; --muted: #9ba3c0;
-      --sidebar-w: 220px;
-    }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
-
-    /* sidebar */
-    #sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; }
-    .logo { padding: 20px 18px 16px; font-size: 17px; font-weight: 700; color: var(--accent); border-bottom: 1px solid var(--border); }
-    nav { padding: 12px 0; flex: 1; }
-    nav a { display: flex; align-items: center; gap: 10px; padding: 10px 18px; font-size: 13px; color: var(--muted); text-decoration: none; border-radius: 8px; margin: 2px 10px; transition: background .15s, color .15s; }
-    nav a:hover, nav a.active { background: var(--surface2); color: var(--text); }
-    .sidebar-footer { padding: 16px 18px; border-top: 1px solid var(--border); }
-    .sidebar-footer form button { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); padding: 8px; font-size: 12px; cursor: pointer; transition: color .15s; }
-    .sidebar-footer form button:hover { color: var(--danger); }
-
-    /* main */
-    #main { margin-left: var(--sidebar-w); flex: 1; padding: 32px; }
-    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
-
-    /* stats */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
-    .stat-value { font-size: 28px; font-weight: 700; }
-
-    /* table */
-    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
-    .section-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { padding: 10px 16px; text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--surface2); }
-
-    /* pagination */
-    .pagination { display: flex; gap: 6px; padding: 16px 20px; justify-content: flex-end; }
-    .pagination a, .pagination span { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 12px; color: var(--muted); text-decoration: none; }
-    .pagination a:hover { background: var(--surface2); color: var(--text); }
-    .pagination .current { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-    /* badge */
-    .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-    .badge-admin { background: rgba(108,99,255,.2); color: var(--accent); }
-    .badge-member { background: rgba(76,175,125,.2); color: var(--success); }
-
-    /* buttons */
-    .btn-sm { padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; cursor: pointer; }
-    .btn-sm:hover { color: var(--text); }
-    .btn-danger { border-color: var(--danger); color: var(--danger); }
-    .btn-danger:hover { background: rgba(224,82,82,.1); }
-  </style>
-</head>
 <body>
-<div id="sidebar">
-  <div class="logo">SnapGuide <span>Admin</span></div>
-  <nav>
-    <a th:href="@{/admin/dashboard}" th:classappend="${page == 'dashboard'} ? 'active'">📊 대시보드</a>
-    <a th:href="@{/admin/members}"   th:classappend="${page == 'members'} ? 'active'">👥 회원</a>
-    <a th:href="@{/admin/guides}"    th:classappend="${page == 'guides'} ? 'active'">📖 가이드</a>
-    <a th:href="@{/admin/comments}"  th:classappend="${page == 'comments'} ? 'active'">💬 댓글</a>
-  </nav>
-  <div class="sidebar-footer">
-    <form th:action="@{/admin/logout}" method="post">
-      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-      <button type="submit">로그아웃</button>
-    </form>
+
+<h1 class="page-title">대시보드</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">전체 회원</div>
+    <div class="stat-value" th:text="${stats.totalMembers}">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">전체 가이드</div>
+    <div class="stat-value" th:text="${stats.totalGuides}">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">전체 댓글</div>
+    <div class="stat-value" th:text="${stats.totalComments}">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">전체 위치</div>
+    <div class="stat-value" th:text="${stats.totalLocations}">0</div>
   </div>
 </div>
 
-<div id="main">
-  <div th:replace="~{::section-content}"></div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+  <div class="section" style="padding:20px;">
+    <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;">빠른 이동</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <a th:href="@{/admin/members}"  class="btn" style="justify-content:flex-start;">👥 회원 관리</a>
+      <a th:href="@{/admin/guides}"   class="btn" style="justify-content:flex-start;">📖 가이드 관리</a>
+      <a th:href="@{/admin/comments}" class="btn" style="justify-content:flex-start;">💬 댓글 관리</a>
+    </div>
+  </div>
+  <div class="section" style="padding:20px;">
+    <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;">현황</div>
+    <div style="font-size:13px; line-height:2.2; color:var(--muted);">
+      <div>회원: <span style="color:var(--text); font-weight:600;" th:text="${stats.totalMembers}">0</span>명</div>
+      <div>가이드: <span style="color:var(--text); font-weight:600;" th:text="${stats.totalGuides}">0</span>개</div>
+      <div>댓글: <span style="color:var(--text); font-weight:600;" th:text="${stats.totalComments}">0</span>개</div>
+      <div>위치: <span style="color:var(--text); font-weight:600;" th:text="${stats.totalLocations}">0</span>개</div>
+    </div>
+  </div>
 </div>
+
 </body>
 </html>

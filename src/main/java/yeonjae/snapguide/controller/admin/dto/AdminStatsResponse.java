@@ -8,4 +8,6 @@ import lombok.Getter;
 public class AdminStatsResponse {
     private long totalMembers;
     private long totalGuides;
+    private long totalComments;
+    private long totalLocations;
 }

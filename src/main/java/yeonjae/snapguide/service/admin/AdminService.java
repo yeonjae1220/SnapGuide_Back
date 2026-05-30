@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.admin.dto.*;
 import yeonjae.snapguide.domain.location.Location;
+import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
@@ -44,10 +45,20 @@ public class AdminService {
         return AdminMemberResponse.of(member);
     }
 
+    /** SSR form 전용 — authority 단일값으로 토글 */
+    @Transactional
+    public void toggleMemberAuthority(Long memberId, Authority authority) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        member.updateAuthority(List.of(authority));
+    }
+
     public AdminStatsResponse getStats() {
         return AdminStatsResponse.builder()
                 .totalMembers(memberRepository.count())
                 .totalGuides(guideRepository.count())
+                .totalComments(commentRepository.count())
+                .totalLocations(locationRepository.count())
                 .build();
     }
 
