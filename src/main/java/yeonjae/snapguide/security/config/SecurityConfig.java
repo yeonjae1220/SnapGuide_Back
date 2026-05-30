@@ -1,6 +1,9 @@
 package yeonjae.snapguide.security.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,13 +19,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
-import yeonjae.snapguide.security.authentication.AdminUserDetailsService;
 import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2AuthorizationRequestResolver;
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
@@ -37,6 +42,7 @@ import yeonjae.snapguide.service.CustomOauth2UserService;
 import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -51,11 +57,34 @@ public class SecurityConfig {
     private final OAuth2FailureHandler oAuth2FailureHandler;
     private final CorsConfigurationSource corsConfigurationSource;
 
-    private final AdminUserDetailsService adminUserDetailsService;
     private final Environment environment;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final CustomOauth2UserService customOauth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    /** BCrypt hash — k8s Secret ADMIN_PASSWORD_BCRYPT 에서 주입 */
+    @Value("${admin.password.bcrypt}")
+    private String adminPasswordBcrypt;
+
+    @PostConstruct
+    public void validateAdminCredentials() {
+        if (adminEmail == null || adminEmail.isBlank()) {
+            throw new IllegalStateException("[Admin] ADMIN_EMAIL 환경변수가 설정되지 않았습니다.");
+        }
+        if (adminPasswordBcrypt == null
+                || adminPasswordBcrypt.contains("placeholder")
+                || adminPasswordBcrypt.length() < 60
+                || (!adminPasswordBcrypt.startsWith("$2a$")
+                    && !adminPasswordBcrypt.startsWith("$2b$")
+                    && !adminPasswordBcrypt.startsWith("$2y$"))) {
+            throw new IllegalStateException(
+                    "[Admin] ADMIN_PASSWORD_BCRYPT가 유효한 BCrypt 해시가 아닙니다.");
+        }
+        log.info("[Admin] admin 계정 설정이 유효합니다: email={}", adminEmail);
+    }
 
     /** local/test 프로파일에서만 true — docker(운영)에서는 Swagger 차단 */
     private boolean isDevProfile() {
@@ -70,11 +99,21 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /** Admin SSR 전용 AuthenticationManager (ADMIN authority + password 필터) */
+    @Bean
+    public UserDetailsService adminUserDetailsService() {
+        var admin = User.builder()
+                .username(adminEmail)
+                .password(adminPasswordBcrypt)
+                .authorities("ADMIN")
+                .build();
+        return new InMemoryUserDetailsManager(admin);
+    }
+
+    /** Admin SSR 전용 AuthenticationManager (InMemory — DB 독립적) */
     @Bean
     public AuthenticationManager adminAuthenticationManager() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(adminUserDetailsService);
+        provider.setUserDetailsService(adminUserDetailsService());
         provider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(provider);
     }

@@ -73,3 +73,8 @@ pwa:
     public-key: ${VAPID_PUBLIC_KEY:}
     private-key: ${VAPID_PRIVATE_KEY:}
     subject: ${VAPID_SUBJECT:mailto:admin@snapguide.com}
+
+admin:
+  email: ${ADMIN_EMAIL:admin@snapguide.local}
+  password:
+    bcrypt: ${ADMIN_PASSWORD_BCRYPT:$2a$10$placeholder-must-be-overridden-in-prod}

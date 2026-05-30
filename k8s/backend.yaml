@@ -102,6 +102,16 @@ spec:
                 secretKeyRef:
                   name: snapguide-secret
                   key: AWS_REGION
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: snapguide-secret
+                  key: ADMIN_EMAIL
+            - name: ADMIN_PASSWORD_BCRYPT
+              valueFrom:
+                secretKeyRef:
+                  name: snapguide-secret
+                  key: ADMIN_PASSWORD_BCRYPT
             # OpenTelemetry 비활성화 (관측 스택 미포함)
             - name: OTEL_SDK_DISABLED
               value: "true"
