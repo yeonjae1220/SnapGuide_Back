@@ -2,6 +2,7 @@ package yeonjae.snapguide.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Primary   // AdminUserDetailsService와 충돌 방지 — 글로벌 AuthManager에서 이 빈 사용
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
