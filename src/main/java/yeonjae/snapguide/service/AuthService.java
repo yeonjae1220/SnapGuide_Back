@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
@@ -208,8 +209,11 @@ public class AuthService {
         Member member = memberRepository.findByEmailWithAuthority(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // 4. JWT 토큰 생성
-        JwtToken jwtToken = jwtTokenProvider.generateToken(member.getAuthority(), member.getEmail());
+        // 4. JWT 토큰 생성 (OAuth2 코드 교환도 Google OAuth — ADMIN 권한 제외)
+        java.util.List<Authority> jwtAuthorities = member.getAuthority().stream()
+                .filter(a -> a != Authority.ADMIN)
+                .toList();
+        JwtToken jwtToken = jwtTokenProvider.generateToken(jwtAuthorities, member.getEmail());
 
         // 5. RefreshToken Redis에 저장
         RedisRefreshToken refreshToken = RedisRefreshToken.builder()

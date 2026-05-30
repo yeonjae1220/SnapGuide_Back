@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import yeonjae.snapguide.domain.member.Authority;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.exception.CustomException;
 import yeonjae.snapguide.exception.ErrorCode;
@@ -68,8 +69,11 @@ public class GoogleOAuthService {
             // 3. 회원 찾기 또는 생성
             Member member = findOrCreateMember(userInfo);
 
-            // 4. JWT 토큰 생성
-            JwtToken jwtToken = jwtTokenProvider.generateToken(member.getAuthority(), member.getEmail());
+            // 4. JWT 토큰 생성 (Google OAuth 유저는 ADMIN 권한 제외 — admin 기능은 SSR 세션 전용)
+            java.util.List<Authority> jwtAuthorities = member.getAuthority().stream()
+                    .filter(a -> a != Authority.ADMIN)
+                    .toList();
+            JwtToken jwtToken = jwtTokenProvider.generateToken(jwtAuthorities, member.getEmail());
 
             // 5. RefreshToken Redis에 저장
             RedisRefreshToken refreshToken = RedisRefreshToken.builder()

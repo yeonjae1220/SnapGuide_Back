@@ -30,6 +30,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
 import yeonjae.snapguide.domain.member.Authority;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import yeonjae.snapguide.security.authentication.AdminUserDetailsService;
 import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2AuthorizationRequestResolver;
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
@@ -65,9 +67,18 @@ public class SecurityConfig {
 //    private final CustomUserDetailsService userDetailsService;
 //    private final PasswordEncoder passwordEncoder;
 
+    private final AdminUserDetailsService adminUserDetailsService;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final CustomOauth2UserService customOauth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+
+    @Bean
+    public AuthenticationManager adminAuthenticationManager() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(adminUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return new ProviderManager(provider);
+    }
 
 
     // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
@@ -106,6 +117,7 @@ public class SecurityConfig {
     public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/admin/**")
+                .authenticationManager(adminAuthenticationManager())  // CRITICAL fix: ADMIN 전용 AuthManager 연결
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/login").permitAll()
                         .anyRequest().hasAuthority("ADMIN")
@@ -152,7 +164,8 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.ACTUATOR).permitAll() // 모니터링 메트릭
+                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // health만 공개
+                                .requestMatchers("/actuator/**").hasAuthority("ADMIN") // 나머지 actuator는 ADMIN 전용
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll() // 위치 검색 (비인증 허용)
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.PWA_PUBLIC).permitAll() // PWA 공개 리소스
                                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN") // 어드민 전용
