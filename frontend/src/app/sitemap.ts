@@ -22,11 +22,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'daily',
       priority: 0.8,
     },
-    {
-      url: `${BASE_URL}/upload`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
+    // /upload는 인증 필요 경로이므로 sitemap 제외
   ]
 }
