@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Playfair_Display } from 'next/font/google'
+import { headers } from 'next/headers'
 import './globals.css'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { QueryProvider } from '@/components/QueryProvider'
@@ -65,10 +66,11 @@ export const viewport: Viewport = {
   themeColor: '#bc1888',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? ''
   return (
     <html lang="ko">
-      <body className={`${dmSans.variable} ${playfair.variable}`}>
+      <body className={`${dmSans.variable} ${playfair.variable}`} data-nonce={nonce}>
         <QueryProvider>
           <I18nProvider>{children}</I18nProvider>
         </QueryProvider>
