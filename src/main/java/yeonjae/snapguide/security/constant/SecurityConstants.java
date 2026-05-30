@@ -35,7 +35,9 @@ public final class SecurityConstants {
 
 		public static final String[] FILE_IO = {"/uploads/**", "/media/**"};
 
-		public static final String[] ACTUATOR = {"/actuator/**"};
+		// FAIL fix: /actuator/** 를 JWT 화이트리스트에서 제거
+		// SecurityConfig에서 health만 허용, 나머지는 ADMIN 전용으로 처리
+		// public static final String[] ACTUATOR = {"/actuator/**"};
 
 		public static final String[] LOCATION_API = {"/location/api/places/**"};
 
@@ -58,7 +60,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
 			whiteList.addAll(Arrays.stream(FILE_IO).toList());
-			whiteList.addAll(Arrays.stream(ACTUATOR).toList());
+			// ACTUATOR 제거 — SecurityConfig에서 명시적으로 처리
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
 			return whiteList;
