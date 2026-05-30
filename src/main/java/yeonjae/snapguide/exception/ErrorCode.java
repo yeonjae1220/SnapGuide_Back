@@ -33,7 +33,8 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
 
     // 기타
-    ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근이 거부되었습니다.");
+    ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근이 거부되었습니다."),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

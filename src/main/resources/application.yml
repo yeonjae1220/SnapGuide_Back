@@ -60,6 +60,13 @@ springdoc:
   paths-to-match:
     - /api/**
 
+# Rate Limiting (Redis 기반 — 로그인/회원가입 Brute Force 방어)
+snapguide:
+  rate-limit:
+    login-limit: 10       # 로그인: IP 기준 10회/10분
+    signup-limit: 5       # 회원가입: IP 기준 5회/10분
+    window-seconds: 600   # 10분 윈도우
+
 # PWA Push Notification (VAPID)
 pwa:
   vapid:

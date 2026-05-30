@@ -1,5 +1,6 @@
 package yeonjae.snapguide.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
+import yeonjae.snapguide.security.ratelimit.RateLimiterService;
 import yeonjae.snapguide.service.AuthService;
 import yeonjae.snapguide.service.GoogleOAuthService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -33,14 +35,20 @@ public class AuthController {
     private final MemberService memberService;
     private final GoogleOAuthService googleOAuthService;
     private final Environment environment;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request) {
+    public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request,
+                                         HttpServletRequest httpRequest) {
+        rateLimiterService.checkSignupRate(getClientIp(httpRequest));
         return ResponseEntity.ok(authService.signup(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid MemberRequestDto request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody @Valid MemberRequestDto request,
+                                   HttpServletRequest httpRequest,
+                                   HttpServletResponse response) {
+        rateLimiterService.checkLoginRate(getClientIp(httpRequest), request.getEmail());
         JwtToken token = authService.login(request);
         addRefreshCookie(response, token.getRefreshToken());
         return ResponseEntity.ok(Map.of(
@@ -160,5 +168,14 @@ public class AuthController {
     private boolean isSecureCookieRequired() {
         return Arrays.stream(environment.getActiveProfiles())
                 .noneMatch(p -> p.equalsIgnoreCase("local") || p.equalsIgnoreCase("test"));
+    }
+
+    /** X-Forwarded-For → Remote Address 순으로 실제 클라이언트 IP 추출 */
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

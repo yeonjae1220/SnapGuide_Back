@@ -184,7 +184,7 @@ public class SecurityConfig {
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.FILE_IO).permitAll() // 로컬 파일 저장 url 열어둠
+                                // FILE_IO 제거 — /uploads 미동작, /media API는 인증 필요
                                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // health만 공개
                                 .requestMatchers("/actuator/**").hasAuthority("ADMIN") // 나머지 actuator는 ADMIN 전용
                                 .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll() // 위치 검색 (비인증 허용)
@@ -225,8 +225,10 @@ public class SecurityConfig {
                         .frameOptions(f -> f.deny())
                         .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true))
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                // WARN fix: 'unsafe-inline' script-src 제거 (REST API 서버 — HTML 미서빙)
+                                // Cloudflare Analytics는 Next.js 프론트에서 처리
                                 "default-src 'self'; " +
-                                "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://static.cloudflareinsights.com; " +
+                                "script-src 'self' https://maps.googleapis.com https://maps.gstatic.com; " +
                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                                 "font-src 'self' https://fonts.gstatic.com; " +
                                 "img-src 'self' data: https:; " +

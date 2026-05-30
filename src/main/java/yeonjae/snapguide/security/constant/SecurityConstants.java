@@ -33,7 +33,10 @@ public final class SecurityConstants {
 		 */
 		public static final String[] DEV_TOOL = {"/.well-known/**", "/favicon.ico", "/css/**", "/js/**", "/images/**"};
 
-		public static final String[] FILE_IO = {"/uploads/**", "/media/**"};
+		// WARN fix: /uploads, /media를 JWT 화이트리스트에서 제거
+		// - /uploads/**는 WebConfig에서 정적 서빙이 주석 처리됨 (실제 미동작)
+		// - /media/** API는 SecurityConfig에서 인증 필요로 처리
+		// public static final String[] FILE_IO = {"/uploads/**", "/media/**"};
 
 		// FAIL fix: /actuator/** 를 JWT 화이트리스트에서 제거
 		// SecurityConfig에서 health만 허용, 나머지는 ADMIN 전용으로 처리
@@ -59,7 +62,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(LOCAL_LOGIN_API).toList());
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
-			whiteList.addAll(Arrays.stream(FILE_IO).toList());
+			// FILE_IO 제거 — /uploads 미동작, /media는 인증 필요
 			// ACTUATOR 제거 — SecurityConfig에서 명시적으로 처리
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
