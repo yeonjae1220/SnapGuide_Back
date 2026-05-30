@@ -85,7 +85,8 @@ public class JwtTokenProvider {
         String authorities = authorityInfo.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(",")); // "MEMBER,ADMIN"
-        log.debug("token authorities: {}", authorities);
+        // S3 fix: DEBUG 로그에서 authorities 제거 (권한 정보 노출 방지)
+        // log.debug("token authorities: {}", authorities);
 
         long now = (new Date()).getTime();
 

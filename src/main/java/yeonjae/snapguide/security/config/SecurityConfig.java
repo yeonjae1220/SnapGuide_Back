@@ -1,39 +1,28 @@
 package yeonjae.snapguide.security.config;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.catalina.connector.Connector;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfigurationSource;
-import yeonjae.snapguide.domain.member.Authority;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import yeonjae.snapguide.security.authentication.AdminUserDetailsService;
-import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2AuthorizationRequestResolver;
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
@@ -49,13 +38,10 @@ import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.service.TokenBlacklistService;
 
 @Configuration
-@EnableWebSecurity  // 스프링 시큐리티 필터가 스프링 필터체인에 등록이 된다.
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    //    private final AuthenticationEntryPointImpl authenticationEntryPoint;
-//    private final AccessDeniedHandlerImpl accessDeniedHandler;
-//    private final JwtAuthenticationProvider authenticationProvider;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
@@ -63,21 +49,28 @@ public class SecurityConfig {
 
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
-
     private final CorsConfigurationSource corsConfigurationSource;
 
-//    private final CustomUserDetailsService userDetailsService;
-//    private final PasswordEncoder passwordEncoder;
-
     private final AdminUserDetailsService adminUserDetailsService;
+    private final Environment environment;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final CustomOauth2UserService customOauth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
-    /**
-     * Admin SSR 전용 AuthenticationManager.
-     * AdminUserDetailsService(ADMIN + password != null 필터) 사용.
-     */
+    /** local/test 프로파일에서만 true — docker(운영)에서는 Swagger 차단 */
+    private boolean isDevProfile() {
+        for (String profile : environment.getActiveProfiles()) {
+            if (profile.equalsIgnoreCase("local") || profile.equalsIgnoreCase("test")) return true;
+        }
+        return environment.getActiveProfiles().length == 0;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /** Admin SSR 전용 AuthenticationManager (ADMIN authority + password 필터) */
     @Bean
     public AuthenticationManager adminAuthenticationManager() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -88,8 +81,7 @@ public class SecurityConfig {
 
     /**
      * API(JWT) 로그인 전용 AuthenticationManager.
-     * CustomUserDetailsService(일반 회원) 사용.
-     * @Primary: AuthService가 @Qualifier 없이 주입 가능 (Lombok @RequiredArgsConstructor 호환).
+     * @Primary: AuthService가 @Qualifier 없이 주입 가능.
      */
     @Bean
     @Primary
@@ -101,44 +93,17 @@ public class SecurityConfig {
         return new ProviderManager(provider);
     }
 
-
-    // 이렇게 하면 userDetailsService와 passwordEncoder를 사용하여 내부적으로 인증 처리가 구성
-
-    /**
-     * 	1.	http.getSharedObject(AuthenticationManagerBuilder.class):
-     * 	•	HttpSecurity에서 인증 구성에 필요한 AuthenticationManagerBuilder 객체를 가져옵니다.
-     * 	2.	builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder):
-     * 	•	사용자 인증 시 어떤 방식으로 사용자 정보를 로드할지(UserDetailsService)
-     * 	•	비밀번호를 어떻게 검증할지(PasswordEncoder) 설정합니다.
-     * 	3.	builder.build():
-     * 	•	설정한 내용을 바탕으로 AuthenticationManager 인스턴스를 생성합니다.
-     */
-
-
-//    @Bean
-//    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-//        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
-//        builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
-//        return builder.build();
-//    }
-
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
     /**
      * Admin 전용 Security chain (세션 기반).
-     * /admin/** 경로만 담당하며 formLogin + httpOnly 세션 쿠키로 인증한다.
-     * JWT 필터를 걸지 않아 accessToken XSS 탈취 위협과 완전히 분리된다.
+     * /admin/** 경로만 담당. formLogin + httpOnly 세션 쿠키로 인증.
+     * JWT 필터 미적용 — XSS 토큰 탈취 위협과 완전히 분리.
      */
     @Bean
-    @org.springframework.core.annotation.Order(1)
+    @Order(1)
     public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/admin/**")
-                .authenticationManager(adminAuthenticationManager())  // CRITICAL fix: ADMIN 전용 AuthManager 연결
+                .authenticationManager(adminAuthenticationManager())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/login").permitAll()
                         .anyRequest().hasAuthority("ADMIN")
@@ -160,7 +125,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(1)
                 )
-                .csrf(Customizer.withDefaults()) // CSRF 활성화 (Thymeleaf가 토큰 자동 삽입)
+                .csrf(Customizer.withDefaults())
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"))
@@ -170,63 +135,44 @@ public class SecurityConfig {
     }
 
     @Bean
-    @org.springframework.core.annotation.Order(2)
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                // 조건 별 요청 허용 or 제한 설정
-                .authorizeHttpRequests(
-                        authorize -> authorize
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.GUIDE_PUBLIC_API).permitAll() // 비인증 공개 가이드 조회
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
-                                // FILE_IO 제거 — /uploads 미동작, /media API는 인증 필요
-                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // health만 공개
-                                .requestMatchers("/actuator/**").hasAuthority("ADMIN") // 나머지 actuator는 ADMIN 전용
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll() // 위치 검색 (비인증 허용)
-                                .requestMatchers(SecurityConstants.AuthenticationWhiteList.PWA_PUBLIC).permitAll() // PWA 공개 리소스
-                                .requestMatchers("/api/admin/**").hasAuthority("ADMIN") // 어드민 전용
-                                .anyRequest()
-                                .authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.GUIDE_PUBLIC_API).permitAll()
+                        // Swagger: local/test 프로파일에서만 허용
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3)
+                            .access((a, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(isDevProfile()))
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/**").hasAuthority("ADMIN")
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.PWA_PUBLIC).permitAll()
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+                        .anyRequest().authenticated()
                 )
-                // OAuth 2.0 로그인 방식 설정
-//                .oauth2Login((auth) -> auth.loginPage("/oauth-login/login")
-////                        .defaultSuccessUrl("/oauth-login")
-////                        .failureUrl("/oauth-login/login")
-//                        .successHandler(oAuth2SuccessHandler)
-//                        .failureHandler(oAuth2FailureHandler)
-//                        .permitAll())
-//                .logout((auth) -> auth
-//                        .logoutUrl("/oauth-login/logout")
-//                        .logoutSuccessUrl("/oauth-login/login"))
-                // OAuth2.0 세션에서 토큰 방식으로 변경
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(config -> config
                                 .baseUri("/oauth2/authorization")
                                 .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
-                                .authorizationRequestResolver(new CustomOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization"))
+                                .authorizationRequestResolver(new CustomOAuth2AuthorizationRequestResolver(
+                                        clientRegistrationRepository, "/oauth2/authorization"))
                         )
-                        .redirectionEndpoint(config -> config
-                                .baseUri("/login/oauth2/code/*")
-                        )
-                        .userInfoEndpoint(config -> config
-                                .userService(customOauth2UserService)
-                        )
+                        .redirectionEndpoint(config -> config.baseUri("/login/oauth2/code/*"))
+                        .userInfoEndpoint(config -> config.userService(customOauth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )
-                // .cors(AbstractHttpConfigurer::disable)  // CORS 설정 (또는 cors -> cors.disable())
                 .headers(headers -> headers
                         .contentTypeOptions(c -> {})
                         .frameOptions(f -> f.deny())
                         .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true))
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                // WARN fix: 'unsafe-inline' script-src 제거 (REST API 서버 — HTML 미서빙)
-                                // Cloudflare Analytics는 Next.js 프론트에서 처리
                                 "default-src 'self'; " +
                                 "script-src 'self' https://maps.googleapis.com https://maps.gstatic.com; " +
                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
@@ -236,23 +182,14 @@ public class SecurityConfig {
                                 "worker-src 'self' blob:"))
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화 // Cookie 기반 인증이 아닌, JWT 기반 인증이기에 csrf 사용 X
-                .httpBasic(AbstractHttpConfigurer::disable) // HTTP Basic 비활성화 // ID, password 문자열을 Base64로 인코딩하여 전달하는 구조
-                .formLogin(AbstractHttpConfigurer::disable) // Form Login 비활성화
+                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
-                // 세션 사용 안함 (JWT 기반 인증 등 stateless 보안 구조일 경우) // Spring Security Session 정책 -> Session 생성 및 사용 X
-                // + 토큰에 저장된 유저정보를 활용하여야 하기 때문에 CustomUserDetailService 클래스를 생성합니다.
-                .sessionManagement(configurer -> configurer
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .exceptionHandling(configurer -> configurer
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                        .accessDeniedHandler(this.jwtAccessDeniedHandler))
-
-                // JWT 등 커스텀 필터가 있다면 여기에 추가
-                // JwtAuthenticationFilter를 UsernamePasswordAuthenticationFilter 전에 넣는다
-//                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                // JwtFilter 를 addFilterBefore 로 등록했던 JwtSecurityConfig 클래스를 적용
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -261,14 +198,12 @@ public class SecurityConfig {
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         final RequestMatcher matcher =
                 new WhiteListRequestMatcher(SecurityConstants.AuthenticationWhiteList.getAllPatterns());
-
         return new JwtAuthenticationFilter(jwtTokenProvider, matcher, tokenBlacklistService);
     }
 
     /**
-     * JwtAuthenticationFilter는 @Bean이므로 Spring Boot가 서블릿 필터로 자동 등록한다.
-     * 자동 등록을 막아 Security FilterChain 안에서만 동작하도록 한다.
-     * 이렇게 하지 않으면 /admin/** 요청에도 JWT 필터가 먼저 실행되어 admin 체인이 무력화된다.
+     * JwtAuthenticationFilter 서블릿 자동 등록 방지.
+     * /admin/** 요청에 JWT 필터가 끼어들지 않도록 한다.
      */
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
@@ -277,41 +212,4 @@ public class SecurityConfig {
         reg.setEnabled(false);
         return reg;
     }
-
-    // HTTPS 커넥터 설정 - 로컬 개발 환경에서는 비활성화
-    // 프로덕션 환경에서 리버스 프록시 뒤에서 실행할 때만 필요
-//    @Profile("docker")
-//    @Bean
-//    public ServletWebServerFactory servletContainer() {
-//        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
-//
-//        // 이 설정은 리버스 프록시(HTTP)로부터 온 요청도 HTTPS에서 온 것처럼 처리하도록 합니다.
-//        tomcat.addAdditionalTomcatConnectors(createSslConnector());
-//        return tomcat;
-//    }
-//
-//    private Connector createSslConnector() {
-//        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
-//        // 이 커넥터는 8080 포트로 들어오는 HTTP 요청을 처리합니다.
-//        connector.setPort(8080);
-//
-//        // 하지만 Spring Boot에게 이 요청이 원래는 HTTPS였다고 알려줍니다.
-//        connector.setScheme("https");
-//        connector.setSecure(true);
-//        return connector;
-//    }
-
-    // 서버 로그가 지저분해지는 것을 막기 위해 아래 경로에 대한 요청 무시
-//    @Bean
-//    public WebSecurityCustomizer webSecurityCustomizer() {
-//        // 정적 리소스들을 Security 필터에서 제외
-//        return (web) -> web.ignoring()
-//                .requestMatchers(PathRequest.toStaticResources().atCommonLocations())
-//                .requestMatchers(
-//                        "/favicon.ico",
-//                        "/.well-known/**"
-//                );
-//    }
-
 }
-
