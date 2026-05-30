@@ -19,6 +19,7 @@ import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.security.config.SecurityConfig;
+import yeonjae.snapguide.security.ratelimit.RateLimiterService;
 import yeonjae.snapguide.service.AuthService;
 import yeonjae.snapguide.service.GoogleOAuthService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -61,6 +62,9 @@ class AuthControllerTest {
 
     @MockBean
     private GoogleOAuthService googleOAuthService;
+
+    @MockBean
+    private RateLimiterService rateLimiterService; // RateLimiterService Mock — Redis 없이 테스트 가능
 
     private MemberRequestDto signupRequest;
     private JwtToken mockJwtToken;
