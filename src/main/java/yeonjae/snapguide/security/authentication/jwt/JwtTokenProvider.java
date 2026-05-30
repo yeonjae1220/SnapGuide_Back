@@ -104,6 +104,7 @@ public class JwtTokenProvider {
         // RefreshToken 생성 과정
         Date refreshTokenExpiresIn = new Date(now + expRefresh);
         String refreshToken = Jwts.builder()
+                .subject(id)
                 .issuedAt(new Date(now))
                 .expiration(refreshTokenExpiresIn)
                 .signWith(key)
@@ -210,6 +211,10 @@ public class JwtTokenProvider {
         }
     }
 
+    public String getSubject(String token) {
+        return parseClaims(token).getSubject();
+    }
+
     public boolean refreshTokenPeriodCheck(String token) {
         Jws<Claims> claimsJws =
                 Jwts.parser()
@@ -251,7 +256,6 @@ public class JwtTokenProvider {
     }
 
 }
-
 
 
 

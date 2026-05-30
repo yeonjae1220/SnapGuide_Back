@@ -42,7 +42,7 @@ api.interceptors.response.use(
     try {
       const { data } = await axios.post(
         '/api/auth/reissue',
-        { accessToken: useAuthStore.getState().accessToken ?? '' },
+        undefined,
         { withCredentials: true },
       )
       const newToken: string = data.accessToken

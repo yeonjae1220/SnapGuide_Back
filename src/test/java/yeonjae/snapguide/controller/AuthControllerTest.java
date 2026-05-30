@@ -144,14 +144,10 @@ class AuthControllerTest {
         given(authService.reissue(any(TokenRequestDto.class)))
                 .willReturn(newToken);
 
-        Map<String, String> body = Map.of("accessToken", "expired-access-token");
-
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
-                        .cookie(new Cookie("refresh_token", "valid-refresh-token"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
+                        .cookie(new Cookie("refresh_token", "valid-refresh-token")))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("new-access-token"))
@@ -400,14 +396,10 @@ class AuthControllerTest {
                         yeonjae.snapguide.exception.ErrorCode.INVALID_TOKEN
                 ));
 
-        Map<String, String> body = Map.of("accessToken", "invalid-access-token");
-
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
-                        .cookie(new Cookie("refresh_token", "invalid-refresh-token"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
+                        .cookie(new Cookie("refresh_token", "invalid-refresh-token")))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
@@ -424,14 +416,10 @@ class AuthControllerTest {
                         yeonjae.snapguide.exception.ErrorCode.REFRESH_TOKEN_EXPIRED
                 ));
 
-        Map<String, String> body = Map.of("accessToken", "expired-access-token");
-
         // when & then
         mockMvc.perform(post("/api/auth/reissue")
                         .with(csrf())
-                        .cookie(new Cookie("refresh_token", "expired-refresh-token"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
+                        .cookie(new Cookie("refresh_token", "expired-refresh-token")))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Refresh Token이 만료되었습니다."));

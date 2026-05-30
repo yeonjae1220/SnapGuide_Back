@@ -54,7 +54,8 @@ export function AuthPanel() {
   }
 
   const handleGoogle = () => {
-    window.location.href = '/oauth2/authorization/google'
+    const redirectUri = encodeURIComponent(window.location.origin)
+    window.location.href = `/oauth2/authorization/google?redirect_uri=${redirectUri}`
   }
 
   return (

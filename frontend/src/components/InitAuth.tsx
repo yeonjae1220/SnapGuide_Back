@@ -32,7 +32,7 @@ function InitAuthInner() {
 
     if (!accessToken) {
       api
-        .post('/api/auth/reissue', { accessToken: '' })
+        .post('/api/auth/reissue')
         .then(({ data }) => {
           const email = parseJwtEmail(data.accessToken)
           setTokens(data.accessToken, email ?? undefined)

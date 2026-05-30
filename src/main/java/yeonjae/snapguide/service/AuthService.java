@@ -92,73 +92,61 @@ public class AuthService {
 
     @Transactional
     public JwtToken reissue(TokenRequestDto tokenRequestDTO) {
-        if (tokenRequestDTO.getAccessToken() == null || tokenRequestDTO.getAccessToken().isBlank()) {
-            throw new CustomException(ErrorCode.TOKEN_NOT_FOUND);
-        }
-
         // 1. Refresh Token 검증
         if (!jwtTokenProvider.validateToken(tokenRequestDTO.getRefreshToken())) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 2. 만료된 Access Token에서 Member ID 가져오기 (만료된 토큰도 파싱 가능)
-        Claims claims = jwtTokenProvider.parseExpiredToken(tokenRequestDTO.getAccessToken());
-        String userId = claims.getSubject();
-
-        // 권한 정보 추출
-        Collection<? extends GrantedAuthority> authorities =
-            java.util.Arrays.stream(claims.get("Authorization").toString().split(","))
-                .map(String::trim)
-                .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
-                .collect(java.util.stream.Collectors.toList());
-
-        // 3. 저장소에서 Member ID 를 기반으로 Refresh Token 값 가져옴
+        // 2. Cookie 기반 복원을 위해 Refresh Token subject로 사용자 세션 조회
+        String userId = jwtTokenProvider.getSubject(tokenRequestDTO.getRefreshToken());
+        if (userId == null || userId.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
-
-        // 4. Refresh Token 일치하는지 검사
         if (!refreshToken.getValue().equals(tokenRequestDTO.getRefreshToken())) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 5. 기존 Access Token 블랙리스트 등록 (만료된 토큰도 처리)
-        long accessTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getAccessToken());
-        // 만료된 토큰의 경우 음수가 나오므로, 양수일 때만 블랙리스트 등록
-        if (accessTokenExpiry > 0) {
-            tokenBlacklistService.blacklistAccessToken(tokenRequestDTO.getAccessToken(), accessTokenExpiry);
-            log.info("기존 Access Token 블랙리스트 등록 완료 (TTL: {}ms)", accessTokenExpiry);
-        } else {
-            log.info("Access Token 이미 만료됨 - 블랙리스트 등록 스킵");
-        }
+        // 3. 사용자 권한 정보 조회
+        Member member = memberRepository.findByEmailWithAuthority(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        Collection<? extends GrantedAuthority> authorities = member.getAuthority();
 
-        // 6. 새로운 토큰 생성
-        JwtToken jwtToken;
-        if (jwtTokenProvider.refreshTokenPeriodCheck(refreshToken.getValue())) {
-            // Refresh Token 유효기간이 3일 미만일 경우 Access Token + Refresh Token 모두 재발급
-            log.info("Refresh Token 유효기간 3일 미만 - 모든 토큰 재발급");
-            jwtToken = jwtTokenProvider
-                    .generateToken(authorities,  // 권한 정보
-                            userId);        // 사용자 식별자
+        // 4. 기존 Access Token이 전달된 경우에만 블랙리스트 등록
+        blacklistAccessTokenIfPresent(tokenRequestDTO.getAccessToken());
 
-            // 저장소 정보 업데이트
-            redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+        // 5. ToneBridge와 동일하게 재발급 시 Refresh Token도 함께 회전
+        JwtToken jwtToken = jwtTokenProvider.generateToken(authorities, userId);
+        redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
 
-            // 기존 refreshToken 블랙 리스트에 추가
-            long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
-            if (refreshTokenExpiry > 0) {
-                tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
-                log.info("기존 Refresh Token 블랙리스트 등록 완료 (TTL: {}ms)", refreshTokenExpiry);
-            }
-        } else {
-            // Refresh Token의 유효기간이 3일 이상일 경우 Access Token만 재발급
-            log.info("Refresh Token 유효기간 3일 이상 - Access Token만 재발급");
-            jwtToken = jwtTokenProvider.createAccessToken(authorities,  // 권한 정보
-                    userId);
-            // 기존 refreshToken은 그대로 유지 (재전달 안함)
+        long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
+        if (refreshTokenExpiry > 0) {
+            tokenBlacklistService.blacklistRefreshToken(tokenRequestDTO.getRefreshToken(), refreshTokenExpiry);
+            log.info("기존 Refresh Token 블랙리스트 등록 완료 (TTL: {}ms)", refreshTokenExpiry);
         }
 
         // 토큰 발급
         return jwtToken;
+    }
+
+    private void blacklistAccessTokenIfPresent(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            log.info("Access Token 미전달 - 블랙리스트 등록 스킵");
+            return;
+        }
+
+        try {
+            long accessTokenExpiry = jwtTokenProvider.getExpiration(accessToken);
+            if (accessTokenExpiry > 0) {
+                tokenBlacklistService.blacklistAccessToken(accessToken, accessTokenExpiry);
+                log.info("기존 Access Token 블랙리스트 등록 완료 (TTL: {}ms)", accessTokenExpiry);
+            } else {
+                log.info("Access Token 이미 만료됨 - 블랙리스트 등록 스킵");
+            }
+        } catch (CustomException e) {
+            log.info("Access Token 파싱 실패 - Refresh Token 기반 재발급 계속 진행: {}", e.getErrorCode());
+        }
     }
 
     @Transactional

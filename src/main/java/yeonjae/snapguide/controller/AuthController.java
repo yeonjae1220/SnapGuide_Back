@@ -61,13 +61,15 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<?> reissue(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String cookieRefreshToken,
-            @RequestBody Map<String, String> body,
+            @RequestBody(required = false) Map<String, String> body,
             HttpServletResponse response) {
         if (cookieRefreshToken == null || cookieRefreshToken.isBlank()) {
             return ResponseEntity.status(401).body(Map.of("message", "Refresh token is missing"));
         }
         TokenRequestDto dto = new TokenRequestDto();
-        dto.setAccessToken(body.get("accessToken"));
+        if (body != null) {
+            dto.setAccessToken(body.get("accessToken"));
+        }
         dto.setRefreshToken(cookieRefreshToken);
         JwtToken token = authService.reissue(dto);
         addRefreshCookie(response, token.getRefreshToken() != null ? token.getRefreshToken() : cookieRefreshToken);

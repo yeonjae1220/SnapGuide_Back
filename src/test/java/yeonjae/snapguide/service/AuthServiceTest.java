@@ -85,7 +85,32 @@ class AuthServiceTest {
         // then
         // 블랙리스트 등록은 외부 Redis 확인 필요. 테스트 환경에서는 assert 불가 라는 데용
         assertThat(reissued.getAccessToken()).isNotEqualTo(token.getAccessToken()); // 새로 발급됨
-        assertThat(reissued.getRefreshToken()).isNull(); // 생성안함
+        assertThat(reissued.getRefreshToken()).isNotBlank(); // refresh token도 회전됨
+
+        RedisRefreshToken redisToken = redisRefreshTokenRepository.findByKey(email)
+                .orElseThrow();
+        assertThat(redisToken.getValue()).isEqualTo(reissued.getRefreshToken());
+    }
+
+    @Test
+    void reissue_with_refreshToken_only() throws InterruptedException {
+        // given
+        JwtToken token = authService.login(new MemberRequestDto(email, password, nickname, null));
+        TokenRequestDto dto = new TokenRequestDto();
+        dto.setRefreshToken(token.getRefreshToken());
+        Thread.sleep(1000);
+
+        // when
+        JwtToken reissued = authService.reissue(dto);
+
+        // then
+        assertThat(reissued.getAccessToken()).isNotBlank();
+        assertThat(reissued.getRefreshToken()).isNotBlank();
+        assertThat(reissued.getRefreshToken()).isNotEqualTo(token.getRefreshToken());
+
+        RedisRefreshToken redisToken = redisRefreshTokenRepository.findByKey(email)
+                .orElseThrow();
+        assertThat(redisToken.getValue()).isEqualTo(reissued.getRefreshToken());
     }
 
     @Test
