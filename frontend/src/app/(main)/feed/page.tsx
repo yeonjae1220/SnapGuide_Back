@@ -50,7 +50,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (!accessToken || mapsKey) return
-    api.get('/api/maps/key').then(({ data }) => setMapsKey(data.key ?? data))
+    api.get('/api/maps/key').then(({ data }) => setMapsKey(data.apiKey))
   }, [accessToken, mapsKey])
 
   // 맵 초기화와 무관하게 초기 가이드 로딩
