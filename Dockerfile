@@ -26,9 +26,9 @@ FROM eclipse-temurin:17-jre-jammy
 # ▼▼▼▼▼▼▼▼▼▼ ImageMagick 설치 구문을 여기에 추가/이동 ▼▼▼▼▼▼▼▼▼▼
 # 루트 사용자로 전환하여 패키지 설치
 USER root
-RUN apt-get update && apt-get install -y imagemagick && rm -rf /var/lib/apt/lists/*
-# 다시 일반 사용자로 전환 (이전에 추가했던 보안 설정)
-#USER appuser
+RUN apt-get update && apt-get install -y imagemagick && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
 # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 # 작업 디렉토리 설정
