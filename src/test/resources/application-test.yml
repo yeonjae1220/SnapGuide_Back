@@ -75,3 +75,8 @@ pwa:
     public-key: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U
     private-key: 3T1DcXIAWWdFkLFxkHfmJXVvnLJQa3vfq1k5VBcX1mo=
     subject: mailto:test@example.com
+
+admin:
+  email: admin@test.example.com
+  password:
+    bcrypt: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi."
