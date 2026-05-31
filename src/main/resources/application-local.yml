@@ -49,7 +49,7 @@ cors:
     resources:
       static-locations:
         - classpath:/static/
-        - file:/Users/kim-yeonjae/Desktop/Study/snapguide/uploads/
+        - file:${UPLOAD_BASE_DIR:${user.home}/snapguide/uploads}/
 logging:
   level:
     org.hibernate.SQL: debug
@@ -69,7 +69,7 @@ google:
 storage:
   type: local
   local:
-    base-dir: /Users/kim-yeonjae/Desktop/Study/snapguide/uploads
+    base-dir: ${UPLOAD_BASE_DIR:${user.home}/snapguide/uploads}
   nas:
     mount-dir: /mnt/nas/snapguide
 

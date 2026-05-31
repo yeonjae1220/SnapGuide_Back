@@ -154,9 +154,7 @@ public class JwtTokenProvider {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            // ✅ 토큰 생성일자와 만료시간 로그 출력
-            log.info("[parseClaims] 토큰 생성일자 (issuedAt): {}", claims.getIssuedAt());
-            log.info("[parseClaims] 토큰 만료시간 (expiration): {}", claims.getExpiration());
+            log.debug("[parseClaims] issuedAt={}, expiration={}", claims.getIssuedAt(), claims.getExpiration());
 
             return claims;
 
@@ -192,7 +190,7 @@ public class JwtTokenProvider {
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token);
-            log.info("validateToken true 반환");
+            log.debug("validateToken true");
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("잘못된 JWT 서명입니다.");

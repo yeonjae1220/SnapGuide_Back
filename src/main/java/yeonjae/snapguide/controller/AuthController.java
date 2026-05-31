@@ -84,11 +84,15 @@ public class AuthController {
     public ResponseEntity<?> logout(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String cookieRefreshToken,
             @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails,
             HttpServletResponse response) {
         TokenRequestDto dto = new TokenRequestDto();
         dto.setAccessToken(body.get("accessToken"));
         dto.setRefreshToken(cookieRefreshToken != null ? cookieRefreshToken : "");
-        authService.logout(dto);
+        String loggedOutEmail = authService.logout(dto);
+        if (userDetails != null && !userDetails.getUsername().equals(loggedOutEmail)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Token mismatch"));
+        }
         clearRefreshCookie(response);
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
@@ -97,11 +101,15 @@ public class AuthController {
     public ResponseEntity<?> deleteMember(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String cookieRefreshToken,
             @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails,
             HttpServletResponse response) {
         TokenRequestDto dto = new TokenRequestDto();
         dto.setAccessToken(body.get("accessToken"));
         dto.setRefreshToken(cookieRefreshToken != null ? cookieRefreshToken : "");
         String email = authService.logout(dto);
+        if (userDetails != null && !userDetails.getUsername().equals(email)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Token mismatch"));
+        }
         memberService.deleteMember(email);
         clearRefreshCookie(response);
         return ResponseEntity.ok("탈퇴 처리 되었습니다.");
@@ -172,12 +180,7 @@ public class AuthController {
                 .noneMatch(p -> p.equalsIgnoreCase("local") || p.equalsIgnoreCase("test"));
     }
 
-    /** X-Forwarded-For → Remote Address 순으로 실제 클라이언트 IP 추출 */
     private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 }

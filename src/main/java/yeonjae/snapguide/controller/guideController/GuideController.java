@@ -122,7 +122,11 @@ public class GuideController {
             @RequestParam double lat,
             @RequestParam double lng,
             @RequestParam(defaultValue = "20") double radius) {
-        return ResponseEntity.ok(guideService.findGuidesNear(lat, lng, radius));
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            throw new IllegalArgumentException("유효하지 않은 좌표값입니다.");
+        }
+        double clampedRadius = Math.min(radius, 100.0);
+        return ResponseEntity.ok(guideService.findGuidesNear(lat, lng, clampedRadius));
     }
 
     @GetMapping("/{id}")

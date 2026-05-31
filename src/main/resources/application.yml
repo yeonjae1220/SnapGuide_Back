@@ -80,6 +80,7 @@ admin:
     bcrypt: ${ADMIN_PASSWORD_BCRYPT:$2a$10$placeholder-must-be-overridden-in-prod}
 
 server:
+  forward-headers-strategy: framework
   servlet:
     session:
       timeout: 15m
