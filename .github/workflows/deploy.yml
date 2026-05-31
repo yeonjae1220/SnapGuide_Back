@@ -165,10 +165,11 @@ jobs:
             --from-literal=AWS_REGION="${AWS_REGION}" \
             --from-literal=ADMIN_EMAIL="${ADMIN_EMAIL}" \
             --from-literal=ADMIN_PASSWORD_BCRYPT="${ADMIN_PASSWORD_BCRYPT}" \
-            -n snapguide --dry-run=client -o yaml | sudo kubectl apply -f -
+            -n snapguide --dry-run=client -o yaml 2>/dev/null | sudo kubectl apply -f - --output=name
 
       - name: Apply k8s manifests
         run: |
+          sudo kubectl apply -f k8s/backend.yaml -n snapguide
           sudo kubectl apply -f k8s/frontend.yaml -n snapguide
 
       - name: Deploy backend
