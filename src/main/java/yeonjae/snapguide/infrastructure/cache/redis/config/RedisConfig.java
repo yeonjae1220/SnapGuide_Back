@@ -19,14 +19,17 @@ public class RedisConfig {
     @Value("${spring.data.redis.port}")
     private int port;
 
+    @Value("${spring.data.redis.password:}")
+    private String password;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        // Lettuce vs Jedis ⇒ Lettuce 선택, Lettuce 라이브러리를 사용해서 Redis에 연결
-        // Lettuce는 Jedis보다 성능이 좋고 비동기 처리가 가능함
-        // return new LettuceConnectionFactory(this.host, this.port);
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(this.host);
         config.setPort(this.port);
+        if (password != null && !password.isBlank()) {
+            config.setPassword(this.password);
+        }
         return new LettuceConnectionFactory(config);
     }
 
