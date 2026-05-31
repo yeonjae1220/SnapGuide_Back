@@ -199,6 +199,7 @@ public class SecurityConfig {
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API)
                             .access((a, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(isDevProfile()))
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.GUIDE_PUBLIC_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.MEDIA_FILES).permitAll()
                         // Swagger: local/test 프로파일에서만 허용
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3)
                             .access((a, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(isDevProfile()))

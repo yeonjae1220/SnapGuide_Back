@@ -49,8 +49,9 @@ export default function FeedPage() {
   )
 
   useEffect(() => {
+    if (!accessToken || mapsKey) return
     api.get('/api/maps/key').then(({ data }) => setMapsKey(data.key ?? data))
-  }, [])
+  }, [accessToken, mapsKey])
 
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return

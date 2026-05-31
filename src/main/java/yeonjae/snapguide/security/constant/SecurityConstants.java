@@ -53,6 +53,9 @@ public final class SecurityConstants {
 				"/api/push/vapid-public-key"
 		};
 
+		// 파일명이 UUID라 추측 불가능, S3 presigned URL로 리다이렉트되어 10분 만료 적용
+		public static final String[] MEDIA_FILES = {"/media/files/**"};
+
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
 			whiteList.addAll(Arrays.stream(TEST_API).toList());
@@ -63,10 +66,10 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(LOCAL_LOGIN_API).toList());
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
-			// FILE_IO 제거 — /uploads 미동작, /media는 인증 필요
 			whiteList.addAll(Arrays.stream(ACTUATOR_HEALTH).toList());
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
+			whiteList.addAll(Arrays.stream(MEDIA_FILES).toList());
 			return whiteList;
 		}
 

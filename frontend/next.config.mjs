@@ -30,6 +30,10 @@ const nextConfig = {
         source: '/login/:path*',
         destination: `${process.env.API_URL ?? 'http://localhost:8080'}/login/:path*`,
       },
+      {
+        source: '/media/:path*',
+        destination: `${process.env.API_URL ?? 'http://localhost:8080'}/media/:path*`,
+      },
     ]
   },
   images: {
