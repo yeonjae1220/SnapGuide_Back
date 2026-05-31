@@ -4,6 +4,7 @@ metadata:
   name: snapguide-uploads-pvc
   namespace: snapguide
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
