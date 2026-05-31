@@ -15,6 +15,7 @@ const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-display',
   weight: ['700', '800'],
+  preload: false,
 })
 
 const BASE_URL = 'https://snapguide.mungji.com'

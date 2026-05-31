@@ -9,6 +9,11 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  async redirects() {
+    return [
+      { source: '/favicon.ico', destination: '/icon', permanent: false },
+    ]
+  },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
