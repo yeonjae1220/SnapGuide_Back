@@ -38,9 +38,10 @@ public final class SecurityConstants {
 		// - /media/** API는 SecurityConfig에서 인증 필요로 처리
 		// public static final String[] FILE_IO = {"/uploads/**", "/media/**"};
 
-		// FAIL fix: /actuator/** 를 JWT 화이트리스트에서 제거
-		// SecurityConfig에서 health만 허용, 나머지는 ADMIN 전용으로 처리
-		// public static final String[] ACTUATOR = {"/actuator/**"};
+		// k8s probe 경로만 JWT 필터 우회 — JWT 필터가 Spring Security permitAll()보다 먼저 실행되므로
+		// /actuator/health/liveness, /readiness 에 토큰 없이 접근 가능해야 한다
+		// /actuator/** 전체가 아닌 health 하위 경로만 허용 (metrics 등 노출 방지)
+		public static final String[] ACTUATOR_HEALTH = {"/actuator/health", "/actuator/health/**"};
 
 		public static final String[] LOCATION_API = {"/location/api/places/**"};
 
@@ -63,7 +64,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(OAUTH_API).toList());
 			whiteList.addAll(Arrays.stream(DEV_TOOL).toList());
 			// FILE_IO 제거 — /uploads 미동작, /media는 인증 필요
-			// ACTUATOR 제거 — SecurityConfig에서 명시적으로 처리
+			whiteList.addAll(Arrays.stream(ACTUATOR_HEALTH).toList());
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
 			return whiteList;
