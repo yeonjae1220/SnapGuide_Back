@@ -125,15 +125,13 @@ spec:
             - name: uploads
               mountPath: /app/uploads
           readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 5
           livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 90
             periodSeconds: 15
