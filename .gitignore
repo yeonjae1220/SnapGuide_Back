@@ -61,9 +61,10 @@ CLAUDE.md
 PR_SUMMARY.md
 LOAD_TEST_QUICKSTART.md
 
-### Exclude all .md except GitHub templates ###
+### Exclude all .md except GitHub templates and project docs ###
 *.md
 !.github/**/*.md
+!docs/**/*.md
 
 ### Load Test Data ###
 src/main/resources/load-test-data/*.csv
