@@ -53,6 +53,11 @@ export default function FeedPage() {
     api.get('/api/maps/key').then(({ data }) => setMapsKey(data.key ?? data))
   }, [accessToken, mapsKey])
 
+  // 맵 초기화와 무관하게 초기 가이드 로딩
+  useEffect(() => {
+    fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+  }, [fetchGuides])
+
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return
     const map = new window.google.maps.Map(mapRef.current, {
@@ -62,8 +67,7 @@ export default function FeedPage() {
       zoomControl: true,
     })
     googleMapRef.current = map
-    fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
-  }, [fetchGuides])
+  }, [])
 
   useEffect(() => {
     if (mapsReady) initMap()

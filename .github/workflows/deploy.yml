@@ -172,6 +172,7 @@ jobs:
       - name: Apply k8s manifests
         run: |
           sudo kubectl apply -f k8s/network-policy.yaml -n snapguide
+          sudo kubectl apply -f k8s/ingress.yaml -n snapguide
           sudo kubectl apply -f k8s/backend.yaml -n snapguide
           sudo kubectl apply -f k8s/frontend.yaml -n snapguide
 

@@ -62,6 +62,13 @@ spec:
                 name: backend
                 port:
                   number: 8080
+          - path: /media
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
           # Next.js: 그 외 모든 경로
           - path: /
             pathType: Prefix
