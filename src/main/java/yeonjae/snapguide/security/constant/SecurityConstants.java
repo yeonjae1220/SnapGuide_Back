@@ -15,14 +15,14 @@ public final class SecurityConstants {
 
 	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class AuthenticationWhiteList {
-		public static final String[] TEST_API = {"/test/**", "/api/auth/reissue"}; // "/api/auth/test"
+		public static final String[] TEST_API = {"/test/**"}; // "/api/auth/test"
 		// 비인증 공개 접근 허용 가이드 엔드포인트 (JWT 처리 대상에서 제외)
 		public static final String[] GUIDE_PUBLIC_API = {"/guide/api/nearby"};
 		public static final String[] SWAGGER_V3 = {"/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/swagger-ui.html", "/swagger-ui-custom.html"};
 
-		public static final String[] AUTH_API = {"/api-docs", "/api-docs/**", "/graphiql", "/graphql"}; // "/api/**", "/api/auth/**",
+		public static final String[] AUTH_API = {"/api-docs", "/api-docs/**"}; // "/api/**", "/api/auth/**",
 
-		public static final String[] USER_API = {"/api/user/members/check", "/api/user/members/register", "/api/user/members/login", "/login", "/index.html", "/", "/test-api.html", "/admin.html", "/admin"};
+		public static final String[] USER_API = {"/login", "/index.html", "/", "/test-api.html", "/admin.html", "/admin"};
 		public static final String[] LOCAL_LOGIN_API = {"/api/auth/signup", "/api/auth/login", "/api/auth/reissue", "/api/auth/google/token", "/api/auth/oauth/token"};
 
 		public static final String[] OAUTH_API = {"/oauth-login/admin", "/oauth-login/info", "/oauth/**", "/oauth-login/**", "/login", "/signup", "/oauth2/**", "/oauth2/redirect", "/error"};

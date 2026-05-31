@@ -196,7 +196,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.TEST_API)
+                            .access((a, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(isDevProfile()))
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.GUIDE_PUBLIC_API).permitAll()
                         // Swagger: local/test 프로파일에서만 허용
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.SWAGGER_V3)
