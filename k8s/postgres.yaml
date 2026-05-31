@@ -4,6 +4,7 @@ metadata:
   name: snapguide-postgres-pvc
   namespace: snapguide
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:

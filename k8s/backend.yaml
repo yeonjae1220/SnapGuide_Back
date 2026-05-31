@@ -83,6 +83,11 @@ spec:
                 secretKeyRef:
                   name: snapguide-secret
                   key: GOOGLE_MAPS_API_KEY
+            - name: GOOGLE_MAPS_GEOCODING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: snapguide-secret
+                  key: GOOGLE_MAPS_GEOCODING_API_KEY
             - name: CLOUD_AWS_CREDENTIALS_ACCESS-KEY
               valueFrom:
                 secretKeyRef:
