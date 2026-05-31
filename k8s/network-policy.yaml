@@ -45,7 +45,7 @@ spec:
         - port: 53
           protocol: TCP
 ---
-# ingress-nginx → backend
+# ingress-nginx + frontend → backend
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -62,6 +62,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app: frontend
       ports:
         - port: 8080
 ---

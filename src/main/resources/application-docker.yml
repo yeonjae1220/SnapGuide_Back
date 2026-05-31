@@ -65,6 +65,23 @@ storage:
   local:
     base-dir: /app/uploads/
 
+management:
+  health:
+    probes:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState, db, redis
+
 logging:
   level:
     root: INFO
