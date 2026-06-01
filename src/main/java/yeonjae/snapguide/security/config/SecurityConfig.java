@@ -213,6 +213,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").hasAuthority("ADMIN")
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCATION_API).permitAll()
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.PWA_PUBLIC).permitAll()
+                        .requestMatchers(SecurityConstants.AuthenticationWhiteList.MAPS_PUBLIC).permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )

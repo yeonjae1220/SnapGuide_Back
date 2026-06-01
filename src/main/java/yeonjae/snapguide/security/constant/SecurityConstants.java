@@ -56,6 +56,9 @@ public final class SecurityConstants {
 		// 파일명이 UUID라 추측 불가능, S3 presigned URL로 리다이렉트되어 10분 만료 적용
 		public static final String[] MEDIA_FILES = {"/media/files/**"};
 
+		// IP 지오로케이션 프록시 — 로그인 전 위치 폴백에 사용
+		public static final String[] MAPS_PUBLIC = {"/api/maps/location"};
+
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
 			whiteList.addAll(Arrays.stream(TEST_API).toList());
@@ -70,6 +73,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(LOCATION_API).toList());
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
 			whiteList.addAll(Arrays.stream(MEDIA_FILES).toList());
+			whiteList.addAll(Arrays.stream(MAPS_PUBLIC).toList());
 			return whiteList;
 		}
 

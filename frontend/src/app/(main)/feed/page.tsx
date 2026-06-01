@@ -19,9 +19,9 @@ const DEFAULT_LAT = 37.5665
 const DEFAULT_LNG = 126.978
 const DEFAULT_RADIUS = 3
 const MAX_RADIUS = 100
-// 줌이 이보다 낮으면(너무 멀리 보면) 자동 재조회를 건너뛴다.
 const MIN_AUTO_REFETCH_ZOOM = 9
 const DEG_TO_KM = 111
+const GPS_TIMEOUT_MS = 3000
 
 const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#1d1f24' }] },
@@ -37,8 +37,12 @@ const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#111d2a' }] },
 ]
 
-// 캐시 적중률을 높이려고 좌표를 소수 3자리로 반올림한다.
 const round3 = (n: number) => Math.round(n * 1000) / 1000
+
+// 모듈 스코프 상수: 콜백 이름 충돌 방지 및 렌더 간 안정적 참조
+const MAPS_CALLBACK_NAME = '__snapguideMapsReady'
+
+type FetchError = 'network' | null
 
 export default function FeedPage() {
   const { t } = useI18n()
@@ -50,7 +54,6 @@ export default function FeedPage() {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mapsKey, setMapsKey] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
-  const callbackName = '__snapguideMapsReady'
 
   const latRef = useRef(DEFAULT_LAT)
   const lngRef = useRef(DEFAULT_LNG)
@@ -62,10 +65,10 @@ export default function FeedPage() {
   const [selected, setSelected] = useState<Guide | null>(null)
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<FetchError>(null)
   const [searchInput, setSearchInput] = useState('')
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([])
 
-  // 터치 기기에서는 hover가 없으므로 카드 hover 연동을 비활성화한다.
   const canHoverRef = useRef(false)
   const prefersReducedRef = useRef(false)
   useEffect(() => {
@@ -73,7 +76,6 @@ export default function FeedPage() {
     prefersReducedRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, [])
 
-  // 경쟁 상태 방지: 새 요청 시 직전 요청 취소
   const abortRef = useRef<AbortController | null>(null)
   const lastQueryRef = useRef('')
 
@@ -91,6 +93,7 @@ export default function FeedPage() {
       abortRef.current = controller
 
       setLoading(true)
+      setFetchError(null)
       try {
         const { data } = await api.get(
           `/guide/api/nearby?lat=${rLat}&lng=${rLng}&radius=${rRadius}`,
@@ -99,9 +102,9 @@ export default function FeedPage() {
         setGuides(data)
       } catch (err) {
         if (axios.isCancel(err)) return
-        // 실제 실패 시 좌표 키를 초기화해 재진입 시 재조회를 허용한다.
         lastQueryRef.current = ''
         setGuides([])
+        setFetchError('network')
       } finally {
         if (abortRef.current === controller) {
           setLoading(false)
@@ -112,7 +115,6 @@ export default function FeedPage() {
     [],
   )
 
-  // reduced-motion이면 부드러운 panTo 대신 즉시 이동한다.
   const moveMapTo = useCallback((la: number, ln: number) => {
     const m = googleMapRef.current
     if (!m) return
@@ -137,16 +139,16 @@ export default function FeedPage() {
     [fetchGuides, moveMapTo],
   )
 
-  // 마운트 시 현재 위치 요청 → GPS 실패 시 IP 기반 → 모두 실패 시 서울 기본값
+  // 기본값(서울)으로 즉시 가이드 로딩 후 위치 확정되면 갱신
   useEffect(() => {
+    fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+
     const fallbackToIp = () =>
-      fetch('https://ipapi.co/json/')
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.latitude && d.longitude) applyLocation(d.latitude, d.longitude)
-          else fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+      api.get('/api/maps/location')
+        .then(({ data }) => {
+          if (data?.lat && data?.lng) applyLocation(data.lat, data.lng)
         })
-        .catch(() => fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS))
+        .catch(() => {})
 
     if (!navigator.geolocation) {
       fallbackToIp()
@@ -155,12 +157,19 @@ export default function FeedPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => applyLocation(coords.latitude, coords.longitude),
       () => fallbackToIp(),
-      { timeout: 5000, maximumAge: 60000 },
+      { timeout: GPS_TIMEOUT_MS, maximumAge: 60000 },
     )
-  }, [applyLocation, fetchGuides])
+  // applyLocation은 마운트 후 변경되지 않으므로 의도적으로 deps에서 제외
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return
+    if (googleMapRef.current) {
+      // 재진입(탭 복귀) 시 이미 초기화된 맵을 재사용하고 리사이즈만 트리거
+      google.maps.event.trigger(googleMapRef.current, 'resize')
+      return
+    }
     const m = new window.google.maps.Map(mapRef.current, {
       center: { lat: latRef.current, lng: lngRef.current },
       zoom: 13,
@@ -173,16 +182,34 @@ export default function FeedPage() {
   }, [theme])
 
   useEffect(() => {
-    // loading=async 경고 제거: onLoad 대신 callback 패턴 사용
-    ;(window as unknown as Record<string, unknown>)[callbackName] = () => setMapsReady(true)
+    // loading=async 콜백 패턴: SDK 로드 완료 시 호출됨
+    // 콜백 등록을 Script 삽입 전 useEffect에서 처리하므로 race condition 없음
+    ;(window as unknown as Record<string, unknown>)[MAPS_CALLBACK_NAME] = () => setMapsReady(true)
+
+    // SPA 리마운트 시 window.google이 이미 존재하면 콜백이 재발동하지 않으므로 직접 초기화
+    if (window.google?.maps) initMap()
+
     return () => {
-      delete (window as unknown as Record<string, unknown>)[callbackName]
+      delete (window as unknown as Record<string, unknown>)[MAPS_CALLBACK_NAME]
     }
-  }, [callbackName])
+  // initMap 참조는 theme 변경 시에만 바뀌며 맵 재생성 대신 setOptions로 처리하므로 안전
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (mapsReady) initMap()
   }, [mapsReady, initMap])
+
+  // 페이지 가시성 복귀 시 맵 리사이즈 (탭 전환 후 회색 타일 방지)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && googleMapRef.current) {
+        google.maps.event.trigger(googleMapRef.current, 'resize')
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   useEffect(() => {
     googleMapRef.current?.setOptions({
@@ -190,7 +217,6 @@ export default function FeedPage() {
     })
   }, [theme])
 
-  // 마커 렌더링 + 클러스터링 + hover/click 연동
   useGuideMarkers({
     map,
     guides,
@@ -200,14 +226,12 @@ export default function FeedPage() {
     onHover: setHighlightedId,
   })
 
-  // 마커 hover로 강조된 카드를 목록에서 보이도록 스크롤
   useEffect(() => {
     if (highlightedId == null) return
     const el = document.querySelector(`[data-guide-card="${highlightedId}"]`)
     el?.scrollIntoView({ block: 'nearest', behavior: prefersReducedRef.current ? 'auto' : 'smooth' })
   }, [highlightedId])
 
-  // 뷰포트 대각선으로부터 자동 반경(km) 계산
   const viewportRadiusKm = (m: google.maps.Map): number => {
     const bounds = m.getBounds()
     if (!bounds) return DEFAULT_RADIUS
@@ -219,12 +243,11 @@ export default function FeedPage() {
     return Math.min(Math.ceil(Math.max(latKm, lngKm) / 2), MAX_RADIUS)
   }
 
-  // 줌/이동이 끝난(idle) 뒤 디바운스 재조회
   const debouncedRefetch = useDebouncedCallback(() => {
     const m = googleMapRef.current
     if (!m) return
     const zoom = m.getZoom() ?? 0
-    if (zoom < MIN_AUTO_REFETCH_ZOOM) return // 너무 멀리 보면 skip
+    if (zoom < MIN_AUTO_REFETCH_ZOOM) return
     const center = m.getCenter()
     if (!center) return
     const la = center.lat()
@@ -248,11 +271,10 @@ export default function FeedPage() {
     navigator.geolocation?.getCurrentPosition(
       ({ coords }) => applyAndFetch(coords.latitude, coords.longitude),
       () =>
-        fetch('https://ipapi.co/json/')
-          .then((r) => r.json())
-          .then((d) => { if (d.latitude) applyAndFetch(d.latitude, d.longitude) })
+        api.get('/api/maps/location')
+          .then(({ data }) => { if (data?.lat) applyAndFetch(data.lat, data.lng) })
           .catch(() => {}),
-      { timeout: 5000 },
+      { timeout: GPS_TIMEOUT_MS },
     )
   }
 
@@ -268,11 +290,15 @@ export default function FeedPage() {
     if (m) fetchGuides(lat, lng, viewportRadiusKm(m))
   }
 
-  const handleSearch = (input: string) => {
-    setSearchInput(input)
+  const handleSearchInput = useDebouncedCallback((input: string) => {
     if (!input || !window.google) return setPredictions([])
     const svc = new window.google.maps.places.AutocompleteService()
     svc.getPlacePredictions({ input }, (results) => setPredictions(results ?? []))
+  }, 300)
+
+  const handleSearch = (input: string) => {
+    setSearchInput(input)
+    handleSearchInput(input)
   }
 
   const selectPrediction = (placeId: string) => {
@@ -301,7 +327,7 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${callbackName}`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${MAPS_CALLBACK_NAME}`}
           strategy="afterInteractive"
         />
       )}
@@ -315,6 +341,7 @@ export default function FeedPage() {
           <div
             role="status"
             aria-label={t('common.loading')}
+            aria-live="polite"
             className="pointer-events-none absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface/95 shadow-card backdrop-blur"
           >
             <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -346,6 +373,7 @@ export default function FeedPage() {
           </div>
           <button
             onClick={handleMyLocation}
+            aria-label={t('explore.myLocation')}
             className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-sm shadow-card backdrop-blur transition-colors hover:bg-surface-elevated"
           >
             📍
@@ -383,7 +411,9 @@ export default function FeedPage() {
 
       {/* guide list */}
       <div className="p-4">
-        {guides.length === 0 ? (
+        {fetchError === 'network' ? (
+          <p className="py-12 text-center text-sm text-danger">{t('common.error')}</p>
+        ) : guides.length === 0 && !loading ? (
           <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

@@ -55,6 +55,14 @@ public class RateLimiterService {
         check("rl:signup:ip:" + clientIp, signupLimit);
     }
 
+    /**
+     * IP 지오로케이션 rate limit 검사.
+     * IP 기준 20회/10분 — 외부 서비스(ipapi.co) 과금 및 DoS 방지.
+     */
+    public void checkLocationRate(String clientIp) {
+        check("rl:location:ip:" + clientIp, 20);
+    }
+
     private void check(String key, int limit) {
         Long count = redisTemplate.execute(
                 INCREMENT_SCRIPT,
