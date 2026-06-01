@@ -35,9 +35,11 @@ type Props = {
   guide: Guide
   onOpen: (g: Guide) => void
   onDeleted?: (id: number) => void
+  onHover?: (id: number | null) => void
+  highlighted?: boolean
 }
 
-export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
+export function GuideCard({ guide: initial, onOpen, onDeleted, onHover, highlighted }: Props) {
   const { t } = useI18n()
   const { accessToken, email } = useAuthStore()
   const [guide, setGuide] = useState(initial)
@@ -89,8 +91,13 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
 
   return (
     <div
+      data-guide-card={guide.id}
       onClick={() => onOpen(guide)}
-      className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-accent/30"
+      onMouseEnter={() => onHover?.(guide.id)}
+      onMouseLeave={() => onHover?.(null)}
+      className={`cursor-pointer overflow-hidden rounded-2xl border bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 ${
+        highlighted ? '-translate-y-0.5 border-accent ring-2 ring-accent/30' : 'border-line hover:border-accent/30'
+      }`}
     >
       {firstImg && (
         <div className="relative aspect-[4/3] bg-surface-muted">
