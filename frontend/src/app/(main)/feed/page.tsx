@@ -24,6 +24,8 @@ export default function FeedPage() {
   const [mapsKey, setMapsKey] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
 
+  const latRef = useRef(DEFAULT_LAT)
+  const lngRef = useRef(DEFAULT_LNG)
   const [lat, setLat] = useState(DEFAULT_LAT)
   const [lng, setLng] = useState(DEFAULT_LNG)
   const [radius, setRadius] = useState(DEFAULT_RADIUS)
@@ -53,15 +55,36 @@ export default function FeedPage() {
     api.get('/api/maps/key').then(({ data }) => setMapsKey(data.apiKey))
   }, [accessToken, mapsKey])
 
-  // 맵 초기화와 무관하게 초기 가이드 로딩
+  // 마운트 시 현재 위치 요청 → 성공하면 그 좌표로, 실패하면 서울 기본값으로 가이드 로드
   useEffect(() => {
-    fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+    if (!navigator.geolocation) {
+      fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const la = coords.latitude
+        const ln = coords.longitude
+        latRef.current = la
+        lngRef.current = ln
+        setLat(la)
+        setLng(ln)
+        googleMapRef.current?.panTo({ lat: la, lng: ln })
+        fetchGuides(la, ln, DEFAULT_RADIUS)
+      },
+      () => {
+        // 위치 권한 거부 또는 실패 → 서울 기본값
+        fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+      },
+      { timeout: 8000 },
+    )
   }, [fetchGuides])
 
-  const initMap = useCallback(() => {
+  const initMap = useCallback(async () => {
     if (!mapRef.current || !window.google) return
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: DEFAULT_LAT, lng: DEFAULT_LNG },
+    const { Map } = (await window.google.maps.importLibrary('maps')) as { Map: typeof google.maps.Map }
+    const map = new Map(mapRef.current, {
+      center: { lat: latRef.current, lng: lngRef.current },
       zoom: 13,
       disableDefaultUI: true,
       zoomControl: true,
@@ -74,14 +97,20 @@ export default function FeedPage() {
   }, [mapsReady, initMap])
 
   const handleMyLocation = () => {
-    navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      const la = coords.latitude
-      const ln = coords.longitude
-      setLat(la)
-      setLng(ln)
-      googleMapRef.current?.panTo({ lat: la, lng: ln })
-      fetchGuides(la, ln, radius)
-    })
+    navigator.geolocation?.getCurrentPosition(
+      ({ coords }) => {
+        const la = coords.latitude
+        const ln = coords.longitude
+        latRef.current = la
+        lngRef.current = ln
+        setLat(la)
+        setLng(ln)
+        googleMapRef.current?.panTo({ lat: la, lng: ln })
+        fetchGuides(la, ln, radius)
+      },
+      undefined,
+      { timeout: 8000 },
+    )
   }
 
   const handleRadiusChange = (r: number) => {
@@ -92,18 +121,21 @@ export default function FeedPage() {
   const handleSearch = async (input: string) => {
     setSearchInput(input)
     if (!input || !window.google) return setPredictions([])
-    const svc = new window.google.maps.places.AutocompleteService()
+    const { AutocompleteService } = (await window.google.maps.importLibrary('places')) as { AutocompleteService: typeof google.maps.places.AutocompleteService }
+    const svc = new AutocompleteService()
     svc.getPlacePredictions({ input }, (results) => setPredictions(results ?? []))
   }
 
-  const selectPrediction = (placeId: string) => {
-    const svc = new window.google.maps.places.PlacesService(
-      googleMapRef.current!,
-    )
+  const selectPrediction = async (placeId: string) => {
+    if (!googleMapRef.current) return
+    const { PlacesService } = (await window.google.maps.importLibrary('places')) as { PlacesService: typeof google.maps.places.PlacesService }
+    const svc = new PlacesService(googleMapRef.current)
     svc.getDetails({ placeId }, (place) => {
       if (!place?.geometry?.location) return
       const la = place.geometry.location.lat()
       const ln = place.geometry.location.lng()
+      latRef.current = la
+      lngRef.current = ln
       setLat(la)
       setLng(ln)
       googleMapRef.current?.panTo({ lat: la, lng: ln })
@@ -117,7 +149,7 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async`}
           onLoad={() => setMapsReady(true)}
         />
       )}
