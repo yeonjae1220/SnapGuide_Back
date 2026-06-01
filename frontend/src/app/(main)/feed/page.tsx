@@ -101,6 +101,7 @@ export default function FeedPage() {
         )
         setGuides(data)
       } catch (err) {
+        // 취소는 정상 종료 — 로딩 상태는 새 요청이 담당하므로 여기서 처리하지 않음
         if (axios.isCancel(err)) return
         lastQueryRef.current = ''
         setGuides([])
@@ -267,12 +268,11 @@ export default function FeedPage() {
   }, [map, debouncedRefetch])
 
   const handleMyLocation = () => {
-    const applyAndFetch = (la: number, ln: number) => applyLocation(la, ln)
     navigator.geolocation?.getCurrentPosition(
-      ({ coords }) => applyAndFetch(coords.latitude, coords.longitude),
+      ({ coords }) => applyLocation(coords.latitude, coords.longitude),
       () =>
         api.get('/api/maps/location')
-          .then(({ data }) => { if (data?.lat) applyAndFetch(data.lat, data.lng) })
+          .then(({ data }) => { if (data?.lat) applyLocation(data.lat, data.lng) })
           .catch(() => {}),
       { timeout: GPS_TIMEOUT_MS },
     )
@@ -291,13 +291,17 @@ export default function FeedPage() {
   }
 
   const handleSearchInput = useDebouncedCallback((input: string) => {
-    if (!input || !window.google) return setPredictions([])
+    if (!window.google) return
     const svc = new window.google.maps.places.AutocompleteService()
     svc.getPlacePredictions({ input }, (results) => setPredictions(results ?? []))
   }, 300)
 
   const handleSearch = (input: string) => {
     setSearchInput(input)
+    if (!input) {
+      setPredictions([])  // 검색어 비울 때 즉시 닫기 (디바운스 건너뜀)
+      return
+    }
     handleSearchInput(input)
   }
 
@@ -350,18 +354,23 @@ export default function FeedPage() {
 
         {/* controls */}
         <div className="absolute left-3 right-3 top-3 flex gap-2">
-          <div className="relative flex-1">
+          <div className="relative flex-1" role="combobox" aria-expanded={predictions.length > 0} aria-haspopup="listbox" aria-owns="place-predictions">
             <input
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder={t('explore.searchPlaceholder')}
+              aria-label={t('explore.searchPlaceholder')}
+              aria-autocomplete="list"
+              aria-controls="place-predictions"
               className="w-full rounded-xl border border-line bg-surface/95 px-4 py-2 text-sm text-ink shadow-card outline-none backdrop-blur transition-colors duration-200 placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
             />
             {predictions.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-line bg-surface-elevated shadow-card">
+              <ul id="place-predictions" role="listbox" aria-label={t('explore.searchPlaceholder')} className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-line bg-surface-elevated shadow-card">
                 {predictions.map((p) => (
                   <li
                     key={p.place_id}
+                    role="option"
+                    aria-selected={false}
                     onClick={() => selectPrediction(p.place_id)}
                     className="cursor-pointer px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted"
                   >

@@ -38,6 +38,9 @@ public class RateLimiterService {
     @Value("${snapguide.rate-limit.window-seconds:600}")
     private int windowSeconds;
 
+    @Value("${snapguide.rate-limit.location-limit:20}")
+    private int locationLimit;
+
     /**
      * 로그인 rate limit 검사.
      * IP 기준 10회/10분, 이메일 기준 30회/10분.
@@ -60,7 +63,7 @@ public class RateLimiterService {
      * IP 기준 20회/10분 — 외부 서비스(ipapi.co) 과금 및 DoS 방지.
      */
     public void checkLocationRate(String clientIp) {
-        check("rl:location:ip:" + clientIp, 20);
+        check("rl:location:ip:" + clientIp, locationLimit);
     }
 
     private void check(String key, int limit) {

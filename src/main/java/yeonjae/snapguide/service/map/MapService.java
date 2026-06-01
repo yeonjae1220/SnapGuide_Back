@@ -1,13 +1,11 @@
 package yeonjae.snapguide.service.map;
 
-import io.netty.channel.ChannelOption;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
 import yeonjae.snapguide.service.config.GoogleMapsConfig;
 
 import java.time.Duration;
@@ -21,13 +19,8 @@ public class MapService {
 
     private final GoogleMapsConfig googleMapsConfig;
 
-    private static final WebClient IPAPI_CLIENT = WebClient.builder()
-            .baseUrl("https://ipapi.co")
-            .clientConnector(new ReactorClientHttpConnector(
-                    HttpClient.create()
-                            .responseTimeout(Duration.ofSeconds(3))
-                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)))
-            .build();
+    @Qualifier("ipapiWebClient")
+    private final WebClient ipapiWebClient;
 
     public Map<String, String> getGoogleMapsApiKey() {
         return Map.of("apiKey", googleMapsConfig.getKey());
@@ -41,7 +34,7 @@ public class MapService {
             return Optional.empty();
         }
         try {
-            IpapiResponse body = IPAPI_CLIENT.get()
+            IpapiResponse body = ipapiWebClient.get()
                     .uri("/{ip}/json/", ip)
                     .retrieve()
                     .bodyToMono(IpapiResponse.class)
