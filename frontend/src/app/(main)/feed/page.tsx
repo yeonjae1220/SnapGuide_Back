@@ -80,10 +80,9 @@ export default function FeedPage() {
     )
   }, [fetchGuides])
 
-  const initMap = useCallback(async () => {
+  const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return
-    const { Map } = (await window.google.maps.importLibrary('maps')) as { Map: typeof google.maps.Map }
-    const map = new Map(mapRef.current, {
+    const map = new window.google.maps.Map(mapRef.current, {
       center: { lat: latRef.current, lng: lngRef.current },
       zoom: 13,
       disableDefaultUI: true,
@@ -118,18 +117,16 @@ export default function FeedPage() {
     fetchGuides(lat, lng, r)
   }
 
-  const handleSearch = async (input: string) => {
+  const handleSearch = (input: string) => {
     setSearchInput(input)
     if (!input || !window.google) return setPredictions([])
-    const { AutocompleteService } = (await window.google.maps.importLibrary('places')) as { AutocompleteService: typeof google.maps.places.AutocompleteService }
-    const svc = new AutocompleteService()
+    const svc = new window.google.maps.places.AutocompleteService()
     svc.getPlacePredictions({ input }, (results) => setPredictions(results ?? []))
   }
 
-  const selectPrediction = async (placeId: string) => {
+  const selectPrediction = (placeId: string) => {
     if (!googleMapRef.current) return
-    const { PlacesService } = (await window.google.maps.importLibrary('places')) as { PlacesService: typeof google.maps.places.PlacesService }
-    const svc = new PlacesService(googleMapRef.current)
+    const svc = new window.google.maps.places.PlacesService(googleMapRef.current)
     svc.getDetails({ placeId }, (place) => {
       if (!place?.geometry?.location) return
       const la = place.geometry.location.lat()
@@ -149,7 +146,7 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`}
           onLoad={() => setMapsReady(true)}
         />
       )}
