@@ -23,6 +23,7 @@ export default function FeedPage() {
   const googleMapRef = useRef<google.maps.Map | null>(null)
   const [mapsKey, setMapsKey] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
+  const callbackName = '__snapguideMapsReady'
 
   const latRef = useRef(DEFAULT_LAT)
   const lngRef = useRef(DEFAULT_LNG)
@@ -55,30 +56,39 @@ export default function FeedPage() {
     api.get('/api/maps/key').then(({ data }) => setMapsKey(data.apiKey))
   }, [accessToken, mapsKey])
 
-  // 마운트 시 현재 위치 요청 → 성공하면 그 좌표로, 실패하면 서울 기본값으로 가이드 로드
+  const applyLocation = useCallback(
+    (la: number, ln: number) => {
+      latRef.current = la
+      lngRef.current = ln
+      setLat(la)
+      setLng(ln)
+      googleMapRef.current?.panTo({ lat: la, lng: ln })
+      fetchGuides(la, ln, DEFAULT_RADIUS)
+    },
+    [fetchGuides],
+  )
+
+  // 마운트 시 현재 위치 요청 → GPS 실패 시 IP 기반 → 모두 실패 시 서울 기본값
   useEffect(() => {
+    const fallbackToIp = () =>
+      fetch('https://ipapi.co/json/')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.latitude && d.longitude) applyLocation(d.latitude, d.longitude)
+          else fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+        })
+        .catch(() => fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS))
+
     if (!navigator.geolocation) {
-      fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
+      fallbackToIp()
       return
     }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const la = coords.latitude
-        const ln = coords.longitude
-        latRef.current = la
-        lngRef.current = ln
-        setLat(la)
-        setLng(ln)
-        googleMapRef.current?.panTo({ lat: la, lng: ln })
-        fetchGuides(la, ln, DEFAULT_RADIUS)
-      },
-      () => {
-        // 위치 권한 거부 또는 실패 → 서울 기본값
-        fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
-      },
-      { timeout: 8000 },
+      ({ coords }) => applyLocation(coords.latitude, coords.longitude),
+      () => fallbackToIp(),
+      { timeout: 5000, maximumAge: 60000 },
     )
-  }, [fetchGuides])
+  }, [applyLocation, fetchGuides])
 
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google) return
@@ -92,23 +102,35 @@ export default function FeedPage() {
   }, [])
 
   useEffect(() => {
+    // loading=async 경고 제거: onLoad 대신 callback 패턴 사용
+    ;(window as unknown as Record<string, unknown>)[callbackName] = () => setMapsReady(true)
+    return () => {
+      delete (window as unknown as Record<string, unknown>)[callbackName]
+    }
+  }, [callbackName])
+
+  useEffect(() => {
     if (mapsReady) initMap()
   }, [mapsReady, initMap])
 
   const handleMyLocation = () => {
+    const applyAndFetch = (la: number, ln: number) => {
+      latRef.current = la
+      lngRef.current = ln
+      setLat(la)
+      setLng(ln)
+      googleMapRef.current?.panTo({ lat: la, lng: ln })
+      fetchGuides(la, ln, radius)
+    }
+
     navigator.geolocation?.getCurrentPosition(
-      ({ coords }) => {
-        const la = coords.latitude
-        const ln = coords.longitude
-        latRef.current = la
-        lngRef.current = ln
-        setLat(la)
-        setLng(ln)
-        googleMapRef.current?.panTo({ lat: la, lng: ln })
-        fetchGuides(la, ln, radius)
-      },
-      undefined,
-      { timeout: 8000 },
+      ({ coords }) => applyAndFetch(coords.latitude, coords.longitude),
+      () =>
+        fetch('https://ipapi.co/json/')
+          .then((r) => r.json())
+          .then((d) => { if (d.latitude) applyAndFetch(d.latitude, d.longitude) })
+          .catch(() => {}),
+      { timeout: 5000 },
     )
   }
 
@@ -146,8 +168,8 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`}
-          onLoad={() => setMapsReady(true)}
+          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${callbackName}`}
+          strategy="afterInteractive"
         />
       )}
 
