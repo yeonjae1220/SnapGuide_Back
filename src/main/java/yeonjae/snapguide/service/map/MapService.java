@@ -45,7 +45,7 @@ public class MapService {
             }
             return Optional.of(new LocationResponse(body.latitude(), body.longitude()));
         } catch (Exception e) {
-            log.warn("IP geolocation failed for ip={}: {}", ip, e.getMessage());
+            log.warn("IP geolocation failed: {}", e.getMessage());
             return Optional.empty();
         }
     }

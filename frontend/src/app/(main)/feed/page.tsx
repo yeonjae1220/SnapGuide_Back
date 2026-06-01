@@ -331,6 +331,7 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
+          nonce={document.body.dataset.nonce}
           src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${MAPS_CALLBACK_NAME}`}
           strategy="afterInteractive"
         />
