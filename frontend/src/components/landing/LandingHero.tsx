@@ -6,7 +6,7 @@ export function LandingHero() {
   const { t } = useI18n()
 
   return (
-    <div className="relative hidden flex-1 flex-col justify-center overflow-hidden bg-black px-14 py-20 lg:flex">
+    <div className="relative hidden flex-1 flex-col justify-center overflow-hidden bg-[#0b0b0d] px-14 py-20 lg:flex">
       {/* gradient orbs */}
       <div className="pointer-events-none absolute -right-32 -top-32 h-[560px] w-[560px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(240,148,51,.45)_0%,rgba(188,24,136,.2)_55%,transparent_72%)]" />
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(0,149,246,.3)_0%,rgba(204,35,102,.18)_55%,transparent_72%)]" />
@@ -28,7 +28,7 @@ export function LandingHero() {
               <span className="mt-0.5 text-2xl">{icon}</span>
               <div>
                 <div className="font-semibold text-white">{t(titleKey)}</div>
-                <div className="text-sm text-gray-400">{t(descKey)}</div>
+                <div className="text-sm text-zinc-400">{t(descKey)}</div>
               </div>
             </li>
           ))}

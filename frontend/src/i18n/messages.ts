@@ -58,6 +58,9 @@ type MessageKey =
   | 'common.cancel'
   | 'common.error'
   | 'settings.uiLanguage'
+  | 'settings.appearance'
+  | 'settings.themeLight'
+  | 'settings.themeDark'
 
 export type MessageKeyType = MessageKey
 
@@ -121,6 +124,9 @@ export const messages: Record<UiLanguage, Messages> = {
     'common.cancel': '취소',
     'common.error': '오류가 발생했습니다.',
     'settings.uiLanguage': '언어',
+    'settings.appearance': '화면 모드',
+    'settings.themeLight': '라이트',
+    'settings.themeDark': '다크',
   },
   en: {
     'nav.explore': 'Explore',
@@ -179,6 +185,9 @@ export const messages: Record<UiLanguage, Messages> = {
     'common.cancel': 'Cancel',
     'common.error': 'Something went wrong.',
     'settings.uiLanguage': 'Language',
+    'settings.appearance': 'Appearance',
+    'settings.themeLight': 'Light',
+    'settings.themeDark': 'Dark',
   },
   ja: {
     'nav.explore': '探索',
@@ -237,6 +246,9 @@ export const messages: Record<UiLanguage, Messages> = {
     'common.cancel': 'キャンセル',
     'common.error': 'エラーが発生しました。',
     'settings.uiLanguage': '言語',
+    'settings.appearance': '表示モード',
+    'settings.themeLight': 'ライト',
+    'settings.themeDark': 'ダーク',
   },
   zh: {
     'nav.explore': '探索',
@@ -295,6 +307,9 @@ export const messages: Record<UiLanguage, Messages> = {
     'common.cancel': '取消',
     'common.error': '发生错误。',
     'settings.uiLanguage': '语言',
+    'settings.appearance': '显示模式',
+    'settings.themeLight': '浅色',
+    'settings.themeDark': '深色',
   },
 }
 

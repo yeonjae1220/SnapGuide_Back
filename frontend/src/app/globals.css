@@ -3,23 +3,64 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
   --ig: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-  --bg: #fafafa;
-  --white: #ffffff;
-  --black: #0a0a0a;
-  --text: #262626;
-  --gray: #8e8e8e;
-  --border: #dbdbdb;
-  --blue: #0095f6;
-  --red: #ed4956;
+  --color-bg: 250 250 250;
+  --color-surface: 255 255 255;
+  --color-surface-elevated: 255 255 255;
+  --color-surface-muted: 245 245 246;
+  --color-ink: 32 32 36;
+  --color-muted: 96 96 108;
+  --color-subtle: 142 142 151;
+  --color-line: 222 222 226;
+  --color-field: 255 255 255;
+  --color-accent: 219 39 119;
+  --color-accent-soft: 253 242 248;
+  --color-danger: 225 29 72;
+  --color-danger-soft: 255 241 242;
+  --color-success: 22 163 74;
+  --color-success-soft: 240 253 244;
+  --color-overlay: 8 8 10;
+  --shadow-card: 0 14px 34px rgba(15, 15, 18, 0.07);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --ig: linear-gradient(45deg, #f5a35a 0%, #f06a4d 25%, #e04463 50%, #d63b83 75%, #c64aa4 100%);
+  --color-bg: 14 15 18;
+  --color-surface: 24 25 30;
+  --color-surface-elevated: 31 32 38;
+  --color-surface-muted: 39 40 48;
+  --color-ink: 245 245 247;
+  --color-muted: 178 178 188;
+  --color-subtle: 130 131 143;
+  --color-line: 58 59 68;
+  --color-field: 20 21 26;
+  --color-accent: 244 114 182;
+  --color-accent-soft: 72 28 57;
+  --color-danger: 251 113 133;
+  --color-danger-soft: 76 30 42;
+  --color-success: 74 222 128;
+  --color-success-soft: 24 58 40;
+  --color-overlay: 0 0 0;
+  --shadow-card: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
 html,
 body {
-  background: var(--bg);
-  color: var(--text);
+  min-height: 100%;
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-ink));
   font-family: 'DM Sans', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+::selection {
+  background: rgb(var(--color-accent) / 0.2);
 }
 
 .ig-text {

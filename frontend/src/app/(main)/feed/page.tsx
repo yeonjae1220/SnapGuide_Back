@@ -9,14 +9,30 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { useI18n } from '@/i18n/I18nProvider'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDetailModal } from '@/components/GuideDetailModal'
+import { useTheme } from '@/theme/ThemeProvider'
 import type { Guide } from '@/lib/types'
 
 const DEFAULT_LAT = 37.5665
 const DEFAULT_LNG = 126.978
 const DEFAULT_RADIUS = 3
 
+const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#1d1f24' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#c9c9d2' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1f24' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3b44' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#181a1f' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#24262d' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#17251c' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#30323a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#202229' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#252832' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#111d2a' }] },
+]
+
 export default function FeedPage() {
   const { t } = useI18n()
+  const { theme } = useTheme()
   const accessToken = useAuthStore((s) => s.accessToken)
 
   const mapRef = useRef<HTMLDivElement>(null)
@@ -97,9 +113,10 @@ export default function FeedPage() {
       zoom: 13,
       disableDefaultUI: true,
       zoomControl: true,
+      styles: theme === 'dark' ? DARK_MAP_STYLES : undefined,
     })
     googleMapRef.current = map
-  }, [])
+  }, [theme])
 
   useEffect(() => {
     // loading=async 경고 제거: onLoad 대신 callback 패턴 사용
@@ -112,6 +129,12 @@ export default function FeedPage() {
   useEffect(() => {
     if (mapsReady) initMap()
   }, [mapsReady, initMap])
+
+  useEffect(() => {
+    googleMapRef.current?.setOptions({
+      styles: theme === 'dark' ? DARK_MAP_STYLES : undefined,
+    })
+  }, [theme])
 
   const handleMyLocation = () => {
     const applyAndFetch = (la: number, ln: number) => {
@@ -175,7 +198,7 @@ export default function FeedPage() {
 
       <div className="relative">
         {/* map */}
-        <div ref={mapRef} className="h-[45vh] w-full bg-gray-100" />
+        <div ref={mapRef} className="h-[45vh] w-full bg-surface-muted transition-colors duration-200" />
 
         {/* controls */}
         <div className="absolute left-3 right-3 top-3 flex gap-2">
@@ -184,15 +207,15 @@ export default function FeedPage() {
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder={t('explore.searchPlaceholder')}
-              className="w-full rounded-xl bg-white px-4 py-2 text-sm shadow outline-none"
+              className="w-full rounded-xl border border-line bg-surface/95 px-4 py-2 text-sm text-ink shadow-card outline-none backdrop-blur transition-colors duration-200 placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
             />
             {predictions.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl bg-white shadow-lg">
+              <ul className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-line bg-surface-elevated shadow-card">
                 {predictions.map((p) => (
                   <li
                     key={p.place_id}
                     onClick={() => selectPrediction(p.place_id)}
-                    className="cursor-pointer px-4 py-2 text-sm hover:bg-gray-50"
+                    className="cursor-pointer px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted"
                   >
                     {p.description}
                   </li>
@@ -202,23 +225,23 @@ export default function FeedPage() {
           </div>
           <button
             onClick={handleMyLocation}
-            className="rounded-xl bg-white px-3 py-2 text-sm shadow"
+            className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-sm shadow-card backdrop-blur transition-colors hover:bg-surface-elevated"
           >
             📍
           </button>
         </div>
 
         {/* radius */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow text-xs">
-          <span className="text-gray-500">{t('explore.radiusLabel')}</span>
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-1.5 text-xs shadow-card backdrop-blur transition-colors duration-200">
+          <span className="text-muted">{t('explore.radiusLabel')}</span>
           {[1, 3, 5, 10].map((r) => (
             <button
               key={r}
               onClick={() => handleRadiusChange(r)}
               className={`rounded-lg px-2 py-1 font-medium transition ${
                 radius === r
-                  ? 'bg-pink-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-accent text-white'
+                  : 'text-muted hover:bg-surface-muted hover:text-ink'
               }`}
             >
               {r}km
@@ -230,7 +253,7 @@ export default function FeedPage() {
       {/* guide list */}
       <div className="p-4">
         {guides.length === 0 ? (
-          <p className="py-12 text-center text-sm text-gray-400">{t('guide.empty')}</p>
+          <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {guides.map((g) => (

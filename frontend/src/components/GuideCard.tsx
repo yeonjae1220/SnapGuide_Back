@@ -90,10 +90,10 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
   return (
     <div
       onClick={() => onOpen(guide)}
-      className="cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md"
+      className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-accent/30"
     >
       {firstImg && (
-        <div className="relative aspect-[4/3] bg-gray-100">
+        <div className="relative aspect-[4/3] bg-surface-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={firstImg} alt="" className="h-full w-full object-cover" />
           {isMulti && (
@@ -104,21 +104,21 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
         </div>
       )}
       <div className="p-3">
-        <p className="mb-1 line-clamp-2 text-sm text-gray-800">{guide.tip}</p>
-        {exif && <p className="mb-1 text-xs text-gray-400">{exif}</p>}
+        <p className="mb-1 line-clamp-2 text-sm text-ink">{guide.tip}</p>
+        {exif && <p className="mb-1 text-xs text-subtle">{exif}</p>}
         {location && (
-          <p className="mb-2 flex items-center gap-1 text-xs text-gray-500">
+          <p className="mb-2 flex items-center gap-1 text-xs text-muted">
             <span>📍</span> {location}
           </p>
         )}
         {guide.locationPublic === false && (
-          <p className="mb-2 text-xs text-gray-400">{t('guide.locationPrivate')}</p>
+          <p className="mb-2 text-xs text-subtle">{t('guide.locationPrivate')}</p>
         )}
         {actionError && (
-          <p className="mb-1 text-xs text-red-500">{actionError}</p>
+          <p className="mb-1 text-xs text-danger">{actionError}</p>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-subtle">
             {t('guide.views')} {guide.viewCount ?? 0}
           </span>
           <div className="flex items-center gap-2">
@@ -127,19 +127,19 @@ export function GuideCard({ guide: initial, onOpen, onDeleted }: Props) {
               className="flex items-center gap-1 text-sm"
             >
               {guide.userHasLiked ? '❤️' : '🤍'}
-              <span className="text-xs text-gray-500">{guide.likeCount ?? 0}</span>
+              <span className="text-xs text-muted">{guide.likeCount ?? 0}</span>
             </button>
             {isOwner && (
               <>
                 <button
                   onClick={handleEdit}
-                  className="text-xs text-gray-400 hover:text-blue-500"
+                  className="text-xs text-subtle transition-colors hover:text-accent"
                 >
                   {t('guide.edit')}
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="text-xs text-gray-400 hover:text-red-500"
+                  className="text-xs text-subtle transition-colors hover:text-danger"
                 >
                   {t('guide.delete')}
                 </button>

@@ -16,7 +16,7 @@ export function Navbar() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] backdrop-blur transition-colors duration-200">
       <div className="flex">
         {NAV_ITEMS.map(({ href, labelKey, icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
@@ -25,7 +25,7 @@ export function Navbar() {
               key={href}
               href={href}
               className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                active ? 'text-pink-600' : 'text-gray-400'
+                active ? 'text-accent' : 'text-subtle hover:text-muted'
               }`}
             >
               <span className="text-lg leading-none">{icon}</span>

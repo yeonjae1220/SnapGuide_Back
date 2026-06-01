@@ -59,16 +59,16 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto max-w-lg p-6">
-      <h1 className="mb-6 text-2xl font-bold">{t('upload.title')}</h1>
+      <h1 className="mb-6 text-2xl font-bold text-ink">{t('upload.title')}</h1>
 
-      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="space-y-4 rounded-2xl border border-line bg-surface p-5 shadow-card transition-colors duration-200">
         {/* file input */}
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-pink-300 hover:text-pink-400 transition"
+          className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-surface-muted text-subtle transition hover:border-accent/60 hover:text-accent"
         >
           {files.length > 0 ? (
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-ink">
               {files.length}개 선택됨
             </span>
           ) : (
@@ -89,7 +89,7 @@ export default function UploadPage() {
 
         {/* tip */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label className="mb-1 block text-xs font-medium text-muted">
             {t('upload.tipLabel')}
           </label>
           <textarea
@@ -97,26 +97,26 @@ export default function UploadPage() {
             onChange={(e) => setTip(e.target.value)}
             placeholder={t('upload.tipPlaceholder')}
             rows={3}
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+            className="w-full resize-none rounded-xl border border-line bg-field px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
           />
         </div>
 
         {/* location toggle */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-700">{t('upload.locationToggle')}</span>
+          <span className="text-sm text-ink">{t('upload.locationToggle')}</span>
           <button
             onClick={() => setLocationPublic((v) => !v)}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
               locationPublic
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-500'
+                ? 'bg-success-soft text-success'
+                : 'bg-surface-muted text-muted'
             }`}
           >
             {locationPublic ? t('upload.locationOn') : t('upload.locationOff')}
           </button>
         </div>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
 
         <button
           onClick={handleSubmit}

@@ -59,19 +59,19 @@ export function AuthPanel() {
   }
 
   return (
-    <div className="flex w-full flex-col justify-center bg-white px-8 py-12 lg:w-[480px]">
+    <div className="flex w-full flex-col justify-center bg-surface px-8 py-12 text-ink transition-colors duration-200 lg:w-[480px]">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-2 text-2xl font-extrabold ig-text lg:hidden">SnapGuide</div>
-        <p className="mb-8 text-sm text-gray-500">{t('auth.or')} {t('auth.login').toLowerCase()} / {t('auth.signup').toLowerCase()}</p>
+        <p className="mb-8 text-sm text-muted">{t('auth.or')} {t('auth.login').toLowerCase()} / {t('auth.signup').toLowerCase()}</p>
 
         {/* tabs */}
-        <div className="mb-6 flex gap-0 rounded-xl bg-gray-100 p-1">
+        <div className="mb-6 flex gap-0 rounded-xl bg-surface-muted p-1">
           {(['login', 'signup'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setTab(v)}
               className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
-                tab === v ? 'bg-white shadow text-gray-900' : 'text-gray-500'
+                tab === v ? 'bg-surface-elevated shadow text-ink' : 'text-muted hover:text-ink'
               }`}
             >
               {v === 'login' ? t('auth.login') : t('auth.signup')}
@@ -85,7 +85,7 @@ export function AuthPanel() {
             placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+            className="w-full rounded-xl border border-line bg-field px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
           />
           <input
             type="password"
@@ -96,11 +96,11 @@ export function AuthPanel() {
               if (tab === 'signup') setShowPwdHints(true)
             }}
             onFocus={() => tab === 'signup' && setShowPwdHints(true)}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+            className="w-full rounded-xl border border-line bg-field px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
           />
 
           {tab === 'signup' && showPwdHints && (
-            <ul className="rounded-xl bg-gray-50 px-4 py-3 text-xs space-y-1">
+            <ul className="space-y-1 rounded-xl bg-surface-muted px-4 py-3 text-xs">
               {(
                 [
                   [pwdChecks.len, 'auth.pwdLen'],
@@ -109,14 +109,14 @@ export function AuthPanel() {
                   [pwdChecks.digit, 'auth.pwdDigit'],
                 ] as const
               ).map(([ok, key]) => (
-                <li key={key} className={ok ? 'text-green-600' : 'text-gray-400'}>
+                <li key={key} className={ok ? 'text-success' : 'text-subtle'}>
                   {ok ? '✓' : '○'} {t(key)}
                 </li>
               ))}
             </ul>
           )}
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           <button
             onClick={tab === 'login' ? handleLogin : handleSignup}
@@ -126,15 +126,15 @@ export function AuthPanel() {
             {loading ? t('common.loading') : tab === 'login' ? t('auth.login') : t('auth.signup')}
           </button>
 
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <div className="h-px flex-1 bg-gray-200" />
+          <div className="flex items-center gap-3 text-xs text-subtle">
+            <div className="h-px flex-1 bg-line" />
             {t('auth.or')}
-            <div className="h-px flex-1 bg-gray-200" />
+            <div className="h-px flex-1 bg-line" />
           </div>
 
           <button
             onClick={handleGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface py-3 text-sm font-medium text-ink transition hover:bg-surface-muted"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
@@ -148,11 +148,11 @@ export function AuthPanel() {
 
         {/* language selector */}
         <div className="mt-8 flex items-center justify-end gap-2">
-          <span className="text-xs text-gray-400">{t('settings.uiLanguage')}</span>
+          <span className="text-xs text-subtle">{t('settings.uiLanguage')}</span>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 outline-none"
+            className="rounded-lg border border-line bg-field px-2 py-1 text-xs text-muted outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
           >
             {SUPPORTED_UI_LANGUAGES.map((l) => (
               <option key={l} value={l}>

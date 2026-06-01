@@ -36,11 +36,11 @@ export default function GuidesPage() {
 
   return (
     <div className="p-4">
-      <h1 className="mb-4 text-xl font-bold">{t('nav.myGuides')}</h1>
+      <h1 className="mb-4 text-xl font-bold text-ink">{t('nav.myGuides')}</h1>
       {loading ? (
-        <p className="py-12 text-center text-sm text-gray-400">{t('common.loading')}</p>
+        <p className="py-12 text-center text-sm text-subtle">{t('common.loading')}</p>
       ) : guides.length === 0 ? (
-        <p className="py-12 text-center text-sm text-gray-400">{t('guide.empty')}</p>
+        <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {guides.map((g) => (

@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import './globals.css'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { QueryProvider } from '@/components/QueryProvider'
+import { ThemeProvider } from '@/theme/ThemeProvider'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -70,11 +71,21 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? ''
   return (
-    <html lang="ko">
+    <html lang="ko" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: `(() => { try { const theme = localStorage.getItem('snapguide.theme') === 'dark' ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; document.documentElement.style.colorScheme = theme; } catch (_) {} })();`,
+          }}
+        />
+      </head>
       <body className={`${dmSans.variable} ${playfair.variable}`} data-nonce={nonce}>
-        <QueryProvider>
-          <I18nProvider>{children}</I18nProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <I18nProvider>{children}</I18nProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -35,11 +35,11 @@ export function GuideDetailModal({ guide, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/70 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        className="relative w-full max-w-lg overflow-hidden rounded-t-3xl border border-line bg-surface shadow-card transition-colors duration-200 sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -50,7 +50,7 @@ export function GuideDetailModal({ guide, onClose }: Props) {
         </button>
 
         {media.length > 0 && (
-          <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+          <div className="relative aspect-[4/3] overflow-hidden bg-surface-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={media[idx].url}
@@ -88,19 +88,19 @@ export function GuideDetailModal({ guide, onClose }: Props) {
 
         <div className="p-5">
           {guide.author?.email && (
-            <p className="mb-1 text-xs text-gray-400">@{guide.author.email}</p>
+            <p className="mb-1 text-xs text-subtle">@{guide.author.email}</p>
           )}
-          {exifText && <p className="mb-2 text-xs text-gray-400">{exifText}</p>}
-          <p className="mb-3 text-sm text-gray-800">{guide.tip}</p>
+          {exifText && <p className="mb-2 text-xs text-subtle">{exifText}</p>}
+          <p className="mb-3 text-sm text-ink">{guide.tip}</p>
           {guide.locationPublic !== false &&
             (guide.locationName || guide.latitude != null) && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 📍{' '}
                 {guide.locationName ??
                   `${guide.latitude?.toFixed(4)}°N, ${guide.longitude?.toFixed(4)}°E`}
               </p>
             )}
-          <div className="mt-3 flex gap-3 text-xs text-gray-400">
+          <div className="mt-3 flex gap-3 text-xs text-subtle">
             <span>조회 {guide.viewCount ?? 0}</span>
             <span>❤️ {guide.likeCount ?? 0}</span>
           </div>
