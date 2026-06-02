@@ -1,6 +1,6 @@
 # SnapGuide Frontend — 보안 아키텍처
 
-> 마지막 업데이트: 2026-05-31 (CSP unsafe-inline 제거, maps/key 인증 필수화)
+> 마지막 업데이트: 2026-06-02 (클라이언트 geo-IP 전환, CSP connect-src 확장)
 > 대상: `frontend/` (Next.js 15, App Router)
 
 ---
@@ -27,11 +27,13 @@
 `src/middleware.ts`에서 요청마다 nonce 생성:
 
 ```
-script-src 'nonce-{random}' 'strict-dynamic' https://maps.googleapis.com
-style-src  'self' 'unsafe-inline' https://fonts.googleapis.com
-connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://snapguide.mungji.com
-worker-src blob:
-base-uri 'self'
+script-src  'nonce-{random}' 'strict-dynamic' https://maps.googleapis.com
+style-src   'self' 'unsafe-inline' https://fonts.googleapis.com
+connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com
+            https://snapguide.mungji.com
+            https://ipapi.co https://ipwho.is   ← geo-IP 제공자 (2026-06-02 추가)
+worker-src  blob:
+base-uri    'self'
 ```
 
 **`'strict-dynamic'`**: nonce로 신뢰된 스크립트가 동적으로 로드하는 하위 스크립트를 허용.  
@@ -39,7 +41,11 @@ base-uri 'self'
 
 **Google Maps 허용**: 외부 스크립트라 nonce 직접 적용 불가 → 도메인 allowlist + `strict-dynamic` 조합으로 커버.
 
-**`geolocation=(self)`**: Feed 페이지의 "내 위치" 버튼 (`navigator.geolocation`) 사용.
+**geo-IP 허용 (2026-06-02)**: `lib/geoip.ts`에서 브라우저 직접 호출. 두 origin만 최소 허용.  
+CSP의 `PROVIDERS` 목록과 `connect-src`는 항상 동기화해야 함.
+
+**`geolocation=(self)`**: Feed 페이지의 "현재 위치" 버튼 (`navigator.geolocation`) 사용.  
+단, 마운트 시 자동 GPS 호출은 제거 — IP-우선으로 변경 (CoreLocation 콘솔 에러 방지).
 
 ---
 
