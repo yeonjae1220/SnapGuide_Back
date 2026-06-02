@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,6 +44,7 @@ public class GuideService {
     private final GuideLikeRepository guideLikeRepository;
     private final GuideLikeService guideLikeService;
     private final ApplicationEventPublisher eventPublisher;
+    private final RegionAggregateService regionAggregateService;
 
     /*
     가이드 생성하고
@@ -66,7 +68,10 @@ public class GuideService {
      * Guide 생성 + Media 연결 통합 메서드 (권장)
      * DB 조회 최소화: Media 엔티티를 직접 받아서 처리
      */
-    @CacheEvict(value = "nearbyGuides", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "nearbyGuides", allEntries = true),
+            @CacheEvict(value = "regionAggregate", allEntries = true)
+    })
     public Long createGuideWithMedia(Member author, String tip, List<Media> mediaList, boolean locationPublic) {
         // 1. 전달받은 Media 엔티티는 이전 트랜잭션에서 저장 후 detached 상태임.
         //    현재 트랜잭션의 영속성 컨텍스트에서 재조회하여 managed 상태로 만든다.
@@ -104,7 +109,10 @@ public class GuideService {
      * @deprecated DTO 기반 생성은 추가 DB 조회 필요. createGuideWithMedia() 사용 권장
      */
     @Deprecated
-    @CacheEvict(value = "nearbyGuides", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "nearbyGuides", allEntries = true),
+            @CacheEvict(value = "regionAggregate", allEntries = true)
+    })
     public Long createGuide(GuideCreateTestDto guideCreateTestDto) {
         Member author = memberRepository.findById(guideCreateTestDto.getMemberId())
                 .orElseThrow(() -> new EntityNotFoundException("member not found"));
@@ -151,7 +159,10 @@ public class GuideService {
         return guideRepository.findAllByMemberId(memberId);
     }
 
-    @CacheEvict(value = "nearbyGuides", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "nearbyGuides", allEntries = true),
+            @CacheEvict(value = "regionAggregate", allEntries = true)
+    })
     public GuideResponseDto updateTip(Long guideId, String newTip, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));
@@ -189,7 +200,10 @@ public class GuideService {
         }
     }
 
-    @CacheEvict(value = "nearbyGuides", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "nearbyGuides", allEntries = true),
+            @CacheEvict(value = "regionAggregate", allEntries = true)
+    })
     public void deleteGuide(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
         Guide guide = guideRepository.findByIdWithFetch(guideId)
                 .orElseThrow(() -> new IllegalArgumentException("Guide not found"));

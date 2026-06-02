@@ -16,11 +16,14 @@ import org.springframework.mock.web.MockMultipartFile;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
+import yeonjae.snapguide.controller.guideController.guideDto.RegionClusterDto;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
+import yeonjae.snapguide.service.guideSerivce.AggregateLevel;
 import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
+import yeonjae.snapguide.service.guideSerivce.RegionAggregateService;
 import yeonjae.snapguide.service.mediaSerivce.BatchUploadResult;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -58,6 +61,12 @@ class GuideControllerTest {
 
     @MockBean
     private MemberService memberService;
+
+    @MockBean
+    private RegionAggregateService regionAggregateService;
+
+    @MockBean
+    private yeonjae.snapguide.security.ratelimit.RateLimiterService rateLimiterService;
 
     private Member testMember;
 
@@ -170,6 +179,51 @@ class GuideControllerTest {
                     .andExpect(jsonPath("$.totalFiles").value(0))
                     .andExpect(jsonPath("$.savedFiles").value(0))
                     .andExpect(jsonPath("$.skippedFiles").isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /guide/api/aggregate")
+    class GetRegionAggregate {
+
+        @Test
+        @DisplayName("level=continent이면 대륙 집계 목록을 반환한다")
+        @WithMockUser
+        void shouldReturnContinentAggregate() throws Exception {
+            // Arrange
+            List<RegionClusterDto> clusters = List.of(
+                    new RegionClusterDto("AS", "Asia", 35.0, 127.0, 3, "/media/files/a.jpg")
+            );
+            given(regionAggregateService.aggregate(AggregateLevel.CONTINENT)).willReturn(clusters);
+
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/aggregate")
+                            .param("level", "continent"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].key").value("AS"))
+                    .andExpect(jsonPath("$[0].label").value("Asia"))
+                    .andExpect(jsonPath("$[0].count").value(3))
+                    .andExpect(jsonPath("$[0].thumbnailUrl").value("/media/files/a.jpg"));
+
+            verify(regionAggregateService).aggregate(AggregateLevel.CONTINENT);
+        }
+
+        @Test
+        @DisplayName("level 미입력 시 국가 집계를 기본값으로 사용한다")
+        @WithMockUser
+        void shouldUseCountryAggregateByDefault() throws Exception {
+            // Arrange
+            given(regionAggregateService.aggregate(AggregateLevel.COUNTRY)).willReturn(List.of());
+
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/aggregate"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+
+            verify(regionAggregateService).aggregate(AggregateLevel.COUNTRY);
         }
     }
 

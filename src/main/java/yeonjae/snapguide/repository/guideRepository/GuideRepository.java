@@ -47,6 +47,44 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
     List<Guide> findByLocationIdInWithFetch(@Param("locationIds") List<Long> locationIds);
 
     /**
+     * 지도 축소 시 국가/대륙 단위 집계용 경량 프로젝션.
+     * 공개 가이드 + 좌표가 있는 Location만 반환하며 미디어를 제외해 쿼리를 최소화한다.
+     */
+    @Query(value = """
+        SELECT
+            g.id           AS guideId,
+            l.country_code AS countryCode,
+            l.country      AS country,
+            ST_Y(l.coordinate) AS lat,
+            ST_X(l.coordinate) AS lng,
+            g.like_count   AS likeCount
+        FROM guide g
+        JOIN location l ON g.location_id = l.id
+        WHERE g.location_public = true
+          AND l.country_code IS NOT NULL
+          AND l.coordinate IS NOT NULL
+        """, nativeQuery = true)
+    List<GuideAggregateRow> findAllForAggregation();
+
+    /**
+     * 특정 가이드 ID 목록에서 첫 번째 미디어 URL 조회 (썸네일 전용).
+     * guide_id IN (:ids) 로 한 번에 조회 후 서비스에서 groupBy.
+     */
+    @Query(value = """
+        SELECT m.guide_id AS guideId, m.media_url AS mediaUrl
+        FROM media m
+        JOIN (
+            SELECT guide_id, MIN(id) AS media_id
+            FROM media
+            WHERE guide_id IN :guideIds
+            GROUP BY guide_id
+        ) first_media
+          ON first_media.guide_id = m.guide_id
+         AND first_media.media_id = m.id
+        """, nativeQuery = true)
+    List<MediaThumbnailRow> findFirstMediaUrlsByGuideIds(@Param("guideIds") List<Long> guideIds);
+
+    /**
      * Guide 단건 조회 시 연관 엔티티 함께 조회
      */
     @Query("""

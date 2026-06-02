@@ -12,6 +12,7 @@ import { GuideCard } from '@/components/GuideCard'
 import { GuideDetailModal } from '@/components/GuideDetailModal'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useGuideMarkers } from '@/hooks/useGuideMarkers'
+import { useRegionMarkers, type RegionCluster } from '@/hooks/useRegionMarkers'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import type { Guide } from '@/lib/types'
 
@@ -19,7 +20,11 @@ const DEFAULT_LAT = 37.5665
 const DEFAULT_LNG = 126.978
 const DEFAULT_RADIUS = 3
 const MAX_RADIUS = 100
-const MIN_AUTO_REFETCH_ZOOM = 9
+/** 이 줌 이상에서만 상세 가이드 목록을 표시한다. 미만이면 국가/대륙 집계 모드. */
+const DETAIL_ZOOM_THRESHOLD = 9
+const MIN_AUTO_REFETCH_ZOOM = DETAIL_ZOOM_THRESHOLD
+/** 줌 < 5이면 대륙 단위, 5 ≤ zoom < 9이면 국가 단위 */
+const CONTINENT_ZOOM_THRESHOLD = 5
 const DEG_TO_KM = 111
 const GPS_TIMEOUT_MS = 3000
 
@@ -38,6 +43,12 @@ const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
 ]
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000
+
+// 경도를 [-180, 180) 범위로 정규화한다. 지도를 축소한 채 월드 카피를 횡단하면
+// getCenter().lng()가 범위를 벗어난 값(예: -220)을 반환해 백엔드 좌표 검증(±180)에
+// 걸려 요청이 실패하므로, 백엔드로 보내기 전 반드시 정규화한다.
+const normalizeLng = (lng: number) => ((((lng + 180) % 360) + 360) % 360) - 180
+const clampLat = (lat: number) => Math.max(-90, Math.min(90, lat))
 
 // 모듈 스코프 상수: 콜백 이름 충돌 방지 및 렌더 간 안정적 참조
 const MAPS_CALLBACK_NAME = '__snapguideMapsReady'
@@ -68,6 +79,14 @@ export default function FeedPage() {
   const [fetchError, setFetchError] = useState<FetchError>(null)
   const [searchInput, setSearchInput] = useState('')
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [locating, setLocating] = useState(false)
+  const [locateFailed, setLocateFailed] = useState(false)
+
+  // 집계 모드: zoom < DETAIL_ZOOM_THRESHOLD 일 때 가이드 목록 대신 국가/대륙 클러스터 표시
+  const [aggregateClusters, setAggregateClusters] = useState<RegionCluster[]>([])
+  const [aggregateMode, setAggregateMode] = useState(false)
+  // drillIn ref: useRegionMarkers보다 먼저 선언해 forward-reference 문제 방지
+  const drillInRef = useRef<(cluster: RegionCluster) => void>(() => {})
 
   const canHoverRef = useRef(false)
   const prefersReducedRef = useRef(false)
@@ -81,8 +100,8 @@ export default function FeedPage() {
 
   const fetchGuides = useCallback(
     async (la: number, ln: number, r: number) => {
-      const rLat = round3(la)
-      const rLng = round3(ln)
+      const rLat = round3(clampLat(la))
+      const rLng = round3(normalizeLng(ln))
       const rRadius = Math.min(r, MAX_RADIUS)
       const key = `${rLat}:${rLng}:${rRadius}`
       if (key === lastQueryRef.current) return
@@ -218,13 +237,21 @@ export default function FeedPage() {
     })
   }, [theme])
 
+  // 상세 모드(zoom ≥ 9): 가이드 핀 마커
   useGuideMarkers({
-    map,
+    map: aggregateMode ? null : map,
     guides,
     highlightedId,
     hoverEnabled: canHoverRef.current,
     onClick: setSelected,
     onHover: setHighlightedId,
+  })
+
+  // 집계 모드(zoom < 9): 국가/대륙 원형 사진 오버레이 (ref로 콜백 전달 — forward-reference 방지)
+  useRegionMarkers({
+    map: aggregateMode ? map : null,
+    clusters: aggregateClusters,
+    onDrillIn: useCallback((c: RegionCluster) => drillInRef.current(c), []),
   })
 
   useEffect(() => {
@@ -244,11 +271,34 @@ export default function FeedPage() {
     return Math.min(Math.ceil(Math.max(latKm, lngKm) / 2), MAX_RADIUS)
   }
 
+  const fetchAggregate = useCallback(async (zoom: number) => {
+    const level = zoom < CONTINENT_ZOOM_THRESHOLD ? 'continent' : 'country'
+    try {
+      const { data } = await api.get<RegionCluster[]>(`/guide/api/aggregate?level=${level}`)
+      setAggregateClusters(data ?? [])
+    } catch {
+      setAggregateClusters([])
+    }
+  }, [])
+
   const debouncedRefetch = useDebouncedCallback(() => {
     const m = googleMapRef.current
     if (!m) return
     const zoom = m.getZoom() ?? 0
-    if (zoom < MIN_AUTO_REFETCH_ZOOM) return
+
+    if (zoom < DETAIL_ZOOM_THRESHOLD) {
+      // 집계 모드: 가이드 목록 고정, 국가/대륙 클러스터만 갱신
+      setAggregateMode(true)
+      fetchAggregate(zoom)
+      return
+    }
+
+    // 상세 모드: 기존 동작
+    setAggregateMode(false)
+    setAggregateClusters([])
+    // 집계 모드에서 상세 모드로 전환될 때 dedup key를 초기화한다.
+    // 같은 좌표/반경이라도 집계 중에는 가이드를 조회하지 않았으므로 반드시 재요청해야 한다.
+    lastQueryRef.current = ''
     const center = m.getCenter()
     if (!center) return
     const la = center.lat()
@@ -261,30 +311,73 @@ export default function FeedPage() {
     fetchGuides(la, ln, r)
   }, 400)
 
+  // 클러스터 클릭 → 해당 위치로 이동하며 상세 줌으로 진입
+  drillInRef.current = (cluster: RegionCluster) => {
+    const m = googleMapRef.current
+    if (!m) return
+    m.setCenter({ lat: cluster.lat, lng: cluster.lng })
+    m.setZoom(DETAIL_ZOOM_THRESHOLD)
+  }
+
   useEffect(() => {
     if (!map) return
     const listener = map.addListener('idle', debouncedRefetch)
     return () => google.maps.event.removeListener(listener)
   }, [map, debouncedRefetch])
 
-  const handleMyLocation = () => {
-    navigator.geolocation?.getCurrentPosition(
-      ({ coords }) => applyLocation(coords.latitude, coords.longitude),
-      () =>
-        api.get('/api/maps/location')
-          .then(({ data }) => { if (data?.lat) applyLocation(data.lat, data.lng) })
-          .catch(() => {}),
-      { timeout: GPS_TIMEOUT_MS },
+  // IP 기반 폴백. 브라우저 위치(CoreLocation 등)가 실패할 때 사용한다.
+  // 서버가 클라이언트 IP를 식별하지 못하면 204(빈 응답)가 오므로 data.lat 존재 여부로 성공 판단.
+  const locateByIp = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data } = await api.get('/api/maps/location')
+      if (data?.lat && data?.lng) {
+        applyLocation(data.lat, data.lng)
+        return true
+      }
+    } catch {
+      /* 폴백 실패 — 호출부에서 처리 */
+    }
+    return false
+  }, [applyLocation])
+
+  const handleMyLocation = useCallback(() => {
+    setLocateFailed(false)
+    setLocating(true)
+    const finishWithIp = async () => {
+      const ok = await locateByIp()
+      setLocating(false)
+      if (!ok) setLocateFailed(true)
+    }
+    if (!navigator.geolocation) {
+      finishWithIp()
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        applyLocation(coords.latitude, coords.longitude)
+        setLocating(false)
+      },
+      () => finishWithIp(),
+      { timeout: GPS_TIMEOUT_MS, maximumAge: 60000 },
     )
-  }
+  }, [applyLocation, locateByIp])
+
+  // 위치 실패 안내는 3초 후 자동 해제
+  useEffect(() => {
+    if (!locateFailed) return
+    const id = setTimeout(() => setLocateFailed(false), 3000)
+    return () => clearTimeout(id)
+  }, [locateFailed])
 
   const handleRadiusChange = (r: number) => {
+    if (aggregateMode) return
     setAutoRadius(false)
     setRadius(r)
     fetchGuides(lat, lng, r)
   }
 
   const handleAutoRadius = () => {
+    if (aggregateMode) return
     setAutoRadius(true)
     const m = googleMapRef.current
     if (m) fetchGuides(lat, lng, viewportRadiusKm(m))
@@ -383,15 +476,32 @@ export default function FeedPage() {
           </div>
           <button
             onClick={handleMyLocation}
+            disabled={locating}
             aria-label={t('explore.myLocation')}
-            className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-sm shadow-card backdrop-blur transition-colors hover:bg-surface-elevated"
+            aria-busy={locating}
+            className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-sm shadow-card backdrop-blur transition-colors hover:bg-surface-elevated disabled:opacity-60"
           >
-            📍
+            {locating ? (
+              <span aria-hidden="true" className="block h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            ) : (
+              '📍'
+            )}
           </button>
         </div>
 
-        {/* radius */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-1.5 text-xs shadow-card backdrop-blur transition-colors duration-200">
+        {/* 위치 확인 실패 안내 */}
+        {locateFailed && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute left-1/2 top-16 z-10 -translate-x-1/2 rounded-lg border border-line bg-surface/95 px-3 py-1.5 text-xs text-muted shadow-card backdrop-blur"
+          >
+            {t('explore.locateFailed')}
+          </div>
+        )}
+
+        {/* radius — 집계 모드(zoom < 9)에서는 무의미하므로 숨김 */}
+        <div className={`absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-1.5 text-xs shadow-card backdrop-blur transition-colors duration-200 ${aggregateMode ? 'hidden' : ''}`}>
           <span className="text-muted">{t('explore.radiusLabel')}</span>
           <button
             onClick={handleAutoRadius}
@@ -419,9 +529,13 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {/* guide list */}
+      {/* guide list / aggregate hint */}
       <div className="p-4">
-        {fetchError === 'network' ? (
+        {aggregateMode ? (
+          <p className="py-12 text-center text-sm text-subtle">
+            {t('explore.zoomInHint')}
+          </p>
+        ) : fetchError === 'network' ? (
           <p className="py-12 text-center text-sm text-danger">{t('common.error')}</p>
         ) : guides.length === 0 && !loading ? (
           <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>

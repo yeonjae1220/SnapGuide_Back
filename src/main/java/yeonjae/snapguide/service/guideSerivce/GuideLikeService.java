@@ -2,6 +2,8 @@ package yeonjae.snapguide.service.guideSerivce;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -32,6 +34,10 @@ public class GuideLikeService {
      * 좋아요 토글 (원자적 업데이트로 동시성 문제 해결)
      * @return true=좋아요 추가, false=좋아요 취소
      */
+    @Caching(evict = {
+            @CacheEvict(value = "nearbyGuides", allEntries = true),
+            @CacheEvict(value = "regionAggregate", allEntries = true)
+    })
     public boolean toggleLike(Long guideId, @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");

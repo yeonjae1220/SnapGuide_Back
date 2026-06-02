@@ -13,9 +13,14 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.LikeResponse;
 import yeonjae.snapguide.domain.member.Member;
+import yeonjae.snapguide.controller.guideController.guideDto.RegionClusterDto;
+import yeonjae.snapguide.service.guideSerivce.AggregateLevel;
 import yeonjae.snapguide.service.guideSerivce.GuideLikeService;
 import yeonjae.snapguide.service.guideSerivce.GuideService;
+import yeonjae.snapguide.service.guideSerivce.RegionAggregateService;
 import yeonjae.snapguide.service.mediaSerivce.BatchUploadResult;
+import jakarta.servlet.http.HttpServletRequest;
+import yeonjae.snapguide.security.ratelimit.RateLimiterService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 
@@ -33,6 +38,8 @@ public class GuideController {
     private final GuideLikeService guideLikeService;
     private final MediaService mediaService;
     private final MemberService memberService;
+    private final RegionAggregateService regionAggregateService;
+    private final RateLimiterService rateLimiterService;
 
     /**
      * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리.
@@ -115,6 +122,23 @@ public class GuideController {
             @AuthenticationPrincipal UserDetails userDetails) {
         guideService.deleteGuide(id, userDetails);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 지도 축소(줌 < 9) 시 국가/대륙 단위로 가이드 사진을 집계해 반환한다.
+     * 인증 없이 접근 가능 (SecurityConstants.GUIDE_AGGREGATE_API).
+     *
+     * @param level "country"(기본) 또는 "continent"
+     */
+    @GetMapping("/aggregate")
+    public ResponseEntity<List<RegionClusterDto>> getRegionAggregate(
+            @RequestParam(defaultValue = "country") String level,
+            HttpServletRequest request) {
+        rateLimiterService.checkAggregateRate(request.getRemoteAddr());
+        AggregateLevel aggregateLevel = "continent".equalsIgnoreCase(level)
+                ? AggregateLevel.CONTINENT
+                : AggregateLevel.COUNTRY;
+        return ResponseEntity.ok(regionAggregateService.aggregate(aggregateLevel));
     }
 
     @GetMapping("/nearby")

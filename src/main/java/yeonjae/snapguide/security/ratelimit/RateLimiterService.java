@@ -41,6 +41,9 @@ public class RateLimiterService {
     @Value("${snapguide.rate-limit.location-limit:20}")
     private int locationLimit;
 
+    @Value("${snapguide.rate-limit.aggregate-limit:30}")
+    private int aggregateLimit;
+
     /**
      * 로그인 rate limit 검사.
      * IP 기준 10회/10분, 이메일 기준 30회/10분.
@@ -64,6 +67,14 @@ public class RateLimiterService {
      */
     public void checkLocationRate(String clientIp) {
         check("rl:location:ip:" + clientIp, locationLimit);
+    }
+
+    /**
+     * 국가/대륙 집계 rate limit 검사.
+     * IP 기준 30회/10분 — 캐시 미스 시 PostGIS full scan 유발 가능성 차단.
+     */
+    public void checkAggregateRate(String clientIp) {
+        check("rl:aggregate:ip:" + clientIp, aggregateLimit);
     }
 
     private void check(String key, int limit) {

@@ -53,6 +53,8 @@ type MessageKey =
   | 'explore.radiusLabel'
   | 'explore.myLocation'
   | 'explore.searchPlaceholder'
+  | 'explore.locateFailed'
+  | 'explore.zoomInHint'
   | 'common.loading'
   | 'common.save'
   | 'common.cancel'
@@ -119,6 +121,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.radiusLabel': '반경',
     'explore.myLocation': '내 위치',
     'explore.searchPlaceholder': '장소 검색',
+    'explore.locateFailed': '현재 위치를 찾을 수 없습니다',
+    'explore.zoomInHint': '지도를 확대하면 이 지역의 가이드를 볼 수 있습니다',
     'common.loading': '로딩 중...',
     'common.save': '저장',
     'common.cancel': '취소',
@@ -180,6 +184,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.radiusLabel': 'Radius',
     'explore.myLocation': 'My location',
     'explore.searchPlaceholder': 'Search places',
+    'explore.locateFailed': 'Could not find your location',
+    'explore.zoomInHint': 'Zoom in to see guides in this area',
     'common.loading': 'Loading…',
     'common.save': 'Save',
     'common.cancel': 'Cancel',
@@ -241,6 +247,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.radiusLabel': '半径',
     'explore.myLocation': '現在地',
     'explore.searchPlaceholder': '場所を検索',
+    'explore.locateFailed': '現在地を取得できませんでした',
+    'explore.zoomInHint': 'ズームインするとこのエリアのガイドが表示されます',
     'common.loading': '読み込み中...',
     'common.save': '保存',
     'common.cancel': 'キャンセル',
@@ -302,6 +310,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.radiusLabel': '半径',
     'explore.myLocation': '我的位置',
     'explore.searchPlaceholder': '搜索地点',
+    'explore.locateFailed': '无法获取当前位置',
+    'explore.zoomInHint': '放大地图可查看该地区的导览',
     'common.loading': '加载中...',
     'common.save': '保存',
     'common.cancel': '取消',
