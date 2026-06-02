@@ -14,6 +14,7 @@ import { useTheme } from '@/theme/ThemeProvider'
 import { useGuideMarkers } from '@/hooks/useGuideMarkers'
 import { useRegionMarkers, type RegionCluster } from '@/hooks/useRegionMarkers'
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
+import { fetchIpLocation } from '@/lib/geoip'
 import type { Guide } from '@/lib/types'
 
 const DEFAULT_LAT = 37.5665
@@ -22,7 +23,6 @@ const DEFAULT_RADIUS = 3
 const MAX_RADIUS = 100
 /** 이 줌 이상에서만 상세 가이드 목록을 표시한다. 미만이면 국가/대륙 집계 모드. */
 const DETAIL_ZOOM_THRESHOLD = 9
-const MIN_AUTO_REFETCH_ZOOM = DETAIL_ZOOM_THRESHOLD
 /** 줌 < 5이면 대륙 단위, 5 ≤ zoom < 9이면 국가 단위 */
 const CONTINENT_ZOOM_THRESHOLD = 5
 const DEG_TO_KM = 111
@@ -159,26 +159,14 @@ export default function FeedPage() {
     [fetchGuides, moveMapTo],
   )
 
-  // 기본값(서울)으로 즉시 가이드 로딩 후 위치 확정되면 갱신
+  // 기본값(서울)으로 즉시 가이드 로딩 후, IP 기반 대략 위치로 갱신.
+  // 마운트 시 GPS(navigator.geolocation)를 호출하지 않으므로 권한 프롬프트나
+  // CoreLocation 콘솔 에러가 발생하지 않는다. 정밀 위치는 "현재 위치" 버튼에서 GPS로 처리.
   useEffect(() => {
     fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
-
-    const fallbackToIp = () =>
-      api.get('/api/maps/location')
-        .then(({ data }) => {
-          if (data?.lat && data?.lng) applyLocation(data.lat, data.lng)
-        })
-        .catch(() => {})
-
-    if (!navigator.geolocation) {
-      fallbackToIp()
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => applyLocation(coords.latitude, coords.longitude),
-      () => fallbackToIp(),
-      { timeout: GPS_TIMEOUT_MS, maximumAge: 60000 },
-    )
+    fetchIpLocation().then((coords) => {
+      if (coords) applyLocation(coords.lat, coords.lng)
+    })
   // applyLocation은 마운트 후 변경되지 않으므로 의도적으로 deps에서 제외
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -271,8 +259,13 @@ export default function FeedPage() {
     return Math.min(Math.ceil(Math.max(latKm, lngKm) / 2), MAX_RADIUS)
   }
 
+  const lastAggLevelRef = useRef<string | null>(null)
+
   const fetchAggregate = useCallback(async (zoom: number) => {
     const level = zoom < CONTINENT_ZOOM_THRESHOLD ? 'continent' : 'country'
+    // level이 같으면 결과도 동일(전역 집계) — idle 때마다 재요청 방지
+    if (level === lastAggLevelRef.current) return
+    lastAggLevelRef.current = level
     try {
       const { data } = await api.get<RegionCluster[]>(`/guide/api/aggregate?level=${level}`)
       setAggregateClusters(data ?? [])
@@ -296,9 +289,8 @@ export default function FeedPage() {
     // 상세 모드: 기존 동작
     setAggregateMode(false)
     setAggregateClusters([])
-    // 집계 모드에서 상세 모드로 전환될 때 dedup key를 초기화한다.
-    // 같은 좌표/반경이라도 집계 중에는 가이드를 조회하지 않았으므로 반드시 재요청해야 한다.
-    lastQueryRef.current = ''
+    lastQueryRef.current = ''    // 집계 중 건너뛴 가이드 재요청 보장
+    lastAggLevelRef.current = null  // 다음 집계 모드 진입 시 재요청 보장
     const center = m.getCenter()
     if (!center) return
     const la = center.lat()
@@ -326,16 +318,13 @@ export default function FeedPage() {
   }, [map, debouncedRefetch])
 
   // IP 기반 폴백. 브라우저 위치(CoreLocation 등)가 실패할 때 사용한다.
-  // 서버가 클라이언트 IP를 식별하지 못하면 204(빈 응답)가 오므로 data.lat 존재 여부로 성공 판단.
+  // 공개 geo-IP API를 브라우저에서 직접 호출해 사용자 실제 공인 IP를 사용한다
+  // (서버사이드는 홈랩 NAT로 클라이언트 IP를 식별하지 못함).
   const locateByIp = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data } = await api.get('/api/maps/location')
-      if (data?.lat && data?.lng) {
-        applyLocation(data.lat, data.lng)
-        return true
-      }
-    } catch {
-      /* 폴백 실패 — 호출부에서 처리 */
+    const coords = await fetchIpLocation()
+    if (coords) {
+      applyLocation(coords.lat, coords.lng)
+      return true
     }
     return false
   }, [applyLocation])
@@ -399,8 +388,9 @@ export default function FeedPage() {
   }
 
   const selectPrediction = (placeId: string) => {
-    if (!googleMapRef.current) return
-    const svc = new window.google.maps.places.PlacesService(googleMapRef.current)
+    const m = googleMapRef.current
+    if (!m) return
+    const svc = new window.google.maps.places.PlacesService(m)
     svc.getDetails({ placeId }, (place) => {
       if (!place?.geometry?.location) return
       const la = place.geometry.location.lat()
@@ -409,10 +399,17 @@ export default function FeedPage() {
       lngRef.current = ln
       setLat(la)
       setLng(ln)
-      moveMapTo(la, ln)
-      fetchGuides(la, ln, autoRadius ? DEFAULT_RADIUS : radius)
       setPredictions([])
       setSearchInput(place.name ?? '')
+      // 집계 모드(zoom < 9)에서 검색하면 상세 줌으로 진입한다.
+      // idle → debouncedRefetch가 fetchGuides를 담당하므로 직접 호출하지 않는다.
+      if ((m.getZoom() ?? 0) < DETAIL_ZOOM_THRESHOLD) {
+        m.setCenter({ lat: la, lng: ln })
+        m.setZoom(DETAIL_ZOOM_THRESHOLD)
+      } else {
+        moveMapTo(la, ln)
+        fetchGuides(la, ln, autoRadius ? DEFAULT_RADIUS : radius)
+      }
     })
   }
 

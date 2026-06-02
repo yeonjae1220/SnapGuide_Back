@@ -12,7 +12,8 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://snapguide.mungji.com",
+    // geo-IP 제공자: 브라우저가 직접 호출(홈랩 NAT 우회). lib/geoip.ts의 PROVIDERS와 일치해야 함
+    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://snapguide.mungji.com https://ipapi.co https://ipwho.is",
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
