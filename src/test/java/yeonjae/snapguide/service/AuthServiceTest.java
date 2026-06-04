@@ -15,6 +15,7 @@ import yeonjae.snapguide.repository.RedisRefreshTokenRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
+import yeonjae.snapguide.security.authentication.jwt.TokenHashUtil;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,7 +66,7 @@ class AuthServiceTest {
 
         RedisRefreshToken redisToken = redisRefreshTokenRepository.findByKey(email)
                 .orElseThrow();
-        assertThat(redisToken.getValue()).isEqualTo(token.getRefreshToken());
+        assertThat(redisToken.getValue()).isEqualTo(TokenHashUtil.sha256(token.getRefreshToken()));
     }
 
     @Test
@@ -89,7 +90,7 @@ class AuthServiceTest {
 
         RedisRefreshToken redisToken = redisRefreshTokenRepository.findByKey(email)
                 .orElseThrow();
-        assertThat(redisToken.getValue()).isEqualTo(reissued.getRefreshToken());
+        assertThat(redisToken.getValue()).isEqualTo(TokenHashUtil.sha256(reissued.getRefreshToken()));
     }
 
     @Test
@@ -110,7 +111,7 @@ class AuthServiceTest {
 
         RedisRefreshToken redisToken = redisRefreshTokenRepository.findByKey(email)
                 .orElseThrow();
-        assertThat(redisToken.getValue()).isEqualTo(reissued.getRefreshToken());
+        assertThat(redisToken.getValue()).isEqualTo(TokenHashUtil.sha256(reissued.getRefreshToken()));
     }
 
     @Test

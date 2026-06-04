@@ -23,6 +23,7 @@ import yeonjae.snapguide.security.authentication.OAuth2.OAuth2AuthorizationCode;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
 import yeonjae.snapguide.security.authentication.jwt.RefreshToken;
+import yeonjae.snapguide.security.authentication.jwt.TokenHashUtil;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
 import io.jsonwebtoken.Claims;
@@ -69,10 +70,10 @@ public class AuthService {
                 .generateToken(authentication.getAuthorities(),  // 권한 정보
                  authentication.getName());        // 사용자 식별자 여기서 pk인지 email인지?);
 
-        // 4. RefreshToken 저장
+        // 4. RefreshToken 해시 후 저장 (원문 노출 방지)
         RedisRefreshToken refreshToken = RedisRefreshToken.builder()
                 .key(authentication.getName())
-                .value(jwtToken.getRefreshToken())
+                .value(TokenHashUtil.sha256(jwtToken.getRefreshToken()))
                 .build();
 
         redisRefreshTokenRepository.save(refreshToken);
@@ -95,7 +96,7 @@ public class AuthService {
         }
         RedisRefreshToken refreshToken = redisRefreshTokenRepository.findByKey(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TOKEN_NOT_FOUND));
-        if (!refreshToken.getValue().equals(tokenRequestDTO.getRefreshToken())) {
+        if (!refreshToken.getValue().equals(TokenHashUtil.sha256(tokenRequestDTO.getRefreshToken()))) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
@@ -109,7 +110,7 @@ public class AuthService {
 
         // 5. ToneBridge와 동일하게 재발급 시 Refresh Token도 함께 회전
         JwtToken jwtToken = jwtTokenProvider.generateToken(authorities, userId);
-        redisRefreshTokenRepository.save(refreshToken.updateValue(jwtToken.getRefreshToken()));
+        redisRefreshTokenRepository.save(refreshToken.updateValue(TokenHashUtil.sha256(jwtToken.getRefreshToken())));
 
         long refreshTokenExpiry = jwtTokenProvider.getExpiration(tokenRequestDTO.getRefreshToken());
         if (refreshTokenExpiry > 0) {
@@ -195,10 +196,10 @@ public class AuthService {
                 .toList();
         JwtToken jwtToken = jwtTokenProvider.generateToken(jwtAuthorities, member.getEmail());
 
-        // 5. RefreshToken Redis에 저장
+        // 5. RefreshToken 해시 후 저장 (원문 노출 방지)
         RedisRefreshToken refreshToken = RedisRefreshToken.builder()
                 .key(email)
-                .value(jwtToken.getRefreshToken())
+                .value(TokenHashUtil.sha256(jwtToken.getRefreshToken()))
                 .build();
         redisRefreshTokenRepository.save(refreshToken);
 
