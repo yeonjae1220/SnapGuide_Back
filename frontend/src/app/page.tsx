@@ -11,6 +11,7 @@ import { InitAuth } from '@/components/InitAuth'
 
 function LandingContent() {
   const accessToken = useAuthStore((s) => s.accessToken)
+  const initialized = useAuthStore((s) => s.initialized)
   const router = useRouter()
   const searchParams = useSearchParams()
   const hasCode = !!searchParams.get('code')
@@ -20,7 +21,7 @@ function LandingContent() {
   }, [accessToken, router])
 
   // OAuth 코드 교환 중에는 랜딩 UI 대신 로딩 화면 표시
-  if (hasCode && !accessToken) {
+  if ((hasCode && !accessToken) || (!initialized && !accessToken)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-app text-ink transition-colors duration-200">
         <div className="flex flex-col items-center gap-4">

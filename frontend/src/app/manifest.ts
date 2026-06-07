@@ -11,6 +11,10 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#bc1888',
     icons: [
       { src: '/icon', sizes: '32x32', type: 'image/png' },
+      { src: '/icons/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }

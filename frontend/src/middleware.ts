@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-    "worker-src blob:",
+    "worker-src 'self' blob:",
   ].join('; ')
 
   const requestHeaders = new Headers(request.headers)

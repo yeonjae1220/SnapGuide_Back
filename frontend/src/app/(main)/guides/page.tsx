@@ -10,10 +10,12 @@ import { GuideCard } from '@/components/GuideCard'
 import { GuideDetailModal } from '@/components/GuideDetailModal'
 import type { Guide } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function GuidesPage() {
   const { t } = useI18n()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const initialized = useAuthStore((s) => s.initialized)
   const router = useRouter()
   const [guides, setGuides] = useState<Guide[]>([])
   const [selected, setSelected] = useState<Guide | null>(null)
@@ -21,6 +23,7 @@ export default function GuidesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!initialized) return
     if (accessToken === null) {
       router.replace('/')
       return
@@ -30,8 +33,9 @@ export default function GuidesPage() {
       .then(({ data }) => setGuides(data))
       .catch(() => setGuides([]))
       .finally(() => setLoading(false))
-  }, [accessToken, router])
+  }, [accessToken, initialized, router])
 
+  if (!initialized) return <p className="py-12 text-center text-sm text-subtle">{t('common.loading')}</p>
   if (!accessToken) return null
 
   return (
@@ -40,7 +44,16 @@ export default function GuidesPage() {
       {loading ? (
         <p className="py-12 text-center text-sm text-subtle">{t('common.loading')}</p>
       ) : guides.length === 0 ? (
-        <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>
+        <div className="rounded-2xl border border-line bg-surface p-6 text-center shadow-card">
+          <p className="text-sm font-medium text-ink">{t('guide.empty')}</p>
+          <p className="mt-1 text-xs text-muted">{t('guide.emptyAction')}</p>
+          <Link
+            href="/upload"
+            className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {t('nav.upload')}
+          </Link>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {guides.map((g) => (

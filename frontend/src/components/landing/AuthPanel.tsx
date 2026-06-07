@@ -59,10 +59,42 @@ export function AuthPanel() {
   }
 
   return (
-    <div className="flex w-full flex-col justify-center bg-surface px-8 py-12 text-ink transition-colors duration-200 lg:w-[480px]">
+    <div className="flex w-full flex-col justify-center bg-surface px-6 py-8 text-ink transition-colors duration-200 sm:px-8 lg:w-[480px] lg:py-12">
       <div className="mx-auto w-full max-w-sm">
-        <div className="mb-2 text-2xl font-extrabold ig-text lg:hidden">SnapGuide</div>
-        <p className="mb-8 text-sm text-muted">{t('auth.or')} {t('auth.login').toLowerCase()} / {t('auth.signup').toLowerCase()}</p>
+        <div className="mb-6 lg:hidden">
+          <div className="mb-3 text-2xl font-extrabold ig-text">SnapGuide</div>
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface-muted shadow-card">
+            <div className="relative h-36">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/snapguide-hero.webp" alt="" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+              <p className="absolute bottom-3 left-3 right-3 text-sm font-semibold text-white">
+                {t('landing.mobileValue')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mb-4 text-sm font-semibold text-ink">{t('auth.continueTitle')}</p>
+
+        <button
+          onClick={handleGoogle}
+          className="mb-4 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface py-3 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-muted"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+          </svg>
+          {t('auth.loginWithGoogle')}
+        </button>
+
+        <div className="mb-5 flex items-center gap-3 text-xs text-subtle">
+          <div className="h-px flex-1 bg-line" />
+          {t('auth.emailDivider')}
+          <div className="h-px flex-1 bg-line" />
+        </div>
 
         {/* tabs */}
         <div className="mb-6 flex gap-0 rounded-xl bg-surface-muted p-1">
@@ -81,6 +113,8 @@ export function AuthPanel() {
 
         <div className="space-y-3">
           <input
+            id="auth-email"
+            name="email"
             type="email"
             placeholder={t('auth.email')}
             value={email}
@@ -88,6 +122,8 @@ export function AuthPanel() {
             className="w-full rounded-xl border border-line bg-field px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
           />
           <input
+            id="auth-password"
+            name="password"
             type="password"
             placeholder={t('auth.password')}
             value={password}
@@ -121,28 +157,9 @@ export function AuthPanel() {
           <button
             onClick={tab === 'login' ? handleLogin : handleSignup}
             disabled={loading}
-            className="ig-bg w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="ig-bg w-full min-h-12 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {loading ? t('common.loading') : tab === 'login' ? t('auth.login') : t('auth.signup')}
-          </button>
-
-          <div className="flex items-center gap-3 text-xs text-subtle">
-            <div className="h-px flex-1 bg-line" />
-            {t('auth.or')}
-            <div className="h-px flex-1 bg-line" />
-          </div>
-
-          <button
-            onClick={handleGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface py-3 text-sm font-medium text-ink transition hover:bg-surface-muted"
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
-              <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
-              <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
-              <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
-            </svg>
-            {t('auth.loginWithGoogle')}
           </button>
         </div>
 

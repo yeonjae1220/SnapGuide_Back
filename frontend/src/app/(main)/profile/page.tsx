@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useI18n } from '@/i18n/I18nProvider'
 import { SUPPORTED_UI_LANGUAGES } from '@/i18n/messages'
 import { useTheme, type AppTheme } from '@/theme/ThemeProvider'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const THEME_OPTIONS: Array<{ value: AppTheme; labelKey: 'settings.themeLight' | 'settings.themeDark'; icon: string }> = [
   { value: 'light', labelKey: 'settings.themeLight', icon: '☀️' },
@@ -19,11 +20,15 @@ export default function ProfilePage() {
   const { t, language, setLanguage } = useI18n()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const { accessToken, email, clearTokens } = useAuthStore()
+  const { accessToken, email, clearTokens, initialized } = useAuthStore()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
+    if (!initialized) return
     if (accessToken === null) router.replace('/')
-  }, [accessToken, router])
+  }, [accessToken, initialized, router])
 
   const handleLogout = async () => {
     try {
@@ -35,16 +40,20 @@ export default function ProfilePage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm(t('profile.deleteConfirm'))) return
+    setDeleting(true)
+    setDeleteError('')
     try {
       await api.post('/api/auth/delete', { accessToken })
       clearTokens()
       router.replace('/')
     } catch {
-      alert(t('common.error'))
+      setDeleteError(t('common.error'))
+    } finally {
+      setDeleting(false)
     }
   }
 
+  if (!initialized) return <p className="py-12 text-center text-sm text-subtle">{t('common.loading')}</p>
   if (!accessToken) return null
 
   return (
@@ -94,6 +103,8 @@ export default function ProfilePage() {
             <p className="text-sm font-medium text-ink">{t('settings.uiLanguage')}</p>
           </div>
           <select
+            id="ui-language"
+            name="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="rounded-lg border border-line bg-field px-2 py-1 text-sm text-ink outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
@@ -114,12 +125,25 @@ export default function ProfilePage() {
         </button>
 
         <button
-          onClick={handleDelete}
+          onClick={() => setConfirmDelete(true)}
           className="w-full rounded-2xl border border-danger/20 bg-surface p-4 text-left text-sm font-medium text-danger shadow-card transition hover:bg-danger-soft"
         >
           {t('profile.deleteAccount')}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t('profile.deleteAccount')}
+        description={t('profile.deleteConfirm')}
+        confirmLabel={deleting ? t('common.loading') : t('profile.deleteAccount')}
+        cancelLabel={t('common.cancel')}
+        loading={deleting}
+        danger
+        error={deleteError}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

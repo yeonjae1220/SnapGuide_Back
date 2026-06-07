@@ -16,12 +16,15 @@ type MessageKey =
   | 'landing.feat2.desc'
   | 'landing.feat3.title'
   | 'landing.feat3.desc'
+  | 'landing.mobileValue'
   | 'auth.login'
   | 'auth.signup'
   | 'auth.email'
   | 'auth.password'
   | 'auth.loginWithGoogle'
   | 'auth.or'
+  | 'auth.continueTitle'
+  | 'auth.emailDivider'
   | 'auth.pwdLen'
   | 'auth.pwdUpper'
   | 'auth.pwdLower'
@@ -36,8 +39,13 @@ type MessageKey =
   | 'guide.delete'
   | 'guide.editPrompt'
   | 'guide.deleteConfirm'
+  | 'guide.moreActions'
   | 'guide.likeLoginRequired'
   | 'guide.empty'
+  | 'guide.emptyAction'
+  | 'guide.saveEdit'
+  | 'guide.regionGuides'
+  | 'guide.currentArea'
   | 'upload.title'
   | 'upload.submit'
   | 'upload.tipLabel'
@@ -45,7 +53,13 @@ type MessageKey =
   | 'upload.locationToggle'
   | 'upload.locationOn'
   | 'upload.locationOff'
+  | 'upload.locationNone'
+  | 'upload.locationHelp'
   | 'upload.fileHint'
+  | 'upload.addMore'
+  | 'upload.removeFile'
+  | 'upload.progress'
+  | 'upload.processing'
   | 'profile.email'
   | 'profile.noEmail'
   | 'profile.deleteAccount'
@@ -55,6 +69,15 @@ type MessageKey =
   | 'explore.searchPlaceholder'
   | 'explore.locateFailed'
   | 'explore.zoomInHint'
+  | 'explore.sheetTitle'
+  | 'explore.sheetSubtitle'
+  | 'explore.expandSheet'
+  | 'explore.collapseSheet'
+  | 'explore.searchAction'
+  | 'explore.mapLoading'
+  | 'explore.mapError'
+  | 'explore.retryMap'
+  | 'explore.clearSearch'
   | 'common.loading'
   | 'common.save'
   | 'common.cancel'
@@ -84,12 +107,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat2.desc': '최적의 앵글과 설정을 나눠보세요',
     'landing.feat3.title': '카메라 EXIF',
     'landing.feat3.desc': '실제 촬영 정보를 함께 기록하세요',
+    'landing.mobileValue': '사진이 있는 장소별 여행 팁을 빠르게 발견하세요',
     'auth.login': '로그인',
     'auth.signup': '회원가입',
     'auth.email': '이메일',
     'auth.password': '비밀번호',
     'auth.loginWithGoogle': 'Google로 계속하기',
     'auth.or': '또는',
+    'auth.continueTitle': '가이드를 발견하고 공유하기',
+    'auth.emailDivider': '이메일로 계속하기',
     'auth.pwdLen': '8자 이상',
     'auth.pwdUpper': '대문자 포함',
     'auth.pwdLower': '소문자 포함',
@@ -104,8 +130,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'guide.delete': '삭제',
     'guide.editPrompt': '새 팁 내용을 입력하세요:',
     'guide.deleteConfirm': '정말 삭제하시겠습니까?',
+    'guide.moreActions': '더보기',
     'guide.likeLoginRequired': '좋아요를 누르려면 로그인이 필요합니다.',
     'guide.empty': '근처에 가이드가 없습니다.',
+    'guide.emptyAction': '첫 가이드를 업로드해보세요',
+    'guide.saveEdit': '수정 저장',
+    'guide.regionGuides': '지역별 가이드',
+    'guide.currentArea': '현재 지도 범위',
     'upload.title': '가이드 업로드',
     'upload.submit': '업로드',
     'upload.tipLabel': '촬영 팁',
@@ -113,7 +144,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'upload.locationToggle': '위치 공개',
     'upload.locationOn': '공개',
     'upload.locationOff': '비공개',
+    'upload.locationNone': '위치 저장 안 함',
+    'upload.locationHelp': '업로드할 때 선택한 방식으로 현재 위치를 함께 저장합니다.',
     'upload.fileHint': '사진 또는 영상을 선택하세요',
+    'upload.addMore': '더 추가',
+    'upload.removeFile': '파일 삭제',
+    'upload.progress': '업로드 중',
+    'upload.processing': '사진과 위치 정보를 처리 중입니다',
     'profile.email': '이메일',
     'profile.noEmail': '이메일 정보 없음',
     'profile.deleteAccount': '계정 삭제',
@@ -123,6 +160,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.searchPlaceholder': '장소 검색',
     'explore.locateFailed': '현재 위치를 찾을 수 없습니다',
     'explore.zoomInHint': '지도를 확대하면 이 지역의 가이드를 볼 수 있습니다',
+    'explore.sheetTitle': '지도 속 가이드',
+    'explore.sheetSubtitle': '핀을 누르거나 지도를 움직여 주변 팁을 확인하세요',
+    'explore.expandSheet': '목록 크게 보기',
+    'explore.collapseSheet': '목록 작게 보기',
+    'explore.searchAction': '장소를 검색해보세요',
+    'explore.mapLoading': '지도를 불러오는 중입니다',
+    'explore.mapError': '지도를 불러오지 못했습니다',
+    'explore.retryMap': '다시 시도',
+    'explore.clearSearch': '검색어 지우기',
     'common.loading': '로딩 중...',
     'common.save': '저장',
     'common.cancel': '취소',
@@ -147,12 +193,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat2.desc': 'Share the best angles and settings',
     'landing.feat3.title': 'Camera EXIF',
     'landing.feat3.desc': 'Record real shooting data with your guide',
+    'landing.mobileValue': 'Discover place-based travel tips with real photos',
     'auth.login': 'Log in',
     'auth.signup': 'Sign up',
     'auth.email': 'Email',
     'auth.password': 'Password',
     'auth.loginWithGoogle': 'Continue with Google',
     'auth.or': 'or',
+    'auth.continueTitle': 'Discover and share guides',
+    'auth.emailDivider': 'Continue with email',
     'auth.pwdLen': 'At least 8 characters',
     'auth.pwdUpper': 'One uppercase letter',
     'auth.pwdLower': 'One lowercase letter',
@@ -167,8 +216,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'guide.delete': 'Delete',
     'guide.editPrompt': 'Enter new tip:',
     'guide.deleteConfirm': 'Delete this guide?',
+    'guide.moreActions': 'More actions',
     'guide.likeLoginRequired': 'Log in to like guides.',
     'guide.empty': 'No guides nearby.',
+    'guide.emptyAction': 'Upload the first guide',
+    'guide.saveEdit': 'Save changes',
+    'guide.regionGuides': 'Regional guides',
+    'guide.currentArea': 'Current map area',
     'upload.title': 'Upload Guide',
     'upload.submit': 'Upload',
     'upload.tipLabel': 'Shooting tip',
@@ -176,7 +230,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'upload.locationToggle': 'Share location',
     'upload.locationOn': 'Public',
     'upload.locationOff': 'Private',
+    'upload.locationNone': 'Do not save location',
+    'upload.locationHelp': 'Your current location is saved with the selected visibility when you upload.',
     'upload.fileHint': 'Select a photo or video',
+    'upload.addMore': 'Add more',
+    'upload.removeFile': 'Remove file',
+    'upload.progress': 'Uploading',
+    'upload.processing': 'Processing photo and location data',
     'profile.email': 'Email',
     'profile.noEmail': 'No email on record',
     'profile.deleteAccount': 'Delete account',
@@ -186,6 +246,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.searchPlaceholder': 'Search places',
     'explore.locateFailed': 'Could not find your location',
     'explore.zoomInHint': 'Zoom in to see guides in this area',
+    'explore.sheetTitle': 'Guides on the map',
+    'explore.sheetSubtitle': 'Tap pins or move the map to browse nearby tips',
+    'explore.expandSheet': 'Expand list',
+    'explore.collapseSheet': 'Collapse list',
+    'explore.searchAction': 'Try searching a place',
+    'explore.mapLoading': 'Loading map',
+    'explore.mapError': 'Could not load the map',
+    'explore.retryMap': 'Try again',
+    'explore.clearSearch': 'Clear search',
     'common.loading': 'Loading…',
     'common.save': 'Save',
     'common.cancel': 'Cancel',
@@ -210,12 +279,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat2.desc': '最高のアングルと設定をシェアしよう',
     'landing.feat3.title': 'カメラEXIF',
     'landing.feat3.desc': '実際の撮影データも記録しよう',
+    'landing.mobileValue': '写真付きの場所別旅行ヒントをすばやく発見',
     'auth.login': 'ログイン',
     'auth.signup': '新規登録',
     'auth.email': 'メールアドレス',
     'auth.password': 'パスワード',
     'auth.loginWithGoogle': 'Googleで続ける',
     'auth.or': 'または',
+    'auth.continueTitle': 'ガイドを見つけて共有',
+    'auth.emailDivider': 'メールで続ける',
     'auth.pwdLen': '8文字以上',
     'auth.pwdUpper': '大文字を含む',
     'auth.pwdLower': '小文字を含む',
@@ -230,8 +302,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'guide.delete': '削除',
     'guide.editPrompt': '新しいヒントを入力:',
     'guide.deleteConfirm': 'このガイドを削除しますか？',
+    'guide.moreActions': 'その他',
     'guide.likeLoginRequired': 'いいねするにはログインが必要です。',
     'guide.empty': '近くにガイドがありません。',
+    'guide.emptyAction': '最初のガイドを投稿',
+    'guide.saveEdit': '変更を保存',
+    'guide.regionGuides': '地域別ガイド',
+    'guide.currentArea': '現在の地図範囲',
     'upload.title': 'ガイドをアップロード',
     'upload.submit': 'アップロード',
     'upload.tipLabel': '撮影ヒント',
@@ -239,7 +316,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'upload.locationToggle': '場所を公開',
     'upload.locationOn': '公開',
     'upload.locationOff': '非公開',
+    'upload.locationNone': '場所を保存しない',
+    'upload.locationHelp': 'アップロード時に選択した公開範囲で現在地を保存します。',
     'upload.fileHint': '写真または動画を選択',
+    'upload.addMore': 'さらに追加',
+    'upload.removeFile': 'ファイル削除',
+    'upload.progress': 'アップロード中',
+    'upload.processing': '写真と位置情報を処理中',
     'profile.email': 'メールアドレス',
     'profile.noEmail': 'メール情報なし',
     'profile.deleteAccount': 'アカウント削除',
@@ -249,6 +332,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.searchPlaceholder': '場所を検索',
     'explore.locateFailed': '現在地を取得できませんでした',
     'explore.zoomInHint': 'ズームインするとこのエリアのガイドが表示されます',
+    'explore.sheetTitle': '地図上のガイド',
+    'explore.sheetSubtitle': 'ピンをタップするか地図を動かして周辺のヒントを確認',
+    'explore.expandSheet': 'リストを拡大',
+    'explore.collapseSheet': 'リストを縮小',
+    'explore.searchAction': '場所を検索してみましょう',
+    'explore.mapLoading': '地図を読み込み中',
+    'explore.mapError': '地図を読み込めませんでした',
+    'explore.retryMap': '再試行',
+    'explore.clearSearch': '検索をクリア',
     'common.loading': '読み込み中...',
     'common.save': '保存',
     'common.cancel': 'キャンセル',
@@ -273,12 +365,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat2.desc': '分享最佳角度和设置',
     'landing.feat3.title': '相机EXIF',
     'landing.feat3.desc': '同时记录真实的拍摄数据',
+    'landing.mobileValue': '快速发现带照片的地点旅行提示',
     'auth.login': '登录',
     'auth.signup': '注册',
     'auth.email': '邮箱',
     'auth.password': '密码',
     'auth.loginWithGoogle': '使用Google继续',
     'auth.or': '或',
+    'auth.continueTitle': '发现并分享攻略',
+    'auth.emailDivider': '使用邮箱继续',
     'auth.pwdLen': '至少8个字符',
     'auth.pwdUpper': '包含大写字母',
     'auth.pwdLower': '包含小写字母',
@@ -293,8 +388,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'guide.delete': '删除',
     'guide.editPrompt': '请输入新提示:',
     'guide.deleteConfirm': '确定要删除吗？',
+    'guide.moreActions': '更多',
     'guide.likeLoginRequired': '请登录后点赞。',
     'guide.empty': '附近没有攻略。',
+    'guide.emptyAction': '上传第一个攻略',
+    'guide.saveEdit': '保存修改',
+    'guide.regionGuides': '地区攻略',
+    'guide.currentArea': '当前地图范围',
     'upload.title': '上传攻略',
     'upload.submit': '上传',
     'upload.tipLabel': '拍摄提示',
@@ -302,7 +402,13 @@ export const messages: Record<UiLanguage, Messages> = {
     'upload.locationToggle': '公开位置',
     'upload.locationOn': '公开',
     'upload.locationOff': '不公开',
+    'upload.locationNone': '不保存位置',
+    'upload.locationHelp': '上传时会按所选可见性保存当前位置。',
     'upload.fileHint': '选择照片或视频',
+    'upload.addMore': '继续添加',
+    'upload.removeFile': '删除文件',
+    'upload.progress': '上传中',
+    'upload.processing': '正在处理照片和位置信息',
     'profile.email': '邮箱',
     'profile.noEmail': '无邮箱信息',
     'profile.deleteAccount': '删除账号',
@@ -312,6 +418,15 @@ export const messages: Record<UiLanguage, Messages> = {
     'explore.searchPlaceholder': '搜索地点',
     'explore.locateFailed': '无法获取当前位置',
     'explore.zoomInHint': '放大地图可查看该地区的导览',
+    'explore.sheetTitle': '地图上的攻略',
+    'explore.sheetSubtitle': '点击标记或移动地图查看附近提示',
+    'explore.expandSheet': '展开列表',
+    'explore.collapseSheet': '收起列表',
+    'explore.searchAction': '试着搜索地点',
+    'explore.mapLoading': '正在加载地图',
+    'explore.mapError': '无法加载地图',
+    'explore.retryMap': '重试',
+    'explore.clearSearch': '清除搜索',
     'common.loading': '加载中...',
     'common.save': '保存',
     'common.cancel': '取消',

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
+import Link from 'next/link'
 import axios from 'axios'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -54,6 +55,7 @@ const clampLat = (lat: number) => Math.max(-90, Math.min(90, lat))
 const MAPS_CALLBACK_NAME = '__snapguideMapsReady'
 
 type FetchError = 'network' | null
+type SheetSize = 'peek' | 'mid' | 'full'
 
 export default function FeedPage() {
   const { t } = useI18n()
@@ -65,6 +67,7 @@ export default function FeedPage() {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mapsKey, setMapsKey] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
+  const [mapError, setMapError] = useState(false)
 
   const latRef = useRef(DEFAULT_LAT)
   const lngRef = useRef(DEFAULT_LNG)
@@ -79,8 +82,11 @@ export default function FeedPage() {
   const [fetchError, setFetchError] = useState<FetchError>(null)
   const [searchInput, setSearchInput] = useState('')
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [activePredictionIndex, setActivePredictionIndex] = useState(-1)
   const [locating, setLocating] = useState(false)
   const [locateFailed, setLocateFailed] = useState(false)
+  const [sheetSize, setSheetSize] = useState<SheetSize>('mid')
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false)
 
   // 집계 모드: zoom < DETAIL_ZOOM_THRESHOLD 일 때 가이드 목록 대신 국가/대륙 클러스터 표시
   const [aggregateClusters, setAggregateClusters] = useState<RegionCluster[]>([])
@@ -93,10 +99,16 @@ export default function FeedPage() {
   useEffect(() => {
     canHoverRef.current = window.matchMedia('(hover: hover)').matches
     prefersReducedRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const desktopQuery = window.matchMedia('(min-width: 1024px)')
+    const syncDesktopLayout = () => setIsDesktopLayout(desktopQuery.matches)
+    syncDesktopLayout()
+    desktopQuery.addEventListener('change', syncDesktopLayout)
+    return () => desktopQuery.removeEventListener('change', syncDesktopLayout)
   }, [])
 
   const abortRef = useRef<AbortController | null>(null)
   const lastQueryRef = useRef('')
+  const sheetDragStartRef = useRef<number | null>(null)
 
   const fetchGuides = useCallback(
     async (la: number, ln: number, r: number) => {
@@ -142,10 +154,19 @@ export default function FeedPage() {
     else m.panTo({ lat: la, lng: ln })
   }, [])
 
+  const loadMapsKey = useCallback(() => {
+    if (!accessToken) return
+    setMapError(false)
+    api
+      .get('/api/maps/key')
+      .then(({ data }) => setMapsKey(data.apiKey))
+      .catch(() => setMapError(true))
+  }, [accessToken])
+
   useEffect(() => {
     if (!accessToken || mapsKey) return
-    api.get('/api/maps/key').then(({ data }) => setMapsKey(data.apiKey))
-  }, [accessToken, mapsKey])
+    loadMapsKey()
+  }, [accessToken, loadMapsKey, mapsKey])
 
   const applyLocation = useCallback(
     (la: number, ln: number) => {
@@ -231,7 +252,7 @@ export default function FeedPage() {
     guides,
     highlightedId,
     hoverEnabled: canHoverRef.current,
-    onClick: setSelected,
+    onClick: selectGuideFromMap,
     onHover: setHighlightedId,
   })
 
@@ -382,9 +403,34 @@ export default function FeedPage() {
     setSearchInput(input)
     if (!input) {
       setPredictions([])  // 검색어 비울 때 즉시 닫기 (디바운스 건너뜀)
+      setActivePredictionIndex(-1)
       return
     }
     handleSearchInput(input)
+  }
+
+  useEffect(() => {
+    setActivePredictionIndex(predictions.length > 0 ? 0 : -1)
+  }, [predictions])
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      setPredictions([])
+      setActivePredictionIndex(-1)
+      return
+    }
+    if (predictions.length === 0) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActivePredictionIndex((i) => (i + 1) % predictions.length)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActivePredictionIndex((i) => (i - 1 + predictions.length) % predictions.length)
+    } else if (event.key === 'Enter' && activePredictionIndex >= 0) {
+      event.preventDefault()
+      selectPrediction(predictions[activePredictionIndex].place_id)
+    }
   }
 
   const selectPrediction = (placeId: string) => {
@@ -417,6 +463,143 @@ export default function FeedPage() {
     if (canHoverRef.current) setHighlightedId(id)
   }
 
+  const openGuide = (guide: Guide) => {
+    setHighlightedId(guide.id)
+    setSelected(guide)
+  }
+
+  function selectGuideFromMap(guide: Guide) {
+    setHighlightedId(guide.id)
+    setSheetSize('mid')
+  }
+
+  const snapSheet = (direction: 'up' | 'down') => {
+    setSheetSize((current) => {
+      if (direction === 'up') return current === 'peek' ? 'mid' : 'full'
+      return current === 'full' ? 'mid' : 'peek'
+    })
+  }
+
+  const handleSheetPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    sheetDragStartRef.current = event.clientY
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleSheetPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const startY = sheetDragStartRef.current
+    sheetDragStartRef.current = null
+    if (startY == null) return
+
+    const delta = event.clientY - startY
+    if (Math.abs(delta) < 44) return
+    snapSheet(delta < 0 ? 'up' : 'down')
+  }
+
+  const totalClusterCount = aggregateClusters.reduce((sum, cluster) => sum + cluster.count, 0)
+  const resultCount = aggregateMode ? totalClusterCount : guides.length
+  const sheetHeightClass =
+    sheetSize === 'full'
+      ? 'h-[calc(100vh-5rem)]'
+      : sheetSize === 'peek'
+        ? 'h-[28vh]'
+        : 'h-[54vh]'
+
+  const renderRegionCards = () => (
+    <div className="grid gap-2">
+      {aggregateClusters.length > 0 ? (
+        aggregateClusters.map((cluster) => (
+          <button
+            key={cluster.key}
+            type="button"
+            onClick={() => drillInRef.current(cluster)}
+            className="flex min-h-16 items-center gap-3 rounded-xl border border-line bg-surface-elevated px-3 text-left shadow-sm transition hover:border-accent/40 hover:bg-surface-muted"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-sm font-bold text-accent">
+              {cluster.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cluster.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                cluster.label.slice(0, 2).toUpperCase()
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-ink">{cluster.label}</span>
+              <span className="text-xs text-muted">
+                {cluster.count} {t('nav.myGuides')}
+              </span>
+            </span>
+            <span aria-hidden="true" className="text-lg text-subtle">›</span>
+          </button>
+        ))
+      ) : (
+        <div className="rounded-2xl border border-line bg-surface-elevated p-5 text-center">
+          <p className="text-sm font-medium text-ink">{t('guide.empty')}</p>
+          <p className="mt-1 text-xs text-muted">{t('explore.searchAction')}</p>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderGuideCards = () => {
+    if (fetchError === 'network') {
+      return (
+        <div className="rounded-2xl border border-danger/20 bg-danger-soft p-5 text-center">
+          <p className="text-sm font-medium text-danger">{t('common.error')}</p>
+        </div>
+      )
+    }
+
+    if (guides.length === 0 && !loading) {
+      return (
+        <div className="rounded-2xl border border-line bg-surface-elevated p-5 text-center">
+          <p className="text-sm font-medium text-ink">{t('guide.empty')}</p>
+          <p className="mt-1 text-xs text-muted">{t('explore.searchAction')}</p>
+          <Link
+            href="/upload"
+            className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {t('guide.emptyAction')}
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        {guides.map((g) => (
+          <GuideCard
+            key={g.id}
+            guide={g}
+            onOpen={openGuide}
+            onDeleted={(id) => setGuides((gs) => gs.filter((x) => x.id !== id))}
+            onHover={cardHover}
+            highlighted={highlightedId === g.id}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  const renderResultContent = () => (
+    <>
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-accent">
+          {aggregateMode ? t('guide.regionGuides') : t('guide.currentArea')}
+        </p>
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-ink">{t('explore.sheetTitle')}</h1>
+            <p className="mt-1 text-xs text-muted">{t('explore.sheetSubtitle')}</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
+            {resultCount}
+          </span>
+        </div>
+      </div>
+      {aggregateMode ? renderRegionCards() : renderGuideCards()}
+    </>
+  )
+
   return (
     <>
       {mapsKey && (
@@ -424,12 +607,46 @@ export default function FeedPage() {
           nonce={document.body.dataset.nonce}
           src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${MAPS_CALLBACK_NAME}`}
           strategy="afterInteractive"
+          onError={() => setMapError(true)}
         />
       )}
 
-      <div className="relative">
+      <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-app lg:grid lg:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[minmax(360px,420px)_minmax(0,1fr)]">
+        <aside className="hidden overflow-y-auto border-r border-line bg-app p-4 lg:block">
+          {isDesktopLayout ? renderResultContent() : null}
+        </aside>
+
+        <div className="relative h-[calc(100vh-4rem)] lg:h-[calc(100vh-3.5rem)]">
         {/* map */}
-        <div ref={mapRef} className="h-[45vh] w-full bg-surface-muted transition-colors duration-200" />
+        <div ref={mapRef} className="h-full w-full bg-surface-muted transition-colors duration-200" />
+
+        {(!map || mapError) && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-muted/80 px-6 text-center backdrop-blur-sm">
+            <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+              {mapError ? (
+                <>
+                  <p className="text-sm font-semibold text-ink">{t('explore.mapError')}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapsKey(null)
+                      setMapsReady(false)
+                      loadMapsKey()
+                    }}
+                    className="mt-4 min-h-10 rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    {t('explore.retryMap')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span aria-hidden="true" className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  <p className="mt-3 text-sm font-semibold text-ink">{t('explore.mapLoading')}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* loading spinner */}
         {loading && (
@@ -449,21 +666,36 @@ export default function FeedPage() {
             <input
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder={t('explore.searchPlaceholder')}
               aria-label={t('explore.searchPlaceholder')}
               aria-autocomplete="list"
               aria-controls="place-predictions"
-              className="w-full rounded-xl border border-line bg-surface/95 px-4 py-2 text-sm text-ink shadow-card outline-none backdrop-blur transition-colors duration-200 placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
+              aria-activedescendant={activePredictionIndex >= 0 ? `place-prediction-${predictions[activePredictionIndex]?.place_id}` : undefined}
+              className="w-full rounded-xl border border-line bg-surface/95 py-2 pl-4 pr-10 text-sm text-ink shadow-card outline-none backdrop-blur transition-colors duration-200 placeholder:text-subtle focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => handleSearch('')}
+                aria-label={t('explore.clearSearch')}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-sm text-muted transition hover:bg-surface-muted hover:text-ink"
+              >
+                ✕
+              </button>
+            )}
             {predictions.length > 0 && (
               <ul id="place-predictions" role="listbox" aria-label={t('explore.searchPlaceholder')} className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-line bg-surface-elevated shadow-card">
-                {predictions.map((p) => (
+                {predictions.map((p, index) => (
                   <li
                     key={p.place_id}
+                    id={`place-prediction-${p.place_id}`}
                     role="option"
-                    aria-selected={false}
+                    aria-selected={index === activePredictionIndex}
                     onClick={() => selectPrediction(p.place_id)}
-                    className="cursor-pointer px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted"
+                    className={`cursor-pointer px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted ${
+                      index === activePredictionIndex ? 'bg-surface-muted' : ''
+                    }`}
                   >
                     {p.description}
                   </li>
@@ -498,7 +730,7 @@ export default function FeedPage() {
         )}
 
         {/* radius — 집계 모드(zoom < 9)에서는 무의미하므로 숨김 */}
-        <div className={`absolute bottom-3 left-3 flex items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-1.5 text-xs shadow-card backdrop-blur transition-colors duration-200 ${aggregateMode ? 'hidden' : ''}`}>
+        <div className={`absolute left-3 top-16 flex items-center gap-2 rounded-xl border border-line bg-surface/95 px-3 py-1.5 text-xs shadow-card backdrop-blur transition-colors duration-200 lg:bottom-3 lg:top-auto ${aggregateMode ? 'hidden' : ''}`}>
           <span className="text-muted">{t('explore.radiusLabel')}</span>
           <button
             onClick={handleAutoRadius}
@@ -524,31 +756,56 @@ export default function FeedPage() {
             </button>
           ))}
         </div>
-      </div>
 
-      {/* guide list / aggregate hint */}
-      <div className="p-4">
-        {aggregateMode ? (
-          <p className="py-12 text-center text-sm text-subtle">
-            {t('explore.zoomInHint')}
-          </p>
-        ) : fetchError === 'network' ? (
-          <p className="py-12 text-center text-sm text-danger">{t('common.error')}</p>
-        ) : guides.length === 0 && !loading ? (
-          <p className="py-12 text-center text-sm text-subtle">{t('guide.empty')}</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {guides.map((g) => (
-              <GuideCard
-                key={g.id}
-                guide={g}
-                onOpen={setSelected}
-                onHover={cardHover}
-                highlighted={highlightedId === g.id}
-              />
-            ))}
+        <section
+          aria-label={t('explore.sheetTitle')}
+          className={`absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl border border-line bg-surface/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.18)] backdrop-blur transition-[height] duration-200 lg:hidden ${sheetHeightClass}`}
+        >
+          <div className="shrink-0 px-4 pb-2 pt-3">
+            <div
+              className="touch-none"
+              onPointerDown={handleSheetPointerDown}
+              onPointerUp={handleSheetPointerUp}
+            >
+              <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-line" />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setSheetSize(sheetSize === 'full' ? 'mid' : 'full')}
+                className="min-h-10 flex-1 text-left"
+                aria-label={sheetSize === 'full' ? t('explore.collapseSheet') : t('explore.expandSheet')}
+              >
+                <span className="block text-sm font-bold text-ink">{t('explore.sheetTitle')}</span>
+                <span className="block text-xs text-muted">
+                  {resultCount} · {aggregateMode ? t('explore.zoomInHint') : t('guide.currentArea')}
+                </span>
+              </button>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSheetSize('peek')}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm text-muted transition hover:bg-surface-muted hover:text-ink"
+                  aria-label={t('explore.collapseSheet')}
+                >
+                  ⌄
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSheetSize('full')}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm text-muted transition hover:bg-surface-muted hover:text-ink"
+                  aria-label={t('explore.expandSheet')}
+                >
+                  ⌃
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
+            {!isDesktopLayout ? renderResultContent() : null}
+          </div>
+        </section>
+        </div>
       </div>
 
       {selected && <GuideDetailModal guide={selected} onClose={() => setSelected(null)} />}

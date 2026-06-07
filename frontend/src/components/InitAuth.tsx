@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { parseJwtEmail } from '@/lib/jwt'
 
 function InitAuthInner() {
-  const { setTokens, accessToken, clearTokens } = useAuthStore()
+  const { setTokens, accessToken, clearTokens, markInitialized } = useAuthStore()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialized = useRef(false)
@@ -26,7 +26,10 @@ function InitAuthInner() {
           setTokens(data.accessToken, email ?? undefined)
           router.replace('/feed')
         })
-        .catch(() => router.replace('/'))
+        .catch(() => {
+          clearTokens()
+          router.replace('/')
+        })
       return
     }
 
@@ -38,7 +41,10 @@ function InitAuthInner() {
           setTokens(data.accessToken, email ?? undefined)
         })
         .catch(() => clearTokens())
+      return
     }
+
+    markInitialized()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null

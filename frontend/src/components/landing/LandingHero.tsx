@@ -6,12 +6,16 @@ export function LandingHero() {
   const { t } = useI18n()
 
   return (
-    <div className="relative hidden flex-1 flex-col justify-center overflow-hidden bg-[#0b0b0d] px-14 py-20 lg:flex">
-      {/* gradient orbs */}
-      <div className="pointer-events-none absolute -right-32 -top-32 h-[560px] w-[560px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(240,148,51,.45)_0%,rgba(188,24,136,.2)_55%,transparent_72%)]" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(0,149,246,.3)_0%,rgba(204,35,102,.18)_55%,transparent_72%)]" />
+    <div className="relative hidden flex-1 flex-col justify-end overflow-hidden bg-[#0b0b0d] px-14 py-20 lg:flex">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/snapguide-hero.webp"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover opacity-75"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,10,.86),rgba(8,8,10,.38)_48%,rgba(8,8,10,.18))]" />
 
-      <div className="relative z-10">
+      <div className="relative z-10 max-w-2xl">
         <div className="mb-6 text-3xl font-bold ig-text">{t('landing.title')}</div>
         <p className="mb-10 whitespace-pre-line text-5xl font-extrabold leading-tight text-white">
           {t('landing.tagline')}
