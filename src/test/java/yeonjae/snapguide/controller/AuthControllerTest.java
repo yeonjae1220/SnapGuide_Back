@@ -16,6 +16,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
 import yeonjae.snapguide.domain.member.dto.MemberResponseDto;
+import yeonjae.snapguide.security.ClientIpResolver;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.security.config.SecurityConfig;
@@ -65,6 +66,9 @@ class AuthControllerTest {
 
     @MockBean
     private RateLimiterService rateLimiterService; // RateLimiterService Mock — Redis 없이 테스트 가능
+
+    @MockBean
+    private ClientIpResolver clientIpResolver; // @Component이지만 @WebMvcTest 슬라이스에 자동 포함되지 않아 Mock 필요
 
     private MemberRequestDto signupRequest;
     private JwtToken mockJwtToken;

@@ -20,6 +20,7 @@ import yeonjae.snapguide.service.guideSerivce.GuideService;
 import yeonjae.snapguide.service.guideSerivce.RegionAggregateService;
 import yeonjae.snapguide.service.mediaSerivce.BatchUploadResult;
 import jakarta.servlet.http.HttpServletRequest;
+import yeonjae.snapguide.security.ClientIpResolver;
 import yeonjae.snapguide.security.ratelimit.RateLimiterService;
 import yeonjae.snapguide.service.mediaSerivce.MediaService;
 import yeonjae.snapguide.service.memberSerivce.MemberService;
@@ -40,6 +41,7 @@ public class GuideController {
     private final MemberService memberService;
     private final RegionAggregateService regionAggregateService;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
 
     /**
      * 통합 API: 파일 업로드 + Guide 생성 + Media 연결을 한 번에 처리.
@@ -134,7 +136,7 @@ public class GuideController {
     public ResponseEntity<List<RegionClusterDto>> getRegionAggregate(
             @RequestParam(defaultValue = "country") String level,
             HttpServletRequest request) {
-        rateLimiterService.checkAggregateRate(request.getRemoteAddr());
+        rateLimiterService.checkAggregateRate(clientIpResolver.resolve(request));
         AggregateLevel aggregateLevel = "continent".equalsIgnoreCase(level)
                 ? AggregateLevel.CONTINENT
                 : AggregateLevel.COUNTRY;
