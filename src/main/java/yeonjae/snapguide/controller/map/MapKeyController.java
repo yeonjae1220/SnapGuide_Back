@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import yeonjae.snapguide.security.ClientIpResolver;
 import yeonjae.snapguide.security.ratelimit.RateLimiterService;
 import yeonjae.snapguide.service.map.LocationResponse;
 import yeonjae.snapguide.service.map.MapService;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class MapKeyController {
     private final MapService mapService;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping("/key")
     public ResponseEntity<Map<String, String>> getMapApiKey() {
@@ -26,7 +28,7 @@ public class MapKeyController {
 
     @GetMapping("/location")
     public ResponseEntity<LocationResponse> getIpLocation(HttpServletRequest request) {
-        rateLimiterService.checkLocationRate(request.getRemoteAddr());
+        rateLimiterService.checkLocationRate(clientIpResolver.resolve(request));
         return mapService.getIpLocation(request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());

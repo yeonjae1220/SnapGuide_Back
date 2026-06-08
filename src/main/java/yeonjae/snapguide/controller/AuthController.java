@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import yeonjae.snapguide.domain.member.dto.MemberRequestDto;
+import yeonjae.snapguide.security.ClientIpResolver;
 import yeonjae.snapguide.security.authentication.jwt.JwtToken;
 import yeonjae.snapguide.security.authentication.jwt.TokenRequestDto;
 import yeonjae.snapguide.security.ratelimit.RateLimiterService;
@@ -36,11 +37,12 @@ public class AuthController {
     private final GoogleOAuthService googleOAuthService;
     private final Environment environment;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request,
                                          HttpServletRequest httpRequest) {
-        rateLimiterService.checkSignupRate(getClientIp(httpRequest));
+        rateLimiterService.checkSignupRate(clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(authService.signup(request));
     }
 
@@ -48,7 +50,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody @Valid MemberRequestDto request,
                                    HttpServletRequest httpRequest,
                                    HttpServletResponse response) {
-        rateLimiterService.checkLoginRate(getClientIp(httpRequest), request.getEmail());
+        rateLimiterService.checkLoginRate(clientIpResolver.resolve(httpRequest), request.getEmail());
         JwtToken token = authService.login(request);
         addRefreshCookie(response, token.getRefreshToken());
         return ResponseEntity.ok(Map.of(
@@ -178,9 +180,5 @@ public class AuthController {
     private boolean isSecureCookieRequired() {
         return Arrays.stream(environment.getActiveProfiles())
                 .noneMatch(p -> p.equalsIgnoreCase("local") || p.equalsIgnoreCase("test"));
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        return request.getRemoteAddr();
     }
 }

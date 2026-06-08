@@ -68,6 +68,9 @@ class GuideControllerTest {
     @MockBean
     private yeonjae.snapguide.security.ratelimit.RateLimiterService rateLimiterService;
 
+    @MockBean
+    private yeonjae.snapguide.security.ClientIpResolver clientIpResolver;
+
     private Member testMember;
 
     @BeforeEach

@@ -66,6 +66,10 @@ snapguide:
     login-limit: 10       # 로그인: IP 기준 10회/10분
     signup-limit: 5       # 회원가입: IP 기준 5회/10분
     window-seconds: 600   # 10분 윈도우
+  # 신뢰 프록시(nginx-ingress 등)의 IP/CIDR에서 온 요청만 X-Forwarded-For 헤더를 신뢰.
+  # 그렇지 않으면 모든 요청이 동일한 프록시 pod IP로 보여 IP 기반 rate limit이 전역 단일 버킷이 되거나,
+  # 헤더 위조로 우회될 수 있음.
+  trusted-proxy-ips: ${TRUSTED_PROXY_IPS:127.0.0.1,::1}
 
 # PWA Push Notification (VAPID)
 pwa:
