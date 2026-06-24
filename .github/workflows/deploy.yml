@@ -149,6 +149,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD_BCRYPT: ${{ secrets.ADMIN_PASSWORD_BCRYPT }}
+          CONSOLE_INTERNAL_TOKEN: ${{ secrets.CONSOLE_INTERNAL_TOKEN }}
         run: |
           sudo kubectl create secret generic snapguide-secret \
             --from-literal=POSTGRES_DB="snapguide" \
@@ -167,6 +168,7 @@ jobs:
             --from-literal=AWS_REGION="${AWS_REGION}" \
             --from-literal=ADMIN_EMAIL="${ADMIN_EMAIL}" \
             --from-literal=ADMIN_PASSWORD_BCRYPT="${ADMIN_PASSWORD_BCRYPT}" \
+            --from-literal=CONSOLE_INTERNAL_TOKEN="${CONSOLE_INTERNAL_TOKEN}" \
             -n snapguide --dry-run=client -o yaml 2>/dev/null | sudo kubectl apply -f - --output=name
 
       - name: Apply k8s manifests

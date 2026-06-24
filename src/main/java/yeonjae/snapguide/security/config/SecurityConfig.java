@@ -41,6 +41,7 @@ import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
 import yeonjae.snapguide.service.CustomOauth2UserService;
 import yeonjae.snapguide.service.CustomUserDetailsService;
 import yeonjae.snapguide.service.TokenBlacklistService;
+import yeonjae.snapguide.security.internal.ServiceTokenAuthFilter;
 
 @Slf4j
 @Configuration
@@ -68,6 +69,10 @@ public class SecurityConfig {
     /** BCrypt hash — k8s Secret ADMIN_PASSWORD_BCRYPT 에서 주입 */
     @Value("${admin.password.bcrypt}")
     private String adminPasswordBcrypt;
+
+    /** 콘솔 집계용 서비스 토큰 — 미설정 시 /api/internal/** 전부 차단(fail-closed) */
+    @Value("${console.internal-token:}")
+    private String consoleInternalToken;
 
     private static final java.util.Set<String> KNOWN_TEST_HASHES = java.util.Set.of(
             "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi."
@@ -154,6 +159,25 @@ public class SecurityConfig {
      * /admin/** 경로만 담당. formLogin + httpOnly 세션 쿠키로 인증.
      * JWT 필터 미적용 — XSS 토큰 탈취 위협과 완전히 분리.
      */
+    /**
+     * 콘솔 집계 전용 Security chain (서비스 토큰 기반, 읽기 전용).
+     * /api/internal/** 만 담당. ServiceTokenAuthFilter가 X-Internal-Token을
+     * 상수시간 비교로 검증 — 통과해야만 컨트롤러 도달. JWT/세션 필터 미적용.
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain internalConsoleFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/api/internal/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(new ServiceTokenAuthFilter(consoleInternalToken),
+                        UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
