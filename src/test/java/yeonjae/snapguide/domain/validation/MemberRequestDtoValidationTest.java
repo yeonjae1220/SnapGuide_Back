@@ -28,7 +28,7 @@ class MemberRequestDtoValidationTest {
     private MemberRequestDto validRequest() {
         return MemberRequestDto.builder()
                 .email("valid@example.com")
-                .password("ValidPass1")
+                .password("ValidPass1!")
                 .nickname("user")
                 .build();
     }
@@ -44,7 +44,7 @@ class MemberRequestDtoValidationTest {
             // Arrange
             MemberRequestDto request = MemberRequestDto.builder()
                     .email(email)
-                    .password("ValidPass1")
+                    .password("ValidPass1!")
                     .nickname("user")
                     .build();
 
@@ -62,7 +62,7 @@ class MemberRequestDtoValidationTest {
             // Arrange
             MemberRequestDto request = MemberRequestDto.builder()
                     .email(email)
-                    .password("ValidPass1")
+                    .password("ValidPass1!")
                     .nickname("user")
                     .build();
 
@@ -100,8 +100,8 @@ class MemberRequestDtoValidationTest {
     class PasswordValidation {
 
         @ParameterizedTest
-        @DisplayName("대소문자와 숫자를 포함하고 8자 이상인 비밀번호는 검증을 통과한다")
-        @ValueSource(strings = {"ValidPass1", "MySecure9Password", "Abcdefg1"})
+        @DisplayName("대소문자, 숫자, 특수문자를 포함하고 8자 이상인 비밀번호는 검증을 통과한다")
+        @ValueSource(strings = {"ValidPass1!", "MySecure9Password$", "Abcdefg1#"})
         void shouldPassForValidPasswords(String password) {
             // Arrange
             MemberRequestDto request = MemberRequestDto.builder()
@@ -181,6 +181,25 @@ class MemberRequestDtoValidationTest {
             MemberRequestDto request = MemberRequestDto.builder()
                     .email("valid@example.com")
                     .password("ALLUPPERCASE1")
+                    .nickname("user")
+                    .build();
+
+            // Act
+            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+
+            // Assert
+            assertThat(violations)
+                    .isNotEmpty()
+                    .anyMatch(v -> v.getPropertyPath().toString().equals("password"));
+        }
+
+        @Test
+        @DisplayName("특수문자가 없는 비밀번호는 패턴 제약으로 실패한다")
+        void shouldFailForPasswordWithoutSpecialCharacter() {
+            // Arrange
+            MemberRequestDto request = MemberRequestDto.builder()
+                    .email("valid@example.com")
+                    .password("NoSpecialChar1")
                     .nickname("user")
                     .build();
 
