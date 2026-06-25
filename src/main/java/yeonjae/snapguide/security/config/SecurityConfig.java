@@ -36,6 +36,11 @@ import yeonjae.snapguide.security.authentication.exception.JwtAccessDeniedHandle
 import yeonjae.snapguide.security.authentication.exception.JwtAuthenticationEntryPoint;
 import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
 import yeonjae.snapguide.security.authentication.jwt.JwtTokenProvider;
+import yeonjae.snapguide.security.ClientIpResolver;
+import yeonjae.snapguide.security.adminlogin.AdminAuthenticationFailureHandler;
+import yeonjae.snapguide.security.adminlogin.AdminAuthenticationSuccessHandler;
+import yeonjae.snapguide.security.adminlogin.AdminLoginAttemptFilter;
+import yeonjae.snapguide.security.adminlogin.AdminLoginAttemptService;
 import yeonjae.snapguide.security.constant.SecurityConstants;
 import yeonjae.snapguide.security.matcher.WhiteListRequestMatcher;
 import yeonjae.snapguide.service.CustomOauth2UserService;
@@ -62,6 +67,8 @@ public class SecurityConfig {
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final CustomOauth2UserService customOauth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final ClientIpResolver clientIpResolver;
+    private final AdminLoginAttemptService adminLoginAttemptService;
 
     @Value("${admin.email}")
     private String adminEmail;
@@ -191,10 +198,16 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/admin/login")
                         .loginProcessingUrl("/admin/login")
-                        .defaultSuccessUrl("/admin/dashboard", true)
-                        .failureUrl("/admin/login?error")
+                        // 무차별 대입 방지: 실패/성공을 IP·계정 차원으로 카운트
+                        .successHandler(new AdminAuthenticationSuccessHandler(
+                                adminLoginAttemptService, clientIpResolver))
+                        .failureHandler(new AdminAuthenticationFailureHandler(
+                                adminLoginAttemptService, clientIpResolver))
                         .permitAll()
                 )
+                // lockout 강제: 비밀번호 검증 전에 429 + Retry-After 로 차단
+                .addFilterBefore(new AdminLoginAttemptFilter(adminLoginAttemptService, clientIpResolver),
+                        UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/admin/logout")
                         .logoutSuccessUrl("/admin/login?logout")
