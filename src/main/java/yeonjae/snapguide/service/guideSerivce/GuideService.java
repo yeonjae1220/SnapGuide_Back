@@ -177,7 +177,7 @@ public class GuideService {
 //        guideRepository.save(guide); // 변경감지로 자동 반영되지만 save로 명시해도 OK
         // DTO로 변환해서 반환
 //        return new GuideResponseDto(guide.getId(), guide.getTip());
-        return GuideMapper.toResponseDto(guide, guideLikeService.hasUserLiked(member, guide));
+        return GuideMapper.toResponseDtoWithAuthorEmail(guide, guideLikeService.hasUserLiked(member, guide));
     }
 
     /**
@@ -302,7 +302,7 @@ public class GuideService {
             userHasLiked = guideLikeService.hasUserLiked(member, guide);
         }
 
-        return GuideResponseDto.of(guide, userHasLiked);
+        return GuideMapper.toResponseDtoWithAuthorEmail(guide, userHasLiked);
     }
 
 

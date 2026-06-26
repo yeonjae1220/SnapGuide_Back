@@ -22,7 +22,8 @@ public class MapKeyController {
     private final ClientIpResolver clientIpResolver;
 
     @GetMapping("/key")
-    public ResponseEntity<Map<String, String>> getMapApiKey() {
+    public ResponseEntity<Map<String, String>> getMapApiKey(HttpServletRequest request) {
+        rateLimiterService.checkMapKeyRate(clientIpResolver.resolve(request));
         return ResponseEntity.ok(mapService.getGoogleMapsApiKey());
     }
 

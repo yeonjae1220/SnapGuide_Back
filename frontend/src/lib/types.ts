@@ -14,6 +14,7 @@ export type Media = {
 
 export type Author = {
   email?: string
+  nickname?: string
 }
 
 export type Guide = {

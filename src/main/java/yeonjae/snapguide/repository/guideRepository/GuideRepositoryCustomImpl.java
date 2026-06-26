@@ -63,7 +63,7 @@ public class GuideRepositoryCustomImpl implements GuideRepositoryCustom{
                 .stream().collect(Collectors.toSet());
 
         return guides.stream()
-                .map(guide -> GuideMapper.toResponseDto(guide, likedGuideIds.contains(guide.getId())))
+                .map(guide -> GuideMapper.toResponseDtoWithAuthorEmail(guide, likedGuideIds.contains(guide.getId())))
                 .toList();
     }
 

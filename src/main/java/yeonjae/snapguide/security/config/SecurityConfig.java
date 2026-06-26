@@ -242,7 +242,6 @@ public class SecurityConfig {
                             .access((a, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(isDevProfile()))
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.AUTH_API).permitAll()
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.USER_API).permitAll()
-                        .requestMatchers("/api/maps/key").authenticated()
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.LOCAL_LOGIN_API).permitAll()
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.OAUTH_API).permitAll()
                         .requestMatchers(SecurityConstants.AuthenticationWhiteList.DEV_TOOL).permitAll()

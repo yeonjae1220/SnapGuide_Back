@@ -147,10 +147,12 @@ public class GuideController {
     public ResponseEntity<List<GuideResponseDto>> getNearbyGuides(
             @RequestParam double lat,
             @RequestParam double lng,
-            @RequestParam(defaultValue = "20") double radius) {
+            @RequestParam(defaultValue = "20") double radius,
+            HttpServletRequest request) {
         if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
             throw new IllegalArgumentException("유효하지 않은 좌표값입니다.");
         }
+        rateLimiterService.checkNearbyRate(clientIpResolver.resolve(request));
         double clampedRadius = Math.min(radius, 100.0);
         return ResponseEntity.ok(guideService.findGuidesNear(lat, lng, clampedRadius));
     }

@@ -27,6 +27,14 @@ public class GuideMapper {
      * @return GuideResponseDto
      */
     public static GuideResponseDto toResponseDto(Guide entity, boolean userHasLiked) {
+        return toResponseDto(entity, userHasLiked, false);
+    }
+
+    public static GuideResponseDto toResponseDtoWithAuthorEmail(Guide entity, boolean userHasLiked) {
+        return toResponseDto(entity, userHasLiked, true);
+    }
+
+    private static GuideResponseDto toResponseDto(Guide entity, boolean userHasLiked, boolean includeAuthorEmail) {
         if (entity == null) {
             return null;
         }
@@ -37,8 +45,10 @@ public class GuideMapper {
                 .map(MediaMapper::toDto)
                 .collect(Collectors.toList());
 
-        // Author 변환
-        MemberDto authorDto = MemberMapper.toDto(entity.getAuthor());
+        // 공개 지도 탐색 응답에는 로그인 식별자인 이메일을 노출하지 않는다.
+        MemberDto authorDto = includeAuthorEmail
+                ? MemberMapper.toDto(entity.getAuthor())
+                : MemberMapper.toPublicDto(entity.getAuthor());
 
         // Location 이름 + 좌표 추출 (null-safe, 구형 레코드 fallback 포함)
         String locationName = null;

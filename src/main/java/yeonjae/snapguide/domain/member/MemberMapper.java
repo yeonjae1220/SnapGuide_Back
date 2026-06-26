@@ -23,6 +23,18 @@ public class MemberMapper {
         return MemberDto.builder()
                 .id(entity.getId())
                 .email(entity.getEmail())
+                .nickname(entity.getNickname())
+                .build();
+    }
+
+    public static MemberDto toPublicDto(Member entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        return MemberDto.builder()
+                .id(entity.getId())
+                .nickname(entity.getNickname())
                 .build();
     }
 

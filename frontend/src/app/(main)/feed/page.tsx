@@ -28,6 +28,7 @@ const DETAIL_ZOOM_THRESHOLD = 9
 const CONTINENT_ZOOM_THRESHOLD = 5
 const DEG_TO_KM = 111
 const GPS_TIMEOUT_MS = 3000
+const MAPS_LOAD_TIMEOUT_MS = 10000
 
 const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#1d1f24' }] },
@@ -64,10 +65,12 @@ export default function FeedPage() {
 
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<google.maps.Map | null>(null)
+  const initMapRef = useRef<() => void>(() => {})
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mapsKey, setMapsKey] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
   const [mapError, setMapError] = useState(false)
+  const [scriptNonce, setScriptNonce] = useState<string | undefined>(undefined)
 
   const latRef = useRef(DEFAULT_LAT)
   const lngRef = useRef(DEFAULT_LNG)
@@ -155,18 +158,24 @@ export default function FeedPage() {
   }, [])
 
   const loadMapsKey = useCallback(() => {
-    if (!accessToken) return
     setMapError(false)
     api
       .get('/api/maps/key')
-      .then(({ data }) => setMapsKey(data.apiKey))
+      .then(({ data }) => {
+        const apiKey = typeof data?.apiKey === 'string' ? data.apiKey.trim() : ''
+        if (!apiKey) {
+          setMapError(true)
+          return
+        }
+        setMapsKey(apiKey)
+      })
       .catch(() => setMapError(true))
-  }, [accessToken])
+  }, [])
 
   useEffect(() => {
-    if (!accessToken || mapsKey) return
+    if (mapsKey) return
     loadMapsKey()
-  }, [accessToken, loadMapsKey, mapsKey])
+  }, [loadMapsKey, mapsKey])
 
   const applyLocation = useCallback(
     (la: number, ln: number) => {
@@ -207,27 +216,47 @@ export default function FeedPage() {
       styles: theme === 'dark' ? DARK_MAP_STYLES : undefined,
     })
     googleMapRef.current = m
+    setMapError(false)
     setMap(m)
   }, [theme])
 
   useEffect(() => {
+    initMapRef.current = initMap
+  }, [initMap])
+
+  useEffect(() => {
+    setScriptNonce(document.body.dataset.nonce || undefined)
     // loading=async 콜백 패턴: SDK 로드 완료 시 호출됨
     // 콜백 등록을 Script 삽입 전 useEffect에서 처리하므로 race condition 없음
-    ;(window as unknown as Record<string, unknown>)[MAPS_CALLBACK_NAME] = () => setMapsReady(true)
+    ;(window as unknown as Record<string, unknown>)[MAPS_CALLBACK_NAME] = () => {
+      setMapError(false)
+      setMapsReady(true)
+      initMapRef.current()
+    }
 
     // SPA 리마운트 시 window.google이 이미 존재하면 콜백이 재발동하지 않으므로 직접 초기화
-    if (window.google?.maps) initMap()
+    if (window.google?.maps) {
+      setMapError(false)
+      setMapsReady(true)
+      initMapRef.current()
+    }
 
     return () => {
       delete (window as unknown as Record<string, unknown>)[MAPS_CALLBACK_NAME]
     }
-  // initMap 참조는 theme 변경 시에만 바뀌며 맵 재생성 대신 setOptions로 처리하므로 안전
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (mapsReady) initMap()
   }, [mapsReady, initMap])
+
+  useEffect(() => {
+    if (!mapsKey || map || mapError) return
+    const timeout = window.setTimeout(() => {
+      if (!googleMapRef.current) setMapError(true)
+    }, MAPS_LOAD_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [mapsKey, map, mapError])
 
   // 페이지 가시성 복귀 시 맵 리사이즈 (탭 전환 후 회색 타일 방지)
   useEffect(() => {
@@ -555,10 +584,10 @@ export default function FeedPage() {
           <p className="text-sm font-medium text-ink">{t('guide.empty')}</p>
           <p className="mt-1 text-xs text-muted">{t('explore.searchAction')}</p>
           <Link
-            href="/upload"
+            href={accessToken ? '/upload' : '/'}
             className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:opacity-90"
           >
-            {t('guide.emptyAction')}
+            {accessToken ? t('guide.emptyAction') : t('auth.login')}
           </Link>
         </div>
       )
@@ -604,9 +633,15 @@ export default function FeedPage() {
     <>
       {mapsKey && (
         <Script
-          nonce={document.body.dataset.nonce}
+          nonce={scriptNonce}
           src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${MAPS_CALLBACK_NAME}`}
           strategy="afterInteractive"
+          onLoad={() => {
+            if (window.google?.maps) {
+              setMapError(false)
+              setMapsReady(true)
+            }
+          }}
           onError={() => setMapError(true)}
         />
       )}
