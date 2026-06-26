@@ -118,8 +118,8 @@ export function GuideDetailModal({ guide, onClose }: Props) {
         )}
 
         <div className="p-5">
-          {guide.author?.email && (
-            <p className="mb-1 text-xs text-subtle">@{guide.author.email}</p>
+          {(guide.author?.nickname || guide.author?.email) && (
+            <p className="mb-1 text-xs text-subtle">@{guide.author.nickname ?? guide.author.email}</p>
           )}
           {exifText && <p className="mb-2 text-xs text-subtle">{exifText}</p>}
           <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-ink">{guide.tip}</p>

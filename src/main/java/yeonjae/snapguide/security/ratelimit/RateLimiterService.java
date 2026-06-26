@@ -44,6 +44,12 @@ public class RateLimiterService {
     @Value("${snapguide.rate-limit.aggregate-limit:30}")
     private int aggregateLimit;
 
+    @Value("${snapguide.rate-limit.nearby-limit:60}")
+    private int nearbyLimit;
+
+    @Value("${snapguide.rate-limit.map-key-limit:60}")
+    private int mapKeyLimit;
+
     /**
      * 로그인 rate limit 검사.
      * IP 기준 10회/10분, 이메일 기준 30회/10분.
@@ -75,6 +81,22 @@ public class RateLimiterService {
      */
     public void checkAggregateRate(String clientIp) {
         check("rl:aggregate:ip:" + clientIp, aggregateLimit);
+    }
+
+    /**
+     * 주변 가이드 조회 rate limit 검사.
+     * IP 기준 60회/10분 — 공개 지도 탐색에서 좌표를 바꿔 캐시를 우회하는 남용을 제한한다.
+     */
+    public void checkNearbyRate(String clientIp) {
+        check("rl:nearby:ip:" + clientIp, nearbyLimit);
+    }
+
+    /**
+     * Maps JavaScript API 키 조회 rate limit 검사.
+     * 키 자체는 브라우저 공개 값이지만, 반복 스크래핑과 로그 잡음을 제한한다.
+     */
+    public void checkMapKeyRate(String clientIp) {
+        check("rl:maps:key:ip:" + clientIp, mapKeyLimit);
     }
 
     private void check(String key, int limit) {

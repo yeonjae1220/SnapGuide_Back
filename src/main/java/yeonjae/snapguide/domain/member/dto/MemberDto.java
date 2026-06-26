@@ -17,6 +17,12 @@ import yeonjae.snapguide.domain.member.MemberMapper;
 public class MemberDto {
     private Long id;
     private String email;
+    private String nickname;
+
+    public MemberDto(Long id, String email) {
+        this.id = id;
+        this.email = email;
+    }
 
     /**
      * @deprecated MemberMapper.toDto()를 사용하세요
