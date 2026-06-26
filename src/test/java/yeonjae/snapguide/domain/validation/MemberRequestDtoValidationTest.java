@@ -110,8 +110,9 @@ class MemberRequestDtoValidationTest {
                     .nickname("user")
                     .build();
 
-            // Act
-            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+            // Act — signup 검증 그룹으로 복잡도 패턴까지 적용
+            Set<ConstraintViolation<MemberRequestDto>> violations =
+                    validator.validate(request, MemberRequestDto.SignupValidation.class);
 
             // Assert
             assertThat(violations).isEmpty();
@@ -147,7 +148,8 @@ class MemberRequestDtoValidationTest {
                     .build();
 
             // Act
-            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+            Set<ConstraintViolation<MemberRequestDto>> violations =
+                    validator.validate(request, MemberRequestDto.SignupValidation.class);
 
             // Assert
             assertThat(violations)
@@ -166,7 +168,8 @@ class MemberRequestDtoValidationTest {
                     .build();
 
             // Act
-            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+            Set<ConstraintViolation<MemberRequestDto>> violations =
+                    validator.validate(request, MemberRequestDto.SignupValidation.class);
 
             // Assert
             assertThat(violations)
@@ -185,7 +188,8 @@ class MemberRequestDtoValidationTest {
                     .build();
 
             // Act
-            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+            Set<ConstraintViolation<MemberRequestDto>> violations =
+                    validator.validate(request, MemberRequestDto.SignupValidation.class);
 
             // Assert
             assertThat(violations)
@@ -204,7 +208,8 @@ class MemberRequestDtoValidationTest {
                     .build();
 
             // Act
-            Set<ConstraintViolation<MemberRequestDto>> violations = validator.validate(request);
+            Set<ConstraintViolation<MemberRequestDto>> violations =
+                    validator.validate(request, MemberRequestDto.SignupValidation.class);
 
             // Assert
             assertThat(violations)

@@ -3,8 +3,10 @@ package yeonjae.snapguide.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.groups.Default;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -40,8 +42,9 @@ public class AuthController {
     private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> localSignup(@RequestBody @Valid MemberRequestDto request,
-                                         HttpServletRequest httpRequest) {
+    public ResponseEntity<?> localSignup(
+            @RequestBody @Validated({Default.class, MemberRequestDto.SignupValidation.class}) MemberRequestDto request,
+            HttpServletRequest httpRequest) {
         rateLimiterService.checkSignupRate(clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(authService.signup(request));
     }

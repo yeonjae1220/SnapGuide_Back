@@ -77,7 +77,7 @@ class AuthControllerTest {
     void setUp() {
         signupRequest = new MemberRequestDto();
         signupRequest.setEmail("test@example.com");
-        signupRequest.setPassword("Password123");
+        signupRequest.setPassword("Password123!");  // 특수문자 정책 충족 (signup 검증 그룹)
         signupRequest.setNickname("testUser");
 
         mockJwtToken = JwtToken.builder()
@@ -132,6 +132,27 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist());
 
+        verify(authService, times(1)).login(any(MemberRequestDto.class));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/login - 특수문자 없는 비밀번호도 검증 통과 (기존 회원 로그인 보장, 회귀 가드)")
+    void login_passwordWithoutSpecialChar_passesValidation() throws Exception {
+        // 특수문자 정책은 회원가입에만 적용 — 로그인은 복잡도 패턴을 강제하지 않아야 한다
+        MemberRequestDto loginRequest = new MemberRequestDto();
+        loginRequest.setEmail("legacy@example.com");
+        loginRequest.setPassword("OldPassNoSpecial1");  // 특수문자 없음 — 옛 정책으로 가입한 기존 회원
+
+        given(authService.login(any(MemberRequestDto.class)))
+                .willReturn(mockJwtToken);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
+
+        // 400(검증 실패)이 아니라 인증 로직까지 도달해야 한다
         verify(authService, times(1)).login(any(MemberRequestDto.class));
     }
 
