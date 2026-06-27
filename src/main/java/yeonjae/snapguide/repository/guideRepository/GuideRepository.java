@@ -3,6 +3,7 @@ package yeonjae.snapguide.repository.guideRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import yeonjae.snapguide.domain.guide.Guide;
 
@@ -97,5 +98,27 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
         WHERE g.id = :id
         """)
     Optional<Guide> findByIdWithFetch(@Param("id") Long id);
+
+    /**
+     * 공개 영감 피드용 커서 조회. 먼저 ID만 제한 조회한 뒤 fetch join으로 상세를 가져와
+     * 컬렉션 fetch join + pagination 경고와 중복 row 제한 문제를 피한다.
+     */
+    @Query("""
+        SELECT g.id FROM Guide g
+        WHERE (:cursor IS NULL OR g.id < :cursor)
+        ORDER BY g.id DESC
+        """)
+    List<Long> findFeedIdsBefore(@Param("cursor") Long cursor, Pageable pageable);
+
+    @Query("""
+        SELECT DISTINCT g FROM Guide g
+        LEFT JOIN FETCH g.mediaList m
+        LEFT JOIN FETCH m.mediaMetaData md
+        LEFT JOIN FETCH md.cameraModel
+        JOIN FETCH g.author
+        LEFT JOIN FETCH g.location
+        WHERE g.id IN :guideIds
+        """)
+    List<Guide> findByIdsWithFeedFetch(@Param("guideIds") List<Long> guideIds);
 
 }

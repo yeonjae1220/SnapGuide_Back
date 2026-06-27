@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateTestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
+import yeonjae.snapguide.controller.guideController.guideDto.SliceResponse;
 import yeonjae.snapguide.domain.guide.Guide;
 import yeonjae.snapguide.domain.guide.GuideMapper;
 import yeonjae.snapguide.domain.guide.event.GuideDeletedEvent;
@@ -29,7 +31,9 @@ import yeonjae.snapguide.repository.mediaRepository.MediaRepository;
 import yeonjae.snapguide.repository.memberRepository.MemberRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -157,6 +161,45 @@ public class GuideService {
 
     public List<GuideResponseDto> getMyGuides(Long memberId) {
         return guideRepository.findAllByMemberId(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public SliceResponse<GuideResponseDto> findPublicFeed(Long cursor, int requestedSize) {
+        int size = Math.max(1, Math.min(requestedSize, 30));
+        List<Long> ids = guideRepository.findFeedIdsBefore(cursor, PageRequest.of(0, size + 1));
+        boolean hasNext = ids.size() > size;
+        List<Long> pageIds = hasNext ? ids.subList(0, size) : ids;
+
+        if (pageIds.isEmpty()) {
+            return SliceResponse.<GuideResponseDto>builder()
+                    .content(List.of())
+                    .hasNext(false)
+                    .nextCursor(null)
+                    .size(0)
+                    .first(cursor == null)
+                    .build();
+        }
+
+        Map<Long, Guide> guidesById = guideRepository.findByIdsWithFeedFetch(pageIds).stream()
+                .collect(Collectors.toMap(Guide::getId, Function.identity()));
+
+        List<GuideResponseDto> content = pageIds.stream()
+                .map(guidesById::get)
+                .filter(guide -> guide != null)
+                .map(GuideMapper::toResponseDto)
+                .toList();
+
+        Long nextCursor = hasNext && !content.isEmpty()
+                ? content.get(content.size() - 1).getId()
+                : null;
+
+        return SliceResponse.<GuideResponseDto>builder()
+                .content(content)
+                .hasNext(hasNext)
+                .nextCursor(nextCursor)
+                .size(content.size())
+                .first(cursor == null)
+                .build();
     }
 
     @Caching(evict = {

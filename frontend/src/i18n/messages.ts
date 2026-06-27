@@ -17,6 +17,14 @@ type MessageKey =
   | 'landing.feat3.title'
   | 'landing.feat3.desc'
   | 'landing.mobileValue'
+  | 'feed.title'
+  | 'feed.subtitle'
+  | 'feed.latest'
+  | 'feed.nearby'
+  | 'feed.mapView'
+  | 'feed.backToFeed'
+  | 'feed.loadMore'
+  | 'feed.empty'
   | 'auth.login'
   | 'auth.signup'
   | 'auth.email'
@@ -108,6 +116,14 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat3.title': '카메라 EXIF',
     'landing.feat3.desc': '실제 촬영 정보를 함께 기록하세요',
     'landing.mobileValue': '사진이 있는 장소별 여행 팁을 빠르게 발견하세요',
+    'feed.title': '사진으로 먼저 떠나는 여행',
+    'feed.subtitle': '사람들이 남긴 장소의 순간과 팁을 가볍게 둘러보세요.',
+    'feed.latest': '최신',
+    'feed.nearby': '내 주변',
+    'feed.mapView': '지도 보기',
+    'feed.backToFeed': '피드로 돌아가기',
+    'feed.loadMore': '더 보기',
+    'feed.empty': '아직 공개된 가이드가 없습니다.',
     'auth.login': '로그인',
     'auth.signup': '회원가입',
     'auth.email': '이메일',
@@ -194,6 +210,14 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat3.title': 'Camera EXIF',
     'landing.feat3.desc': 'Record real shooting data with your guide',
     'landing.mobileValue': 'Discover place-based travel tips with real photos',
+    'feed.title': 'Start with the photos',
+    'feed.subtitle': 'Browse travel moments and compact tips from real places.',
+    'feed.latest': 'Latest',
+    'feed.nearby': 'Nearby',
+    'feed.mapView': 'Map',
+    'feed.backToFeed': 'Back to feed',
+    'feed.loadMore': 'Load more',
+    'feed.empty': 'No public guides yet.',
     'auth.login': 'Log in',
     'auth.signup': 'Sign up',
     'auth.email': 'Email',
@@ -280,6 +304,14 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat3.title': 'カメラEXIF',
     'landing.feat3.desc': '実際の撮影データも記録しよう',
     'landing.mobileValue': '写真付きの場所別旅行ヒントをすばやく発見',
+    'feed.title': '写真から旅を見つける',
+    'feed.subtitle': '実際の場所に残された旅の瞬間と短いヒントを眺めよう。',
+    'feed.latest': '最新',
+    'feed.nearby': '近く',
+    'feed.mapView': '地図',
+    'feed.backToFeed': 'フィードに戻る',
+    'feed.loadMore': 'もっと見る',
+    'feed.empty': '公開ガイドはまだありません。',
     'auth.login': 'ログイン',
     'auth.signup': '新規登録',
     'auth.email': 'メールアドレス',
@@ -366,6 +398,14 @@ export const messages: Record<UiLanguage, Messages> = {
     'landing.feat3.title': '相机EXIF',
     'landing.feat3.desc': '同时记录真实的拍摄数据',
     'landing.mobileValue': '快速发现带照片的地点旅行提示',
+    'feed.title': '先从照片出发',
+    'feed.subtitle': '浏览真实地点里的旅行瞬间和简短提示。',
+    'feed.latest': '最新',
+    'feed.nearby': '附近',
+    'feed.mapView': '地图',
+    'feed.backToFeed': '返回动态',
+    'feed.loadMore': '查看更多',
+    'feed.empty': '还没有公开攻略。',
     'auth.login': '登录',
     'auth.signup': '注册',
     'auth.email': '邮箱',

@@ -17,6 +17,7 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateResponse
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.RegionClusterDto;
+import yeonjae.snapguide.controller.guideController.guideDto.SliceResponse;
 import yeonjae.snapguide.domain.media.Media;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.domain.member.dto.MemberDto;
@@ -227,6 +228,47 @@ class GuideControllerTest {
                     .andExpect(jsonPath("$.length()").value(0));
 
             verify(regionAggregateService).aggregate(AggregateLevel.COUNTRY);
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /guide/api/feed")
+    class GetPublicFeed {
+
+        @Test
+        @DisplayName("커서 기반 공개 피드를 반환한다")
+        @WithMockUser
+        void shouldReturnPublicFeedSlice() throws Exception {
+            // Arrange
+            List<GuideResponseDto> guides = List.of(
+                    GuideResponseDto.builder().id(10L).tip("Guide 10").likeCount(2).build(),
+                    GuideResponseDto.builder().id(9L).tip("Guide 9").likeCount(1).build()
+            );
+            SliceResponse<GuideResponseDto> response = SliceResponse.<GuideResponseDto>builder()
+                    .content(guides)
+                    .hasNext(true)
+                    .nextCursor(9L)
+                    .size(2)
+                    .first(false)
+                    .build();
+
+            given(guideService.findPublicFeed(11L, 2)).willReturn(response);
+
+            // Act & Assert
+            mockMvc.perform(get("/guide/api/feed")
+                            .param("cursor", "11")
+                            .param("size", "2"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.content[0].id").value(10))
+                    .andExpect(jsonPath("$.content[0].tip").value("Guide 10"))
+                    .andExpect(jsonPath("$.hasNext").value(true))
+                    .andExpect(jsonPath("$.nextCursor").value(9))
+                    .andExpect(jsonPath("$.size").value(2))
+                    .andExpect(jsonPath("$.first").value(false));
+
+            verify(guideService).findPublicFeed(11L, 2);
         }
     }
 

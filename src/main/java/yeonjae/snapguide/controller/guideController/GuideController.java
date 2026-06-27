@@ -12,6 +12,7 @@ import yeonjae.snapguide.controller.guideController.guideDto.GuideCreateResponse
 import yeonjae.snapguide.controller.guideController.guideDto.GuideResponseDto;
 import yeonjae.snapguide.controller.guideController.guideDto.GuideUpdateRequestDto;
 import yeonjae.snapguide.controller.guideController.guideDto.LikeResponse;
+import yeonjae.snapguide.controller.guideController.guideDto.SliceResponse;
 import yeonjae.snapguide.domain.member.Member;
 import yeonjae.snapguide.controller.guideController.guideDto.RegionClusterDto;
 import yeonjae.snapguide.service.guideSerivce.AggregateLevel;
@@ -141,6 +142,15 @@ public class GuideController {
                 ? AggregateLevel.CONTINENT
                 : AggregateLevel.COUNTRY;
         return ResponseEntity.ok(regionAggregateService.aggregate(aggregateLevel));
+    }
+
+    @GetMapping("/feed")
+    public ResponseEntity<SliceResponse<GuideResponseDto>> getPublicFeed(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "12") int size,
+            HttpServletRequest request) {
+        rateLimiterService.checkNearbyRate(clientIpResolver.resolve(request));
+        return ResponseEntity.ok(guideService.findPublicFeed(cursor, size));
     }
 
     @GetMapping("/nearby")

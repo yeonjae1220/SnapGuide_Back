@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -57,11 +58,33 @@ const MAPS_CALLBACK_NAME = '__snapguideMapsReady'
 
 type FetchError = 'network' | null
 type SheetSize = 'peek' | 'mid' | 'full'
+type FeedSlice = {
+  content: Guide[]
+  hasNext: boolean
+  nextCursor: number | null
+  size: number
+  first: boolean
+}
+
+function isGoogleMapsReady(): boolean {
+  return typeof window !== 'undefined' && typeof window.google?.maps?.Map === 'function'
+}
+
+function isGooglePlacesReady(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.google?.maps?.places?.AutocompleteService === 'function' &&
+    typeof window.google?.maps?.places?.PlacesService === 'function'
+  )
+}
 
 export default function FeedPage() {
   const { t } = useI18n()
   const { theme } = useTheme()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const isMapMode = searchParams.get('view') === 'map'
 
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<google.maps.Map | null>(null)
@@ -79,6 +102,11 @@ export default function FeedPage() {
   const [radius, setRadius] = useState(DEFAULT_RADIUS)
   const [autoRadius, setAutoRadius] = useState(true)
   const [guides, setGuides] = useState<Guide[]>([])
+  const [feedGuides, setFeedGuides] = useState<Guide[]>([])
+  const [feedCursor, setFeedCursor] = useState<number | null>(null)
+  const [feedHasNext, setFeedHasNext] = useState(false)
+  const [feedLoading, setFeedLoading] = useState(false)
+  const [feedError, setFeedError] = useState<FetchError>(null)
   const [selected, setSelected] = useState<Guide | null>(null)
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
@@ -110,7 +138,9 @@ export default function FeedPage() {
   }, [])
 
   const abortRef = useRef<AbortController | null>(null)
+  const feedAbortRef = useRef<AbortController | null>(null)
   const lastQueryRef = useRef('')
+  const mapBootstrappedRef = useRef(false)
   const sheetDragStartRef = useRef<number | null>(null)
 
   const fetchGuides = useCallback(
@@ -150,6 +180,34 @@ export default function FeedPage() {
     [],
   )
 
+  const fetchFeed = useCallback(async (cursor: number | null = null) => {
+    feedAbortRef.current?.abort()
+    const controller = new AbortController()
+    feedAbortRef.current = controller
+
+    setFeedLoading(true)
+    setFeedError(null)
+    try {
+      const params = new URLSearchParams({ size: '12' })
+      if (cursor != null) params.set('cursor', String(cursor))
+      const { data } = await api.get<FeedSlice>(`/guide/api/feed?${params.toString()}`, {
+        signal: controller.signal,
+      })
+      setFeedGuides((current) => (cursor == null ? data.content ?? [] : [...current, ...(data.content ?? [])]))
+      setFeedCursor(data.nextCursor ?? null)
+      setFeedHasNext(Boolean(data.hasNext))
+    } catch (err) {
+      if (axios.isCancel(err)) return
+      setFeedError('network')
+      if (cursor == null) setFeedGuides([])
+    } finally {
+      if (feedAbortRef.current === controller) {
+        setFeedLoading(false)
+        feedAbortRef.current = null
+      }
+    }
+  }, [])
+
   const moveMapTo = useCallback((la: number, ln: number) => {
     const m = googleMapRef.current
     if (!m) return
@@ -173,9 +231,9 @@ export default function FeedPage() {
   }, [])
 
   useEffect(() => {
-    if (mapsKey) return
+    if (!isMapMode || mapsKey) return
     loadMapsKey()
-  }, [loadMapsKey, mapsKey])
+  }, [isMapMode, loadMapsKey, mapsKey])
 
   const applyLocation = useCallback(
     (la: number, ln: number) => {
@@ -189,20 +247,27 @@ export default function FeedPage() {
     [fetchGuides, moveMapTo],
   )
 
+  useEffect(() => {
+    fetchFeed()
+    return () => feedAbortRef.current?.abort()
+  }, [fetchFeed])
+
   // 기본값(서울)으로 즉시 가이드 로딩 후, IP 기반 대략 위치로 갱신.
   // 마운트 시 GPS(navigator.geolocation)를 호출하지 않으므로 권한 프롬프트나
   // CoreLocation 콘솔 에러가 발생하지 않는다. 정밀 위치는 "현재 위치" 버튼에서 GPS로 처리.
   useEffect(() => {
+    if (!isMapMode || mapBootstrappedRef.current) return
+    mapBootstrappedRef.current = true
     fetchGuides(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS)
     fetchIpLocation().then((coords) => {
       if (coords) applyLocation(coords.lat, coords.lng)
     })
   // applyLocation은 마운트 후 변경되지 않으므로 의도적으로 deps에서 제외
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isMapMode])
 
   const initMap = useCallback(() => {
-    if (!mapRef.current || !window.google) return
+    if (!mapRef.current || !isGoogleMapsReady()) return
     if (googleMapRef.current) {
       // 재진입(탭 복귀) 시 이미 초기화된 맵을 재사용하고 리사이즈만 트리거
       google.maps.event.trigger(googleMapRef.current, 'resize')
@@ -235,7 +300,7 @@ export default function FeedPage() {
     }
 
     // SPA 리마운트 시 window.google이 이미 존재하면 콜백이 재발동하지 않으므로 직접 초기화
-    if (window.google?.maps) {
+    if (isGoogleMapsReady()) {
       setMapError(false)
       setMapsReady(true)
       initMapRef.current()
@@ -247,16 +312,24 @@ export default function FeedPage() {
   }, [])
 
   useEffect(() => {
-    if (mapsReady) initMap()
-  }, [mapsReady, initMap])
+    if (mapsReady && isMapMode) initMap()
+  }, [mapsReady, isMapMode, initMap])
 
   useEffect(() => {
-    if (!mapsKey || map || mapError) return
+    if (isMapMode) return
+    googleMapRef.current = null
+    setMap(null)
+    setPredictions([])
+    setActivePredictionIndex(-1)
+  }, [isMapMode])
+
+  useEffect(() => {
+    if (!isMapMode || !mapsKey || map || mapError) return
     const timeout = window.setTimeout(() => {
       if (!googleMapRef.current) setMapError(true)
     }, MAPS_LOAD_TIMEOUT_MS)
     return () => window.clearTimeout(timeout)
-  }, [mapsKey, map, mapError])
+  }, [isMapMode, mapsKey, map, mapError])
 
   // 페이지 가시성 복귀 시 맵 리사이즈 (탭 전환 후 회색 타일 방지)
   useEffect(() => {
@@ -423,7 +496,7 @@ export default function FeedPage() {
   }
 
   const handleSearchInput = useDebouncedCallback((input: string) => {
-    if (!window.google) return
+    if (!isGooglePlacesReady()) return
     const svc = new window.google.maps.places.AutocompleteService()
     svc.getPlacePredictions({ input }, (results) => setPredictions(results ?? []))
   }, 300)
@@ -464,7 +537,7 @@ export default function FeedPage() {
 
   const selectPrediction = (placeId: string) => {
     const m = googleMapRef.current
-    if (!m) return
+    if (!m || !isGooglePlacesReady()) return
     const svc = new window.google.maps.places.PlacesService(m)
     svc.getDetails({ placeId }, (place) => {
       if (!place?.geometry?.location) return
@@ -495,6 +568,19 @@ export default function FeedPage() {
   const openGuide = (guide: Guide) => {
     setHighlightedId(guide.id)
     setSelected(guide)
+  }
+
+  const openMapMode = () => {
+    router.push('/feed?view=map')
+  }
+
+  const openFeedMode = () => {
+    router.push('/feed')
+  }
+
+  const removeGuideFromLists = (id: number) => {
+    setGuides((current) => current.filter((guide) => guide.id !== id))
+    setFeedGuides((current) => current.filter((guide) => guide.id !== id))
   }
 
   function selectGuideFromMap(guide: Guide) {
@@ -600,7 +686,7 @@ export default function FeedPage() {
             key={g.id}
             guide={g}
             onOpen={openGuide}
-            onDeleted={(id) => setGuides((gs) => gs.filter((x) => x.id !== id))}
+            onDeleted={removeGuideFromLists}
             onHover={cardHover}
             highlighted={highlightedId === g.id}
           />
@@ -608,6 +694,106 @@ export default function FeedPage() {
       </div>
     )
   }
+
+  const renderFeedCards = () => {
+    if (feedError === 'network' && feedGuides.length === 0) {
+      return (
+        <div className="rounded-2xl border border-danger/20 bg-danger-soft p-5 text-center">
+          <p className="text-sm font-medium text-danger">{t('common.error')}</p>
+        </div>
+      )
+    }
+
+    if (feedGuides.length === 0 && !feedLoading) {
+      return (
+        <div className="rounded-2xl border border-line bg-surface-elevated p-6 text-center shadow-card">
+          <p className="text-sm font-semibold text-ink">{t('feed.empty')}</p>
+          <Link
+            href={accessToken ? '/upload' : '/'}
+            className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {accessToken ? t('guide.emptyAction') : t('auth.login')}
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {feedGuides.map((g) => (
+          <GuideCard
+            key={g.id}
+            guide={g}
+            onOpen={openGuide}
+            onDeleted={removeGuideFromLists}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  const renderFeedHome = () => (
+    <div className="min-h-[calc(100vh-4rem)] bg-app pb-28 lg:min-h-[calc(100vh-3.5rem)] lg:pb-10">
+      <div className="mx-auto max-w-6xl px-4 pb-6 pt-5 sm:px-6 lg:pt-10">
+        <header className="mb-5 flex flex-col gap-4 lg:mb-7 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-accent">SnapGuide</p>
+            <h1 className="mt-2 text-2xl font-extrabold leading-tight text-ink sm:text-3xl">
+              {t('feed.title')}
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted">{t('feed.subtitle')}</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => fetchFeed()}
+              className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-card transition hover:opacity-90"
+            >
+              {t('feed.latest')}
+            </button>
+            <button
+              type="button"
+              onClick={openMapMode}
+              className="shrink-0 rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-card transition hover:bg-surface-elevated"
+            >
+              {t('feed.nearby')}
+            </button>
+          </div>
+        </header>
+
+        {renderFeedCards()}
+
+        <div className="mt-6 flex justify-center">
+          {feedLoading ? (
+            <span
+              role="status"
+              aria-label={t('common.loading')}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface shadow-card"
+            >
+              <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            </span>
+          ) : feedHasNext ? (
+            <button
+              type="button"
+              onClick={() => fetchFeed(feedCursor)}
+              className="min-h-11 rounded-xl border border-line bg-surface px-5 text-sm font-semibold text-ink shadow-card transition hover:bg-surface-elevated"
+            >
+              {t('feed.loadMore')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={openMapMode}
+        className="fixed bottom-20 right-4 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-surface shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 lg:bottom-6 lg:right-6"
+      >
+        <span aria-hidden="true">🗺️</span>
+        {t('feed.mapView')}
+      </button>
+    </div>
+  )
 
   const renderResultContent = () => (
     <>
@@ -631,13 +817,13 @@ export default function FeedPage() {
 
   return (
     <>
-      {mapsKey && (
+      {isMapMode && mapsKey && (
         <Script
           nonce={scriptNonce}
           src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&callback=${MAPS_CALLBACK_NAME}`}
           strategy="afterInteractive"
           onLoad={() => {
-            if (window.google?.maps) {
+            if (isGoogleMapsReady()) {
               setMapError(false)
               setMapsReady(true)
             }
@@ -646,6 +832,7 @@ export default function FeedPage() {
         />
       )}
 
+      {isMapMode ? (
       <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-app lg:grid lg:min-h-[calc(100vh-3.5rem)] lg:grid-cols-[minmax(360px,420px)_minmax(0,1fr)]">
         <aside className="hidden overflow-y-auto border-r border-line bg-app p-4 lg:block">
           {isDesktopLayout ? renderResultContent() : null}
@@ -697,6 +884,14 @@ export default function FeedPage() {
 
         {/* controls */}
         <div className="absolute left-3 right-3 top-3 flex gap-2">
+          <button
+            type="button"
+            onClick={openFeedMode}
+            aria-label={t('feed.backToFeed')}
+            className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-sm font-semibold text-ink shadow-card backdrop-blur transition-colors hover:bg-surface-elevated"
+          >
+            ‹
+          </button>
           <div className="relative flex-1" role="combobox" aria-expanded={predictions.length > 0} aria-haspopup="listbox" aria-owns="place-predictions">
             <input
               value={searchInput}
@@ -842,6 +1037,9 @@ export default function FeedPage() {
         </section>
         </div>
       </div>
+      ) : (
+        renderFeedHome()
+      )}
 
       {selected && <GuideDetailModal guide={selected} onClose={() => setSelected(null)} />}
     </>
