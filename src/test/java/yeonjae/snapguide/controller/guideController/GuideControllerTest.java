@@ -253,6 +253,7 @@ class GuideControllerTest {
                     .build();
 
             given(guideService.findPublicFeed(11L, 2)).willReturn(response);
+            given(clientIpResolver.resolve(any())).willReturn("203.0.113.10");
 
             // Act & Assert
             mockMvc.perform(get("/guide/api/feed")
@@ -268,6 +269,8 @@ class GuideControllerTest {
                     .andExpect(jsonPath("$.size").value(2))
                     .andExpect(jsonPath("$.first").value(false));
 
+            verify(rateLimiterService).checkFeedRate("203.0.113.10");
+            verify(rateLimiterService, never()).checkNearbyRate(any());
             verify(guideService).findPublicFeed(11L, 2);
         }
     }

@@ -106,6 +106,10 @@ public interface GuideRepository extends JpaRepository<Guide, Long>, GuideReposi
     @Query("""
         SELECT g.id FROM Guide g
         WHERE (:cursor IS NULL OR g.id < :cursor)
+          AND EXISTS (
+              SELECT 1 FROM Media m
+              WHERE m.guide = g
+          )
         ORDER BY g.id DESC
         """)
     List<Long> findFeedIdsBefore(@Param("cursor") Long cursor, Pageable pageable);

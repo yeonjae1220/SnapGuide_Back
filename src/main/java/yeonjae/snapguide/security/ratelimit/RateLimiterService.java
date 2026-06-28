@@ -47,6 +47,9 @@ public class RateLimiterService {
     @Value("${snapguide.rate-limit.nearby-limit:60}")
     private int nearbyLimit;
 
+    @Value("${snapguide.rate-limit.feed-limit:120}")
+    private int feedLimit;
+
     @Value("${snapguide.rate-limit.map-key-limit:60}")
     private int mapKeyLimit;
 
@@ -89,6 +92,14 @@ public class RateLimiterService {
      */
     public void checkNearbyRate(String clientIp) {
         check("rl:nearby:ip:" + clientIp, nearbyLimit);
+    }
+
+    /**
+     * 공개 피드 조회 rate limit 검사.
+     * IP 기준 120회/10분 — 피드 스크롤이 지도 탐색 버킷을 소모하지 않도록 분리한다.
+     */
+    public void checkFeedRate(String clientIp) {
+        check("rl:feed:ip:" + clientIp, feedLimit);
     }
 
     /**

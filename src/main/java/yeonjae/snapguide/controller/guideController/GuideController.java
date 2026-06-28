@@ -149,7 +149,7 @@ public class GuideController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "12") int size,
             HttpServletRequest request) {
-        rateLimiterService.checkNearbyRate(clientIpResolver.resolve(request));
+        rateLimiterService.checkFeedRate(clientIpResolver.resolve(request));
         return ResponseEntity.ok(guideService.findPublicFeed(cursor, size));
     }
 
