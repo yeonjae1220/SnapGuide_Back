@@ -10,6 +10,7 @@
             <includeMdcKeyName>trace_id</includeMdcKeyName>
             <includeMdcKeyName>span_id</includeMdcKeyName>
             <includeMdcKeyName>trace_flags</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
             <customFields>{"service_name":"${appName}"}</customFields>
         </encoder>
     </appender>
