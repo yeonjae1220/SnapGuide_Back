@@ -32,6 +32,7 @@ import yeonjae.snapguide.security.authentication.OAuth2.CustomOAuth2Authorizatio
 import yeonjae.snapguide.security.authentication.OAuth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2FailureHandler;
 import yeonjae.snapguide.security.authentication.OAuth2.OAuth2SuccessHandler;
+import yeonjae.snapguide.security.AccessLogFilter;
 import yeonjae.snapguide.security.authentication.exception.JwtAccessDeniedHandler;
 import yeonjae.snapguide.security.authentication.exception.JwtAuthenticationEntryPoint;
 import yeonjae.snapguide.security.authentication.jwt.JwtAuthenticationFilter;
@@ -288,7 +289,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(new yeonjae.snapguide.security.AccessLogFilter(), JwtAuthenticationFilter.class)
+                .addFilterAfter(new AccessLogFilter(), JwtAuthenticationFilter.class)
                 .build();
     }
 
