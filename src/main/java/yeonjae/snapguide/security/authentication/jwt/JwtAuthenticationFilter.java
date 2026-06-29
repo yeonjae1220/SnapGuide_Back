@@ -39,55 +39,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final String UTF_8 = "utf-8";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)  throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         log.debug("[JwtAuthenticationFilter] {} {}", request.getMethod(), request.getRequestURI());
 
         try {
             if (!whiteListMatcher.matches(request)) {
-                // 화이트리스트 요청은 필터 생략
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            try {
-                // 1. Request Header 로부터 Access Token을 추출한다.
-                String token = jwtTokenProvider.resolveToken(request);
-                // 2. 추출한 Token의 유효성 검증 및 사용자 정보 파싱
-                if (token != null && jwtTokenProvider.validateToken(token)) {
-                    if (!tokenBlacklistService.isAccessTokenBlacklisted(token)) {
-                        log.info("토큰은 블랙리스트에 없음 (정상)");
-                        // Token이 유효할 경우, Authentication 객체를 생성하여 SecurityContext에 저장한다.
-                        Authentication authentication = jwtTokenProvider.getAuthentication(token);
-                        // 4. SecurityContext에 인증 정보 저장
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                        MDC.put("userId", authentication.getName());
-                    } else {
-                        log.warn("블랙리스트에 있는 토큰입니다. 요청 차단");
-                        throw new CustomException(ErrorCode.INVALID_TOKEN);
-                    }
-
+            String token = jwtTokenProvider.resolveToken(request);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                if (!tokenBlacklistService.isAccessTokenBlacklisted(token)) {
+                    log.info("토큰은 블랙리스트에 없음 (정상)");
+                    Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    MDC.put("userId", authentication.getName());
+                } else {
+                    log.warn("블랙리스트에 있는 토큰입니다. 요청 차단");
+                    setErrorResponse(response, ErrorCode.INVALID_TOKEN);
+                    return;
                 }
-                // 5. 다음 필터로 진행
-                filterChain.doFilter(request, response);
+            }
+
+            filterChain.doFilter(request, response);
+
         } catch (CustomException e) {
-//            throw e;
-            // 예외를 다시 던지는 대신, 직접 에러 응답을 생성하고 반환합니다.
             setErrorResponse(response, e.getErrorCode());
-        }
-        catch (ExpiredJwtException e) {
+        } catch (ExpiredJwtException e) {
             log.warn("JWT 토큰이 만료되었습니다.");
-            throw new CustomException(ErrorCode.EXPIRED_TOKEN);
+            setErrorResponse(response, ErrorCode.EXPIRED_TOKEN);
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("유효하지 않은 JWT 토큰입니다.");
-            throw new CustomException(ErrorCode.INVALID_TOKEN);
+            setErrorResponse(response, ErrorCode.INVALID_TOKEN);
         } catch (UsernameNotFoundException e) {
             log.warn("유저를 찾을 수 없습니다.");
-            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+            setErrorResponse(response, ErrorCode.USER_NOT_FOUND);
         } catch (Exception e) {
             log.error("인증 필터에서 예외 발생", e);
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+            setErrorResponse(response, ErrorCode.INTERNAL_SERVER_ERROR);
         } finally {
             MDC.remove("userId");
         }
