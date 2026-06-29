@@ -288,6 +288,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new yeonjae.snapguide.security.AccessLogFilter(), JwtAuthenticationFilter.class)
                 .build();
     }
 
