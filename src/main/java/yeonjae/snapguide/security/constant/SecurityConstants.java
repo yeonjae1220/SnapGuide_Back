@@ -59,6 +59,9 @@ public final class SecurityConstants {
 		// 공개 지도 탐색에 필요한 Maps 엔드포인트
 		public static final String[] MAPS_PUBLIC = {"/api/maps/key", "/api/maps/location"};
 
+		// 개발자 피드백 수집 — JWT 없이 공개 접근 허용 (JWT 필터 우회)
+		public static final String[] FEEDBACK_API = {"/api/feedback"};
+
 		public static List<String> getAllPatterns() {
 			final List<String> whiteList = new ArrayList<>();
 			whiteList.addAll(Arrays.stream(TEST_API).toList());
@@ -74,6 +77,7 @@ public final class SecurityConstants {
 			whiteList.addAll(Arrays.stream(PWA_PUBLIC).toList());
 			whiteList.addAll(Arrays.stream(MEDIA_FILES).toList());
 			whiteList.addAll(Arrays.stream(MAPS_PUBLIC).toList());
+			whiteList.addAll(Arrays.stream(FEEDBACK_API).toList());
 			return whiteList;
 		}
 
