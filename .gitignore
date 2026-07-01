@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Claude Code ###
+.claude/
+
 ### Redus ###
 SnapGuide_Back/dump.rdb
 
