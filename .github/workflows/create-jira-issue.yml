@@ -20,7 +20,7 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
 
       - name: Checkout master code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: master
 
@@ -83,7 +83,7 @@ jobs:
 
       - name: Checkout selected base branch
         if: startsWith(steps.issue-parser.outputs.issueparser_parentKey, 'SNAP-') && env.BRANCH_EXISTS == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.issue-parser.outputs.issueparser_baseBranch }}
 
