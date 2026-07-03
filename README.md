@@ -10,7 +10,9 @@ SnapGuide는 사용자들이 사진과 함께 여행 팁을 공유하고, 위치
 
 - **여행 가이드 공유**: 사진과 함께 여행 팁 작성, 조회, 수정, 삭제
 - **위치 기반 검색**: 현재 위치 반경 또는 지도 범위 기반으로 근처 가이드 발견
-- **EXIF 메타데이터 추출**: 사진에서 GPS 좌표, 촬영 시간, 카메라 정보 자동 추출
+- **지도 탐색**: 구글맵 가이드 핀 마커 · 클러스터링 · 줌아웃 시 국가/대륙 집계 오버레이 (비인증 공개 탐색 지원)
+- **관리자 패널**: SSR 기반 가이드/위치/댓글 관리 (formLogin lockout)
+- **EXIF 메타데이터 추출**: 사진에서 GPS 좌표, 촬영 시간, 카메라 정보 자동 추출 (위치 프라이버시 토글)
 - **미디어 처리**: 썸네일 자동 생성, HEIC→JPEG 변환, S3 Presigned URL 지원, 비동기 업로드
 - **소셜 로그인**: Google OAuth2 인증, 토큰 블랙리스트 기반 로그아웃, 회원 탈퇴 및 데이터 삭제
 - **좋아요 기능**: 가이드 좋아요 및 인기순 정렬 (원자적 카운트 최적화)
@@ -31,13 +33,15 @@ SnapGuide는 사용자들이 사진과 함께 여행 팁을 공유하고, 위치
 | Storage | AWS S3 / Local / NAS |
 | API Docs | SpringDoc OpenAPI (Swagger) |
 
-### Frontend (PWA)
+### Frontend
 | 구분 | 기술 |
 |---|---|
-| 구조 | Single Page + Landing/Main Split |
-| PWA | Service Worker, Web App Manifest |
-| 오프라인 | Cache API 기반 오프라인 지원 |
+| Framework | Next.js (App Router) · nonce 기반 CSP |
+| 지도 | Google Maps — 가이드 위치 핀 마커 · 클러스터링 · 줌 집계 오버레이 |
+| PWA | Service Worker, Web App Manifest, 오프라인(Cache API) |
 | 알림 | Web Push Notifications |
+
+> 프론트엔드는 v1.2.0에서 정적 SPA → Next.js App Router로 마이그레이션되었습니다.
 
 ### DevOps & Observability
 | 구분 | 기술 |
@@ -152,9 +156,20 @@ cd k6-tests && k6 run scripts/1-upload-test.js
 - HTTP-only 쿠키 기반 세션 관리
 - OAuth2 One-Time Authorization Code 방식 (모바일 지원)
 
+## 버전 히스토리
+
+버전별 상세 변경 내역은 [CHANGELOG.md](CHANGELOG.md)를 참고하세요.
+
+| 버전 | 날짜 | 핵심 변경 |
+|------|------|-----------|
+| 1.3.0 | 2026-07-01 | 공개 지도 탐색 · 피드-지도 분리 · admin 락아웃 · 구조화 로깅 |
+| 1.2.0 | 2026-06-08 | **Next.js 마이그레이션** · **지도 핀/클러스터링** · SEO · NetworkPolicy |
+| 1.1.0 | 2026-05-10 | 관리자 CRUD · 병렬 업로드 · httpOnly 쿠키 인증 |
+| 1.0.0 | 2026-03-16 | PWA · S3 스토리지 · Google OAuth2 · PostGIS 공간 쿼리 |
+
 ## 서비스 접속
 
-현재 프로젝트는 https://briankim.synology.me/ 에서 제공됩니다.
+현재 프로젝트는 https://snapguide.mungji.com 에서 제공됩니다.
 
 ## 라이선스
 
