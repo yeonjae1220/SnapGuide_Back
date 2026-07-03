@@ -1,5 +1,6 @@
 package yeonjae.snapguide.service.locationSerivce;
 
+import com.drew.metadata.Metadata;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -9,7 +10,6 @@ import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtra
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 import yeonjae.snapguide.service.ReverseGeocodingService;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,8 +46,8 @@ public class LocationServiceGeoImpl implements LocationService {
     }
 
     @Override
-    public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
-        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
+    public Optional<Location> extractAndResolveLocation(Metadata metadata) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(metadata);
         if (coordinate.isEmpty()) {
             return Optional.empty();
         }

@@ -1,5 +1,6 @@
 package yeonjae.snapguide.service.locationSerivce;
 
+import com.drew.metadata.Metadata;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,7 +9,6 @@ import yeonjae.snapguide.domain.location.Location;
 import yeonjae.snapguide.domain.media.mediaUtil.exifExtrator.ExifCoordinateExtractor;
 import yeonjae.snapguide.repository.locationRepository.LocationRepository;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +23,8 @@ public class LocationServiceCoordImpl implements LocationService{
      */
 
     @Override
-    public Optional<Location> extractAndResolveLocation(byte[] imageBytes) {
-        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(new ByteArrayInputStream(imageBytes));
+    public Optional<Location> extractAndResolveLocation(Metadata metadata) {
+        Optional<double[]> coordinate = ExifCoordinateExtractor.extractCoordinate(metadata);
         if (coordinate.isEmpty()) {
             return Optional.empty();  // EXIF 좌표 없음 → 정상 케이스
         }

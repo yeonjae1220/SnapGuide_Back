@@ -4,6 +4,7 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -13,6 +14,7 @@ import org.im4java.core.IMOperation;
 import org.im4java.process.Pipe;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -247,9 +249,19 @@ public class S3FileStorageService implements FileStorageService {
         }
     }
 
+    /**
+     * S3 객체를 스트리밍으로 다운로드한다.
+     * (MediaReprocessingScheduler가 파생 파일 재생성 시 원본을 재조회하는 용도로 사용)
+     */
     @Override
     public Resource downloadFile(String filePath) throws IOException {
-        throw new UnsupportedOperationException("S3 파일 다운로드는 presigned URL을 사용하세요.");
+        try {
+            S3Object s3Object = amazonS3.getObject(bucketName, filePath);
+            return new InputStreamResource(s3Object.getObjectContent());
+        } catch (Exception e) {
+            log.error("Failed to download S3 file. Key: {}", filePath, e);
+            throw new IOException("S3 파일 다운로드 중 오류가 발생했습니다: " + filePath, e);
+        }
     }
 
     @Override

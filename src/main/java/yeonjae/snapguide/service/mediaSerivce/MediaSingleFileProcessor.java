@@ -1,5 +1,7 @@
 package yeonjae.snapguide.service.mediaSerivce;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Metadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,7 +18,9 @@ import yeonjae.snapguide.service.fileStorageService.UploadFileDto;
 import yeonjae.snapguide.service.locationSerivce.LocationService;
 import yeonjae.snapguide.service.mediaMetaDataSerivce.MediaMetaDataService;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 /**
  * 파일 1개 처리를 독립된 REQUIRES_NEW 트랜잭션으로 캡슐화.
@@ -64,11 +68,15 @@ public class MediaSingleFileProcessor {
         // 1. 원본 파일 업로드 (동기)
         UploadFileDto savedFile = fileStorageService.uploadOriginalOnly(rawBytes, file.getOriginalFilename());
 
+        // EXIF는 이미지 1개당 한 번만 파싱하여 아래 두 단계에서 공유한다.
+        // (기존에는 EXIF/카메라모델/GPS 추출기가 각자 재파싱해 동일 이미지를 3회 파싱했음)
+        Metadata metadata = readExifMetadata(rawBytes);
+
         // 2. EXIF 메타데이터 추출 + 저장
-        MediaMetaData metaData = mediaMetaDataService.extractAndSave(rawBytes);
+        MediaMetaData metaData = mediaMetaDataService.extractAndSave(metadata);
 
         // 3. 위치 정보: GPS EXIF → 없으면 브라우저 좌표 fallback
-        Location location = locationService.extractAndResolveLocation(rawBytes)
+        Location location = locationService.extractAndResolveLocation(metadata)
                 .orElseGet(() -> {
                     if (fallbackLat != null && fallbackLng != null) {
                         try {
@@ -92,6 +100,7 @@ public class MediaSingleFileProcessor {
                 .thumbnailKey(null)
                 .processingStatus(ProcessingStatus.PENDING)
                 .fileSize(file.getSize())
+                .lastAttemptAt(LocalDateTime.now())
                 .build();
 
         media.assignMedia(metaData, location);
@@ -101,5 +110,18 @@ public class MediaSingleFileProcessor {
         log.info("[Upload] Media {} saved in {}ms (async derivatives pending)", media.getId(), elapsed);
 
         return new FileProcessResult(media, savedFile.getBaseFileName(), savedFile.getOriginalFileBytes());
+    }
+
+    /**
+     * EXIF 파싱 실패(손상된 이미지 등) 시에도 업로드 자체는 계속 진행되어야 하므로,
+     * 빈 Metadata를 반환해 하위 추출기들이 "태그 없음"과 동일하게 처리하도록 한다.
+     */
+    private Metadata readExifMetadata(byte[] rawBytes) {
+        try {
+            return ImageMetadataReader.readMetadata(new ByteArrayInputStream(rawBytes));
+        } catch (Exception e) {
+            log.warn("[Upload] EXIF metadata parsing failed, continuing without metadata: {}", e.getMessage());
+            return new Metadata();
+        }
     }
 }

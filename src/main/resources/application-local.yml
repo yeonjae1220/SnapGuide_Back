@@ -7,15 +7,6 @@ spring:
     frontend-redirect-url: http://localhost:8080
     app-redirect-uri: com.yeonjae.snapguide://oauth/callback
 
-cors:
-  allowed-origins:
-    - http://localhost:8080
-    - http://localhost:3000
-
-
-  server:
-    port: 8080
-
   datasource:
     url: jdbc:postgresql://localhost:5432/snapguidedb
     username: ${POSTGRES_USER_LOCAL}
@@ -50,6 +41,13 @@ cors:
       static-locations:
         - classpath:/static/
         - file:${UPLOAD_BASE_DIR:${user.home}/snapguide/uploads}/
+
+server:
+  port: 8080
+
+cors:
+  allowed-origins: http://localhost:8080,http://localhost:3000
+
 logging:
   level:
     org.hibernate.SQL: debug

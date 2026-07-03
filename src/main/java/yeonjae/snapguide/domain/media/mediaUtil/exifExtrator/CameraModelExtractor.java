@@ -1,23 +1,17 @@
 package yeonjae.snapguide.domain.media.mediaUtil.exifExtrator;
 
-import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import org.springframework.stereotype.Component;
 import yeonjae.snapguide.domain.cameraModel.CameraModel;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-
 @Component
 public class CameraModelExtractor {
-    public static CameraModel extract(byte[] imageBytes) {
+    public static CameraModel extract(Metadata metadata) {
         CameraModel model = new CameraModel();
 
         try{
-            Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(imageBytes));
             ExifIFD0Directory ifd0 = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
             ExifSubIFDDirectory exif = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
 
