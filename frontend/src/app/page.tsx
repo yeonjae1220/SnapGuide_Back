@@ -8,8 +8,10 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { LandingHero } from '@/components/landing/LandingHero'
 import { AuthPanel } from '@/components/landing/AuthPanel'
 import { InitAuth } from '@/components/InitAuth'
+import { useI18n } from '@/i18n/I18nProvider'
 
 function LandingContent() {
+  const { t } = useI18n()
   const accessToken = useAuthStore((s) => s.accessToken)
   const initialized = useAuthStore((s) => s.initialized)
   const router = useRouter()
@@ -33,10 +35,18 @@ function LandingContent() {
   }
 
   return (
-    <div className="flex min-h-screen bg-app text-ink transition-colors duration-200">
-      <LandingHero />
-      <AuthPanel />
-    </div>
+    <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        {t('landing.skipToContent')}
+      </a>
+      <main id="main-content" className="flex min-h-screen bg-app text-ink transition-colors duration-200">
+        <LandingHero />
+        <AuthPanel />
+      </main>
+    </>
   )
 }
 
