@@ -17,9 +17,9 @@ export function LandingHero() {
 
       <div className="relative z-10 max-w-2xl">
         <div className="mb-6 text-3xl font-bold ig-text">{t('landing.title')}</div>
-        <p className="mb-10 whitespace-pre-line text-5xl font-extrabold leading-tight text-white">
+        <h1 className="mb-10 whitespace-pre-line text-5xl font-extrabold leading-tight text-white">
           {t('landing.tagline')}
-        </p>
+        </h1>
         <ul className="space-y-5">
           {(
             [

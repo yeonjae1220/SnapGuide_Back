@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useI18n } from '@/i18n/I18nProvider'
-import { SUPPORTED_UI_LANGUAGES } from '@/i18n/messages'
 import { parseJwtEmail } from '@/lib/jwt'
+import { UiLanguageSwitcher } from '@/components/ui/UiLanguageSwitcher'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 export function AuthPanel() {
-  const { t, language, setLanguage } = useI18n()
+  const { t } = useI18n()
   const router = useRouter()
   const setTokens = useAuthStore((s) => s.setTokens)
 
@@ -62,7 +63,7 @@ export function AuthPanel() {
     <div className="flex w-full flex-col justify-center bg-surface px-6 py-8 text-ink transition-colors duration-200 sm:px-8 lg:w-[480px] lg:py-12">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-6 lg:hidden">
-          <div className="mb-3 text-2xl font-extrabold ig-text">SnapGuide</div>
+          <h1 className="mb-3 text-2xl font-extrabold ig-text">SnapGuide</h1>
           <div className="overflow-hidden rounded-2xl border border-line bg-surface-muted shadow-card">
             <div className="relative h-36">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -163,20 +164,10 @@ export function AuthPanel() {
           </button>
         </div>
 
-        {/* language selector */}
-        <div className="mt-8 flex items-center justify-end gap-2">
-          <span className="text-xs text-subtle">{t('settings.uiLanguage')}</span>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="rounded-lg border border-line bg-field px-2 py-1 text-xs text-muted outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
-          >
-            {SUPPORTED_UI_LANGUAGES.map((l) => (
-              <option key={l} value={l}>
-                {l.toUpperCase()}
-              </option>
-            ))}
-          </select>
+        {/* 언어 / 테마 컨트롤 (비로그인에서도 노출) */}
+        <div className="mt-8 flex items-center justify-between gap-2">
+          <ThemeToggle />
+          <UiLanguageSwitcher />
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Playfair_Display } from 'next/font/google'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import './globals.css'
+import { normalizeUiLanguage, UI_LANGUAGE_KEY } from '@/i18n/messages'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { QueryProvider } from '@/components/QueryProvider'
 import { ThemeProvider } from '@/theme/ThemeProvider'
@@ -69,22 +70,35 @@ export const viewport: Viewport = {
   themeColor: '#bc1888',
 }
 
+// 페인트 전에 테마를 적용해 플래시 방지. 기본 dark, 'system'은 prefers-color-scheme로 해석.
+const themeInitScript = `(() => {
+  try {
+    const pref = localStorage.getItem('snapguide.theme') || 'dark';
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const resolved = pref === 'dark' || (pref === 'system' && sysDark) ? 'dark' : 'light';
+    const r = document.documentElement;
+    r.dataset.theme = resolved;
+    r.style.colorScheme = resolved;
+  } catch (_) {
+    const r = document.documentElement;
+    r.dataset.theme = 'dark';
+    r.style.colorScheme = 'dark';
+  }
+})();`
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? ''
+  const [headerList, cookieStore] = await Promise.all([headers(), cookies()])
+  const nonce = headerList.get('x-nonce') ?? ''
+  const initialLanguage = normalizeUiLanguage(cookieStore.get(UI_LANGUAGE_KEY)?.value)
   return (
-    <html lang="ko" data-theme="light" suppressHydrationWarning>
+    <html lang={initialLanguage} data-theme="dark" suppressHydrationWarning>
       <head>
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `(() => { try { const theme = localStorage.getItem('snapguide.theme') === 'dark' ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; document.documentElement.style.colorScheme = theme; } catch (_) {} })();`,
-          }}
-        />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={`${dmSans.variable} ${playfair.variable}`} data-nonce={nonce}>
         <ThemeProvider>
           <QueryProvider>
-            <I18nProvider>{children}</I18nProvider>
+            <I18nProvider initialLanguage={initialLanguage}>{children}</I18nProvider>
             <RegisterServiceWorker />
           </QueryProvider>
         </ThemeProvider>
