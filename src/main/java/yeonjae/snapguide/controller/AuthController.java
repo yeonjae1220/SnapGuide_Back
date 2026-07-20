@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.core.env.Environment;
@@ -32,7 +33,6 @@ import java.util.Map;
 public class AuthController {
 
     private static final String REFRESH_COOKIE_NAME = "refresh_token";
-    private static final long REFRESH_COOKIE_MAX_AGE = 30L * 24 * 60 * 60;
 
     private final AuthService authService;
     private final MemberService memberService;
@@ -40,6 +40,15 @@ public class AuthController {
     private final Environment environment;
     private final RateLimiterService rateLimiterService;
     private final ClientIpResolver clientIpResolver;
+
+    // 쿠키 수명은 refresh 토큰(JWT) 만료값에서 단일 소스로 파생 — 두 값이 드리프트하면
+    // 쿠키만 살아있고 내부 JWT는 만료된 "유령 세션"으로 reissue가 결정적 401이 된다.
+    @Value("${jwt.refresh-token-expiration:2592000000}")
+    private long refreshTokenExpirationMs;
+
+    private long refreshCookieMaxAgeSeconds() {
+        return refreshTokenExpirationMs / 1000;
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<?> localSignup(
@@ -163,7 +172,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(isSecureCookieRequired())
                 .sameSite("Lax")
-                .maxAge(REFRESH_COOKIE_MAX_AGE)
+                .maxAge(refreshCookieMaxAgeSeconds())
                 .path("/api/auth")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
