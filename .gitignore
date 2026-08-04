@@ -81,3 +81,7 @@ k8s/secret.yaml
 
 # TypeScript 증분 빌드 캐시 — 커밋 대상 아님 (빌드마다 갱신돼 항상 dirty로 뜸)
 *.tsbuildinfo
+
+# macOS
+.DS_Store
+._*
