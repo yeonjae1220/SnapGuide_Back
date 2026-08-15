@@ -89,6 +89,8 @@ type MessageKey =
   | 'explore.clearSearch'
   | 'common.loading'
   | 'common.save'
+  | 'error.unexpected'
+  | 'common.retry'
   | 'common.cancel'
   | 'common.error'
   | 'settings.uiLanguage'
@@ -103,6 +105,8 @@ type Messages = Record<MessageKey, string>
 
 export const messages: Record<UiLanguage, Messages> = {
   ko: {
+    'common.retry': '다시 시도',
+    'error.unexpected': '문제가 발생했습니다.',
     'nav.explore': '탐색',
     'nav.myGuides': '가이드',
     'nav.upload': '업로드',
@@ -199,6 +203,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'settings.themeSystem': "시스템",
   },
   en: {
+    'common.retry': 'Try again',
+    'error.unexpected': 'Something went wrong.',
     'nav.explore': 'Explore',
     'nav.myGuides': 'Guides',
     'nav.upload': 'Upload',
@@ -295,6 +301,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'settings.themeSystem': "System",
   },
   ja: {
+    'common.retry': '再試行',
+    'error.unexpected': '問題が発生しました。',
     'nav.explore': '探索',
     'nav.myGuides': 'ガイド',
     'nav.upload': 'アップロード',
@@ -391,6 +399,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'settings.themeSystem': "システム",
   },
   zh: {
+    'common.retry': '重试',
+    'error.unexpected': '出现了问题。',
     'nav.explore': '探索',
     'nav.myGuides': '攻略',
     'nav.upload': '上传',
@@ -487,6 +497,8 @@ export const messages: Record<UiLanguage, Messages> = {
     'settings.themeSystem': "系统",
   },
   es: {
+    'common.retry': 'Reintentar',
+    'error.unexpected': 'Algo salió mal.',
     "nav.explore": "Explorar",
     "nav.myGuides": "Guías",
     "nav.upload": "Subir",
@@ -583,6 +595,8 @@ export const messages: Record<UiLanguage, Messages> = {
     "settings.themeSystem": "Sistema",
   },
   fr: {
+    'common.retry': 'Réessayer',
+    'error.unexpected': 'Une erreur s\'est produite.',
     "nav.explore": "Explorer",
     "nav.myGuides": "Guides",
     "nav.upload": "Publier",
@@ -679,6 +693,8 @@ export const messages: Record<UiLanguage, Messages> = {
     "settings.themeSystem": "Système",
   },
   de: {
+    'common.retry': 'Erneut versuchen',
+    'error.unexpected': 'Etwas ist schiefgelaufen.',
     "nav.explore": "Entdecken",
     "nav.myGuides": "Guides",
     "nav.upload": "Hochladen",
@@ -775,6 +791,8 @@ export const messages: Record<UiLanguage, Messages> = {
     "settings.themeSystem": "System",
   },
   pt: {
+    'common.retry': 'Tentar novamente',
+    'error.unexpected': 'Algo deu errado.',
     "nav.explore": "Explorar",
     "nav.myGuides": "Guias",
     "nav.upload": "Enviar",
@@ -871,6 +889,8 @@ export const messages: Record<UiLanguage, Messages> = {
     "settings.themeSystem": "Sistema",
   },
   ru: {
+    'common.retry': 'Повторить',
+    'error.unexpected': 'Что-то пошло не так.',
     "nav.explore": "Обзор",
     "nav.myGuides": "Гиды",
     "nav.upload": "Загрузить",
