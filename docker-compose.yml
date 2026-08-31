@@ -80,7 +80,7 @@ services:
 
   # OpenTelemetry Collector - 텔레메트리 데이터 수집 및 라우팅
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.96.0
+    image: otel/opentelemetry-collector-contrib:0.159.0
     container_name: snapguide-otel-collector
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
@@ -94,7 +94,7 @@ services:
 
   # Tempo - 분산 추적(Traces) 저장소
   tempo:
-    image: grafana/tempo:2.4.0
+    image: grafana/tempo:2.10.8
     container_name: snapguide-tempo
     command: ["-config.file=/etc/tempo.yml"]
     volumes:
@@ -108,7 +108,7 @@ services:
 
   # Loki - 로그 집계 시스템
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:2.9.17
     container_name: snapguide-loki
     command: -config.file=/etc/loki/local-config.yml
     volumes:
@@ -121,7 +121,7 @@ services:
 
   # Promtail - 로그 수집기 (컨테이너 로그를 Loki로 전송)
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:2.9.17
     container_name: snapguide-promtail
     volumes:
       - ./observability/promtail.yml:/etc/promtail/config.yml
@@ -135,7 +135,7 @@ services:
 
   # Prometheus - 메트릭 저장소
   prometheus:
-    image: prom/prometheus:v2.50.0
+    image: prom/prometheus:v2.55.1
     container_name: snapguide-prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -151,7 +151,7 @@ services:
 
   # Grafana - 통합 관측 대시보드
   grafana:
-    image: grafana/grafana:10.3.0
+    image: grafana/grafana:10.4.19
     container_name: snapguide-grafana
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
