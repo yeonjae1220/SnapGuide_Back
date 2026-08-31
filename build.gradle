@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.4.5'
+	id 'org.springframework.boot' version '3.5.16'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -77,7 +77,7 @@ dependencies {
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 
 	// 추가
-	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
+	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.12.1'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 	// OpenTelemetry for Spring Boot 3.x
@@ -97,10 +97,10 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testImplementation 'org.mockito:mockito-inline:5.2.0' // static 메서드 mocking용
 	testImplementation 'com.h2database:h2'
-	testImplementation('com.github.codemonstur:embedded-redis:1.4.3')
+	testImplementation('com.github.codemonstur:embedded-redis:1.4.4')
 
 	// for handel metadata
-	implementation 'com.drewnoakes:metadata-extractor:2.18.0'
+	implementation 'com.drewnoakes:metadata-extractor:2.21.0'
 
 	// 추가, test 롬복 사용
 	testCompileOnly 'org.projectlombok:lombok'
@@ -114,12 +114,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
 	//jwt
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
-	implementation 'io.jsonwebtoken:jjwt-impl:0.12.5'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.13.0'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.13.0'
 
 	//swagger
-	implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6')
+	implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.9.0')
 
 	// redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -128,7 +128,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
 	// Querydsl 추가
-	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
 	annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jakarta"
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
@@ -137,24 +137,24 @@ dependencies {
 	implementation 'org.im4java:im4java:1.4.0'
 
 	// openCSV (오픈 데이터 가져온거 처리)
-	implementation("com.opencsv:opencsv:5.9")
+	implementation("com.opencsv:opencsv:5.12.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 
 	// aop
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 
 	//postgreSQL
-	implementation 'org.postgresql:postgresql:42.7.3'
-	implementation 'org.hibernate:hibernate-spatial:6.4.4.Final' // PostGIS 지원을 위해 필요
+	implementation 'org.postgresql:postgresql:42.7.13'
+	implementation 'org.hibernate:hibernate-spatial:6.6.56.Final' // PostGIS 지원을 위해 필요
 	// implementation 'com.querydsl:querydsl-spatial'
-	implementation 'org.locationtech.jts:jts-core:1.19.0' // JTS Geometry 라이브러리 추가, Point 타입 사용하기 위해서. jts는 공간 관련 기능을 제공하는 Java의 라이브러리이다.
+	implementation 'org.locationtech.jts:jts-core:1.20.0' // JTS Geometry 라이브러리 추가, Point 타입 사용하기 위해서. jts는 공간 관련 기능을 제공하는 Java의 라이브러리이다.
 
 	// 썸네일용
-	implementation 'net.coobird:thumbnailator:0.4.14'
+	implementation 'net.coobird:thumbnailator:0.4.21'
 
 	// aws
 	// Spring Cloud AWS BOM (Bill of Materials)
-	implementation platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.1.1")
+	implementation platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.4.2")
 
 	// AWS Parameter Store 사용을 위한 의존성
 	implementation "io.awspring.cloud:spring-cloud-aws-starter-parameter-store"
@@ -165,7 +165,7 @@ dependencies {
 	// (선택) Secrets Manager를 사용한다면 아래 의존성 추가
 	// implementation "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager"
 
-	implementation 'org.apache.tika:tika-core:2.9.2' // Apache Tika , 파일확장자 검사용 특히 heic
+	implementation 'org.apache.tika:tika-core:2.9.4' // Apache Tika , 파일확장자 검사용 특히 heic
 
 	// TwelveMonkeys ImageIO 플러그인 추가 (HEIC, WebP 등 다양한 포맷 지원)
 //	implementation('com.twelvemonkeys.imageio:imageio-heif:3.10.1')
@@ -174,7 +174,7 @@ dependencies {
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
 	// PWA Web Push (VAPID)
-	implementation 'nl.martijndwars:web-push:5.1.1'
+	implementation 'nl.martijndwars:web-push:5.1.2'
 	implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
 
 }
