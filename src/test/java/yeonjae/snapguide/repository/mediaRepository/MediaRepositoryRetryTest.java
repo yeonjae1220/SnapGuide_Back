@@ -135,6 +135,63 @@ class MediaRepositoryRetryTest {
     }
 
     @Nested
+    @DisplayName("재시도 예산 소진 건의 종료 정산 (GLOBAL-PIT-067 / PIT-143)")
+    class ExhaustedSettlement {
+
+        private List<Media> findExhausted() {
+            return mediaRepository.findExhaustedPending(MAX_RETRY, cooldownBefore, PageRequest.of(0, 50));
+        }
+
+        @Test
+        @DisplayName("재시도 예산을 소진했는데 PENDING 이면 정산 대상이다 — 이 건이 예전엔 영원히 '처리 대기 중'이었다")
+        void includesExhaustedPending() {
+            Media media = persistMedia(ProcessingStatus.PENDING, MAX_RETRY, LocalDateTime.now().minusMinutes(10));
+
+            assertThat(findExhausted()).extracting(Media::getId).contains(media.getId());
+            // 재시도 후보에서는 빠져 있다 = 스스로 회복될 길이 없다
+            assertThat(findCandidates()).extracting(Media::getId).doesNotContain(media.getId());
+        }
+
+        @Test
+        @DisplayName("이미 FAILED 로 정산된 건은 다시 정산하지 않는다")
+        void excludesAlreadyFailed() {
+            Media media = persistMedia(ProcessingStatus.FAILED, MAX_RETRY, LocalDateTime.now().minusMinutes(10));
+
+            assertThat(findExhausted()).extracting(Media::getId).doesNotContain(media.getId());
+        }
+
+        @Test
+        @DisplayName("예산이 남아 있으면 정산하지 않는다 — 아직 재시도로 회복될 수 있다")
+        void excludesWhenBudgetRemains() {
+            Media media = persistMedia(ProcessingStatus.PENDING, MAX_RETRY - 1, LocalDateTime.now().minusMinutes(10));
+
+            assertThat(findExhausted()).extracting(Media::getId).doesNotContain(media.getId());
+            assertThat(findCandidates()).extracting(Media::getId).contains(media.getId());
+        }
+
+        @Test
+        @DisplayName("마지막 시도가 쿨다운 이내면 정산하지 않는다 — 그 시도가 아직 끝나지 않았을 수 있다")
+        void excludesWithinCooldown() {
+            Media media = persistMedia(ProcessingStatus.PENDING, MAX_RETRY, LocalDateTime.now().minusMinutes(1));
+
+            assertThat(findExhausted()).extracting(Media::getId).doesNotContain(media.getId());
+        }
+
+        @Test
+        @DisplayName("정산하면 FAILED 가 되고 그 뒤로는 재시도 후보에도 정산 대상에도 들지 않는다(종료 상태)")
+        void settledIsTerminal() {
+            Media media = persistMedia(ProcessingStatus.PENDING, MAX_RETRY, LocalDateTime.now().minusMinutes(10));
+
+            media.markProcessingFailed();
+            mediaRepository.saveAndFlush(media);
+
+            assertThat(media.getProcessingStatus()).isEqualTo(ProcessingStatus.FAILED);
+            assertThat(findExhausted()).extracting(Media::getId).doesNotContain(media.getId());
+            assertThat(findCandidates()).extracting(Media::getId).doesNotContain(media.getId());
+        }
+    }
+
+    @Nested
     @DisplayName("배치 크기 제한")
     class BatchLimit {
 

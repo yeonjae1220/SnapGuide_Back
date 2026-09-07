@@ -45,6 +45,8 @@ public class MediaReprocessingScheduler {
     @Scheduled(fixedDelay = SCHEDULE_INTERVAL_MS)
     public void retryFailedDerivatives() {
         LocalDateTime cooldownBefore = LocalDateTime.now().minusMinutes(RETRY_COOLDOWN_MINUTES);
+        settleExhausted(cooldownBefore);
+
         List<Media> candidates = mediaRepository.findRetryCandidates(
                 MAX_RETRY_COUNT, cooldownBefore, PageRequest.of(0, MAX_BATCH_SIZE));
 
@@ -57,6 +59,33 @@ public class MediaReprocessingScheduler {
             Long mediaId = media.getId();
             fileProcessingExecutor.execute(() -> retryOne(mediaId));
         }
+    }
+
+    /**
+     * 재시도 예산을 소진한 채 PENDING 으로 남은 건을 FAILED 로 정산한다.
+     *
+     * 이 패스가 없으면 그 건들은 재시도 후보에서 빠진 채 영원히 '처리 대기 중'으로 남는다
+     * (권위 상태가 종료로 가지 못함 — GLOBAL-PIT-067 / GLOBAL-PIT-143).
+     * 항목 단위로 저장·격리해 한 건의 실패가 나머지를 롤백시키지 않게 한다 (GLOBAL-PIT-128).
+     */
+    private void settleExhausted(LocalDateTime cooldownBefore) {
+        List<Media> exhausted = mediaRepository.findExhaustedPending(
+                MAX_RETRY_COUNT, cooldownBefore, PageRequest.of(0, MAX_BATCH_SIZE));
+        if (exhausted.isEmpty()) {
+            return;
+        }
+        int settled = 0;
+        for (Media media : exhausted) {
+            try {
+                media.markProcessingFailed();
+                mediaRepository.save(media);
+                settled++;
+            } catch (Exception e) {
+                log.error("[Reprocess] Failed to settle mediaId={} as FAILED: {}", media.getId(), e.getMessage());
+            }
+        }
+        log.warn("[Reprocess] Settled {}/{} exhausted media as FAILED (retryCount >= {})",
+                settled, exhausted.size(), MAX_RETRY_COUNT);
     }
 
     private void retryOne(Long mediaId) {
