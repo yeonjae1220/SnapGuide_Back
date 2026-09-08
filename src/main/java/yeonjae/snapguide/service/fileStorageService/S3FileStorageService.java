@@ -293,11 +293,15 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     private String getExtension(String fileName) {
-        try {
-            return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
-        } catch (StringIndexOutOfBoundsException e) {
-            return ""; // 확장자가 없는 경우
+        // 🔴 같은 이름의 함수가 LocalFileStorageService 에도 있는데 동작이 달랐다 (GLOBAL-PIT-132).
+        //    옛 구현은 try/catch StringIndexOutOfBoundsException 이었지만 그 예외는 **절대 안 난다** —
+        //    확장자가 없으면 lastIndexOf 가 -1 이라 substring(0) 이 되어 파일명 전체가 확장자로 돌아왔다.
+        //    catch 는 죽은 코드였고, 잡으려던 케이스는 조용히 틀린 값을 냈다.
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == fileName.length() - 1) {
+            return "";
         }
+        return fileName.substring(lastDot + 1).toLowerCase();
     }
 
     private ObjectMetadata createMetadata(String contentType, long contentLength) {

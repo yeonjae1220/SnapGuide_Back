@@ -23,7 +23,13 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
         log.info("---- [Cookie Load] Trying to load authorization request from cookie.");
         return CookieUtil.getCookie(request, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME)
                 .map(cookie -> {
-                    log.info("---- [Cookie Load] Found 'oauth2_auth_request' cookie. Value starts with: {}", cookie.getValue().substring(0, 10));
+                    // 🔴 substring(0, 10) 은 쿠키가 10자 미만이면 StringIndexOutOfBoundsException 을 던진다.
+                    //    이 람다는 인증 진입 경로라, 10자 미만 oauth2_auth_request 쿠키가 하나 있으면
+                    //    그 브라우저의 로그인이 통째로 500 이 된다. (영향 범위는 쿠키가 클라이언트별이라
+                    //    기본적으로 브라우저 한 대이고, 남에게 미치려면 서브도메인 장악·평문 MITM 같은
+                    //    쿠키 토싱 전제가 따로 필요하다.) 로그는 부수 표면이므로 본 작업을 절대
+                    //    막지 않아야 한다 (GLOBAL-PIT-135). 값 자체(state·PKCE 포함)도 남기지 않는다.
+                    log.info("---- [Cookie Load] Found 'oauth2_auth_request' cookie ({} chars).", cookie.getValue().length());
                     return CookieUtil.deserialize(cookie, OAuth2AuthorizationRequest.class);
                 })
                 .orElseGet(() -> {
