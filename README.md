@@ -170,7 +170,3 @@ cd k6-tests && k6 run scripts/1-upload-test.js
 ## 서비스 접속
 
 현재 프로젝트는 https://snapguide.mungji.com 에서 제공됩니다.
-
-## 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
